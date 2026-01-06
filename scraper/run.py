@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Generator
 from dataclasses import dataclass
 
-from firecrawl import FirecrawlApp
+from firecrawl import Firecrawl
 from supabase import create_client, Client
 from pydantic import BaseModel, Field, field_validator
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -115,7 +115,7 @@ class FirecrawlExtractor:
         api_key = os.environ.get("FIRECRAWL_API_KEY")
         if not api_key:
             raise ValueError("FIRECRAWL_API_KEY environment variable required")
-        self.client = FirecrawlApp(api_key=api_key)
+        self.client = Firecrawl(api_key=api_key)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
     def extract_listings(self, url: str, base_url: str) -> List[PropertyListing]:
@@ -123,22 +123,26 @@ class FirecrawlExtractor:
         logger.info(f"Extracting: {url}")
 
         try:
-            result = self.client.scrape_url(
+            # Use the new Firecrawl API with JSON extraction
+            result = self.client.scrape(
                 url,
-                params={
-                    "formats": ["extract"],
-                    "extract": {
-                        "schema": self.LISTING_SCHEMA,
-                        "prompt": self.EXTRACTION_PROMPT,
+                formats=[{
+                    "type": "json",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "listings": self.LISTING_SCHEMA["properties"]["listings"]
+                        }
                     },
-                },
+                    "prompt": self.EXTRACTION_PROMPT,
+                }],
             )
 
-            if not result or "extract" not in result:
+            if not result or "json" not in result:
                 logger.warning(f"No extraction result for: {url}")
                 return []
 
-            raw_listings = result.get("extract", {}).get("listings", [])
+            raw_listings = result.get("json", {}).get("listings", [])
             validated = []
 
             for raw in raw_listings:
