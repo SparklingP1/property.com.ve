@@ -128,13 +128,19 @@ class PlaywrightExtractor:
                     # For BienesOnline, the link itself and its siblings contain the data
                     # Extract data from link + siblings
                     raw_data = self._parse_bienes_online_link(link, source_url, base_url)
-                    if raw_data and raw_data.get('title'):
+
+                    # Debug logging
+                    if not raw_data:
+                        logger.warning(f"No data extracted for {source_url}")
+                    elif not raw_data.get('title'):
+                        logger.warning(f"No title for {source_url}, data: {raw_data}")
+                    else:
                         listing = PropertyListing(**raw_data)
                         listings.append(listing)
                         logger.info(f"Extracted: {listing.title[:50]}...")
 
                 except Exception as e:
-                    logger.warning(f"Failed to parse property: {e}")
+                    logger.warning(f"Failed to parse property {source_url}: {e}")
                     continue
 
             logger.info(f"Successfully extracted {len(listings)} listings")
