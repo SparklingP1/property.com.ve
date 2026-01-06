@@ -69,6 +69,7 @@ class PropertyListing(BaseModel):
 class FirecrawlExtractor:
     """Extract listings using Firecrawl AI."""
 
+    # Simplified schema for testing - just the essentials
     LISTING_SCHEMA = {
         "type": "object",
         "properties": {
@@ -77,38 +78,28 @@ class FirecrawlExtractor:
                 "items": {
                     "type": "object",
                     "properties": {
-                        "title": {"type": "string"},
-                        "price": {"type": "number"},
-                        "currency": {"type": "string"},
-                        "location": {"type": "string"},
-                        "bedrooms": {"type": "number"},
-                        "bathrooms": {"type": "number"},
-                        "area_sqm": {"type": "number"},
-                        "thumbnail_url": {"type": "string"},
-                        "description": {"type": "string"},
-                        "source_url": {"type": "string"},
-                        "property_type": {"type": "string"},
+                        "title": {"type": "string", "description": "Property title or headline"},
+                        "price": {"type": "number", "description": "Price as a number"},
+                        "source_url": {"type": "string", "description": "URL to the property details page"},
                     },
-                    "required": ["title", "source_url"],
+                    "required": ["title"],
                 },
             }
         },
     }
 
     EXTRACTION_PROMPT = """
-    Extract all property listings from this real estate page.
-    For each listing, extract:
-    - title: The property title or headline
-    - price: Numeric price value (without currency symbol)
-    - currency: Currency code (USD, EUR, VES, etc.)
-    - location: Full address or location description
-    - bedrooms: Number of bedrooms
-    - bathrooms: Number of bathrooms
-    - area_sqm: Area in square meters
-    - thumbnail_url: URL of the property image
-    - description: Brief description (max 200 chars)
-    - source_url: Full URL to the individual property listing page
-    - property_type: Type (apartment, house, land, commercial, office)
+    This is a real estate listing page showing multiple properties for sale.
+
+    Extract ALL property listings you can find on this page. Each listing card or item
+    shows a house/apartment for sale. Look for property cards, listing items, or search results.
+
+    For each property found, extract:
+    - title: The property name or headline
+    - price: The numeric price (just the number, no currency symbols)
+    - source_url: The link/URL to view more details about this specific property
+
+    Return as many listings as you can find on the page. A typical page has 10-30 listings.
     """
 
     def __init__(self):
@@ -166,10 +157,16 @@ class FirecrawlExtractor:
                         source_url = f"{base_url.rstrip('/')}/{source_url.lstrip('/')}"
                         raw["source_url"] = source_url
 
+                    # Ensure required field exists
+                    if not raw.get("source_url"):
+                        logger.warning(f"Skipping listing without URL: {raw.get('title', 'unknown')}")
+                        continue
+
                     listing = PropertyListing(**raw)
                     validated.append(listing)
+                    logger.info(f"Validated listing: {listing.title[:50]}...")
                 except Exception as e:
-                    logger.warning(f"Validation failed: {e}")
+                    logger.warning(f"Validation failed for {raw}: {e}")
 
             logger.info(f"Extracted {len(validated)} listings")
             return validated
@@ -281,12 +278,10 @@ class ScraperConfig:
 
 
 def get_green_acres_config() -> ScraperConfig:
-    """Green-Acres Venezuela scraper config."""
+    """Green-Acres Venezuela scraper config - DISABLED FOR NOW."""
     base = "https://ve.green-acres.com"
     urls = []
-
-    # Start with just 1 URL for testing to save credits
-    urls.append(f"{base}/en/houses-for-sale")
+    # Disabled - focusing on BienesOnline first
 
     return ScraperConfig(
         name="Green-Acres",
@@ -367,15 +362,15 @@ def main():
 
     results = []
 
-    # Scrape Green-Acres
-    try:
-        config = get_green_acres_config()
-        result = scrape_source(config, extractor, storage)
-        results.append(result)
-        logger.info(f"Green-Acres result: {result}")
-    except Exception as e:
-        logger.error(f"Green-Acres failed: {e}")
-        results.append({"source": "Green-Acres", "error": str(e)})
+    # Skip Green-Acres for now - focus on BienesOnline
+    # try:
+    #     config = get_green_acres_config()
+    #     result = scrape_source(config, extractor, storage)
+    #     results.append(result)
+    #     logger.info(f"Green-Acres result: {result}")
+    # except Exception as e:
+    #     logger.error(f"Green-Acres failed: {e}")
+    #     results.append({"source": "Green-Acres", "error": str(e)})
 
     # Scrape BienesOnline
     try:
