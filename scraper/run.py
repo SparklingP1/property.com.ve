@@ -123,11 +123,11 @@ class FirecrawlExtractor:
         logger.info(f"Extracting: {url}")
 
         try:
-            # Use the new Firecrawl API with JSON extraction
+            # Use Firecrawl API with JSON extraction
             result = self.client.scrape(
                 url,
-                formats=["extract"],
-                extract={
+                formats=[{
+                    "type": "extract",
                     "schema": {
                         "type": "object",
                         "properties": {
@@ -135,26 +135,32 @@ class FirecrawlExtractor:
                         }
                     },
                     "prompt": self.EXTRACTION_PROMPT,
-                }
+                }]
             )
 
             # Debug logging - handle Document object
             logger.info(f"Firecrawl response type: {type(result)}")
+            logger.info(f"Firecrawl response attrs: {dir(result)}")
 
             # Extract data from Document object
             extract_data = None
             if hasattr(result, 'extract'):
                 extract_data = result.extract
+                logger.info(f"Found extract attribute: {extract_data}")
             elif hasattr(result, 'data'):
                 extract_data = result.data
+                logger.info(f"Found data attribute: {extract_data}")
 
-            logger.info(f"Extract data: {extract_data}")
-
-            if not extract_data or not isinstance(extract_data, dict):
+            if not extract_data:
                 logger.warning(f"No extraction result for: {url}")
+                logger.warning(f"Response object: {result}")
                 return []
 
-            raw_listings = extract_data.get("listings", [])
+            # Handle if extract_data is itself a dict with listings
+            raw_listings = []
+            if isinstance(extract_data, dict):
+                raw_listings = extract_data.get("listings", [])
+
             logger.info(f"Raw listings count: {len(raw_listings) if isinstance(raw_listings, list) else 0}")
             validated = []
 
