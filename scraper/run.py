@@ -157,85 +157,85 @@ class PlaywrightExtractor:
         """Parse a single property from BienesOnline link and siblings."""
         data = {"source_url": source_url}
 
-        # Title - try multiple strategies
-        title = None
+        # Find the property card container (go up to div/article parent)
+        card = link.find_parent(['div', 'article'])
+        if not card:
+            card = link.parent
 
-        # Strategy 1: Look for h2, h3, h4, or strong tag
-        title_elem = link.find(['h2', 'h3', 'h4', 'strong'])
+        # Title - look for h2/h3 in the card
+        title_elem = card.find(['h2', 'h3', 'h4']) if card else link.find(['h2', 'h3', 'h4'])
         if title_elem:
-            title = title_elem.get_text(strip=True)
+            data['title'] = title_elem.get_text(strip=True)
+        elif link.find('img'):
+            # Fallback to image alt text
+            data['title'] = link.find('img').get('alt', '')
 
-        # Strategy 2: Get all text from the link (excluding img alt text)
-        if not title:
-            # Remove img tags to avoid getting alt text
-            link_copy = str(link)
-            from bs4 import BeautifulSoup as BS
-            temp_soup = BS(link_copy, 'lxml')
-            for img in temp_soup.find_all('img'):
-                img.decompose()
-            title = temp_soup.get_text(strip=True)
-
-        # Strategy 3: Get the alt text from image as last resort
-        if not title or len(title) < 5:
-            img = link.find('img')
-            if img and img.get('alt'):
-                title = img.get('alt')
-
-        if title:
-            data['title'] = title
-
-        # Image - get from img inside the link
-        img = link.find('img')
+        # Image - get from img inside the card or link
+        img = (card.find('img') if card else None) or link.find('img')
         if img:
             img_url = img.get('src', '')
-            if img_url:
-                if not img_url.startswith('http'):
-                    img_url = f"{base_url.rstrip('/')}/{img_url.lstrip('/')}"
+            if img_url and not img_url.startswith(('http', 'data:', 'blob:')):
+                img_url = f"{base_url.rstrip('/')}/{img_url.lstrip('/')}"
+            if img_url and img_url.startswith('http'):
                 data['image_urls'] = [img_url]
 
-        # Get all sibling paragraph tags after the link for price, location, specs
-        parent = link.parent
-        if parent:
-            # Get all text from parent and siblings
-            all_text = parent.get_text()
+        # Get all text from the card
+        all_text = card.get_text() if card else link.get_text()
 
-            # Also check for <li> elements with specs
-            li_elements = parent.find_all('li')
+        # Extract bedrooms, bathrooms, area from <li> elements
+        if card:
+            li_elements = card.find_all('li')
             for li in li_elements:
-                li_text = li.get_text(strip=True)
+                li_text = li.get_text(strip=True).lower()
 
-                # Bedrooms
-                if 'habitaciones' in li_text.lower():
+                # Bedrooms: "7 habitaciones"
+                if 'habitacion' in li_text:
                     bed_match = re.search(r'(\d+)', li_text)
                     if bed_match:
                         data['bedrooms'] = int(bed_match.group(1))
 
-                # Bathrooms
-                if 'baños' in li_text.lower() or 'banos' in li_text.lower():
+                # Bathrooms: "6 baños"
+                if 'baño' in li_text or 'bano' in li_text:
                     bath_match = re.search(r'(\d+)', li_text)
                     if bath_match:
                         data['bathrooms'] = int(bath_match.group(1))
 
-                # Area
+                # Area: "580 m2"
                 if 'm2' in li_text or 'm²' in li_text:
                     area_match = re.search(r'(\d+)', li_text)
                     if area_match:
                         data['area_sqm'] = float(area_match.group(1))
 
-            # Price - look for "U$D" pattern
-            price_match = re.search(r'U\$D\s*([\d,.]+)', all_text)
-            if price_match:
-                try:
-                    price_str = price_match.group(1).replace('.', '').replace(',', '')
-                    data['price'] = float(price_str)
-                    data['currency'] = 'USD'
-                except:
-                    pass
+        # Fallback: extract from description text (e.g., "7 habitaciones 6 banos")
+        if not data.get('bedrooms'):
+            bed_match = re.search(r'(\d+)\s*habitacion', all_text, re.I)
+            if bed_match:
+                data['bedrooms'] = int(bed_match.group(1))
 
-            # Location - look for "Casa en Venta en [location]" pattern
-            location_match = re.search(r'(?:Casa|Apartamento|Terreno)\s+en\s+Venta\s+en\s+([^,\n]+)', all_text, re.I)
-            if location_match:
-                data['location'] = location_match.group(1).strip()
+        if not data.get('bathrooms'):
+            bath_match = re.search(r'(\d+)\s*baños?', all_text, re.I)
+            if bath_match:
+                data['bathrooms'] = int(bath_match.group(1))
+
+        if not data.get('area_sqm'):
+            area_match = re.search(r'(\d+)\s*m[2²]', all_text, re.I)
+            if area_match:
+                data['area_sqm'] = float(area_match.group(1))
+
+        # Price - look for "U$D" pattern
+        price_match = re.search(r'U\$D\s*([\d,.]+)', all_text)
+        if price_match:
+            try:
+                price_str = price_match.group(1).replace('.', '').replace(',', '')
+                data['price'] = float(price_str)
+                data['currency'] = 'USD'
+            except:
+                pass
+
+        # Location - look for "Casa en Venta en [location]" pattern
+        location_match = re.search(r'(?:Casa|Apartamento|Terreno)\s+en\s+Venta\s+en\s+([^,\n]+)', all_text, re.I)
+        if location_match:
+            data['location'] = location_match.group(1).strip()
 
         # Property type - infer from URL
         if 'casa' in source_url.lower():
