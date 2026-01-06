@@ -154,15 +154,32 @@ class PlaywrightExtractor:
         """Parse a single property from BienesOnline link and siblings."""
         data = {"source_url": source_url}
 
-        # Title - get from h2 or h3 inside the link
-        title_elem = link.find(['h2', 'h3'])
+        # Title - try multiple strategies
+        title = None
+
+        # Strategy 1: Look for h2, h3, h4, or strong tag
+        title_elem = link.find(['h2', 'h3', 'h4', 'strong'])
         if title_elem:
-            data['title'] = title_elem.get_text(strip=True)
-        else:
-            # Fallback to link text
-            title_text = link.get_text(strip=True)
-            if title_text:
-                data['title'] = title_text
+            title = title_elem.get_text(strip=True)
+
+        # Strategy 2: Get all text from the link (excluding img alt text)
+        if not title:
+            # Remove img tags to avoid getting alt text
+            link_copy = str(link)
+            from bs4 import BeautifulSoup as BS
+            temp_soup = BS(link_copy, 'lxml')
+            for img in temp_soup.find_all('img'):
+                img.decompose()
+            title = temp_soup.get_text(strip=True)
+
+        # Strategy 3: Get the alt text from image as last resort
+        if not title or len(title) < 5:
+            img = link.find('img')
+            if img and img.get('alt'):
+                title = img.get('alt')
+
+        if title:
+            data['title'] = title
 
         # Image - get from img inside the link
         img = link.find('img')
