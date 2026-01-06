@@ -126,8 +126,8 @@ class FirecrawlExtractor:
             # Use the new Firecrawl API with JSON extraction
             result = self.client.scrape(
                 url,
-                formats=[{
-                    "type": "json",
+                formats=["extract"],
+                extract={
                     "schema": {
                         "type": "object",
                         "properties": {
@@ -135,21 +135,27 @@ class FirecrawlExtractor:
                         }
                     },
                     "prompt": self.EXTRACTION_PROMPT,
-                }],
+                }
             )
 
-            # Debug logging
-            logger.info(f"Firecrawl response keys: {list(result.keys()) if result else 'None'}")
-            if result:
-                logger.info(f"Response sample: {str(result)[:500]}")
+            # Debug logging - handle Document object
+            logger.info(f"Firecrawl response type: {type(result)}")
 
-            if not result or "json" not in result:
+            # Extract data from Document object
+            extract_data = None
+            if hasattr(result, 'extract'):
+                extract_data = result.extract
+            elif hasattr(result, 'data'):
+                extract_data = result.data
+
+            logger.info(f"Extract data: {extract_data}")
+
+            if not extract_data or not isinstance(extract_data, dict):
                 logger.warning(f"No extraction result for: {url}")
-                logger.warning(f"Full response: {result}")
                 return []
 
-            raw_listings = result.get("json", {}).get("listings", [])
-            logger.info(f"Raw listings count: {len(raw_listings) if isinstance(raw_listings, list) else 'N/A'}")
+            raw_listings = extract_data.get("listings", [])
+            logger.info(f"Raw listings count: {len(raw_listings) if isinstance(raw_listings, list) else 0}")
             validated = []
 
             for raw in raw_listings:
@@ -279,10 +285,8 @@ def get_green_acres_config() -> ScraperConfig:
     base = "https://ve.green-acres.com"
     urls = []
 
-    # Start with just 2 URLs for testing
-    for prop_type in ["houses-for-sale", "apartments-for-sale"]:
-        url = f"{base}/en/{prop_type}"
-        urls.append(url)
+    # Start with just 1 URL for testing to save credits
+    urls.append(f"{base}/en/houses-for-sale")
 
     return ScraperConfig(
         name="Green-Acres",
@@ -297,9 +301,8 @@ def get_bienes_online_config() -> ScraperConfig:
     base = "https://venezuela.bienesonline.com"
     urls = []
 
-    # Start with just 2 URLs for testing
+    # Start with just 1 URL for testing to save credits
     urls.append(f"{base}/casas")
-    urls.append(f"{base}/apartamentos")
 
     return ScraperConfig(
         name="BienesOnline",
