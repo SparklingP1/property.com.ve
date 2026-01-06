@@ -138,11 +138,18 @@ class FirecrawlExtractor:
                 }],
             )
 
+            # Debug logging
+            logger.info(f"Firecrawl response keys: {list(result.keys()) if result else 'None'}")
+            if result:
+                logger.info(f"Response sample: {str(result)[:500]}")
+
             if not result or "json" not in result:
                 logger.warning(f"No extraction result for: {url}")
+                logger.warning(f"Full response: {result}")
                 return []
 
             raw_listings = result.get("json", {}).get("listings", [])
+            logger.info(f"Raw listings count: {len(raw_listings) if isinstance(raw_listings, list) else 'N/A'}")
             validated = []
 
             for raw in raw_listings:
@@ -272,12 +279,10 @@ def get_green_acres_config() -> ScraperConfig:
     base = "https://ve.green-acres.com"
     urls = []
 
-    for prop_type in ["houses-for-sale", "apartments-for-sale", "land-for-sale"]:
-        for page in range(1, 6):  # First 5 pages per type
-            url = f"{base}/en/{prop_type}"
-            if page > 1:
-                url += f"?page={page}"
-            urls.append(url)
+    # Start with just 2 URLs for testing
+    for prop_type in ["houses-for-sale", "apartments-for-sale"]:
+        url = f"{base}/en/{prop_type}"
+        urls.append(url)
 
     return ScraperConfig(
         name="Green-Acres",
@@ -292,14 +297,9 @@ def get_bienes_online_config() -> ScraperConfig:
     base = "https://venezuela.bienesonline.com"
     urls = []
 
-    # Category pages
-    for category in ["casas", "apartamentos", "terrenos"]:
-        urls.append(f"{base}/{category}")
-
-    # State-specific pages
-    for state in ["miranda", "distrito-capital", "zulia", "carabobo", "nueva-esparta"]:
-        urls.append(f"{base}/casas/venta/{state}")
-        urls.append(f"{base}/apartamentos/venta/{state}")
+    # Start with just 2 URLs for testing
+    urls.append(f"{base}/casas")
+    urls.append(f"{base}/apartamentos")
 
     return ScraperConfig(
         name="BienesOnline",
@@ -313,7 +313,7 @@ def scrape_source(
     config: ScraperConfig,
     extractor: FirecrawlExtractor,
     storage: SupabaseStorage,
-    rate_limit: float = 3.0
+    rate_limit: float = 10.0
 ) -> dict:
     """Scrape a single source."""
     logger.info(f"Starting scrape: {config.name}")
