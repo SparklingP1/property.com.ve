@@ -123,43 +123,37 @@ class FirecrawlExtractor:
         logger.info(f"Extracting: {url}")
 
         try:
-            # Use Firecrawl API with JSON extraction
-            result = self.client.scrape(
-                url,
-                formats=[{
-                    "type": "extract",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "listings": self.LISTING_SCHEMA["properties"]["listings"]
-                        }
-                    },
-                    "prompt": self.EXTRACTION_PROMPT,
-                }]
+            # Use Firecrawl extract() method
+            result = self.client.extract(
+                urls=[url],
+                prompt=self.EXTRACTION_PROMPT,
+                schema={
+                    "type": "object",
+                    "properties": {
+                        "listings": self.LISTING_SCHEMA["properties"]["listings"]
+                    }
+                }
             )
 
-            # Debug logging - handle Document object
+            # Debug logging
             logger.info(f"Firecrawl response type: {type(result)}")
-            logger.info(f"Firecrawl response attrs: {dir(result)}")
 
-            # Extract data from Document object
-            extract_data = None
-            if hasattr(result, 'extract'):
-                extract_data = result.extract
-                logger.info(f"Found extract attribute: {extract_data}")
-            elif hasattr(result, 'data'):
-                extract_data = result.data
-                logger.info(f"Found data attribute: {extract_data}")
+            # Extract data - result should have .data attribute
+            extract_data = result.data if hasattr(result, 'data') else result
+            logger.info(f"Extract data type: {type(extract_data)}")
+            logger.info(f"Extract data: {extract_data}")
 
             if not extract_data:
                 logger.warning(f"No extraction result for: {url}")
-                logger.warning(f"Response object: {result}")
                 return []
 
-            # Handle if extract_data is itself a dict with listings
+            # Get listings from extracted data
             raw_listings = []
             if isinstance(extract_data, dict):
                 raw_listings = extract_data.get("listings", [])
+            elif isinstance(extract_data, list):
+                # In case the result is directly the list
+                raw_listings = extract_data
 
             logger.info(f"Raw listings count: {len(raw_listings) if isinstance(raw_listings, list) else 0}")
             validated = []
