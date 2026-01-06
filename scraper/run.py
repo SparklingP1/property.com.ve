@@ -44,6 +44,7 @@ class PropertyListing(BaseModel):
     description: Optional[str] = Field(None)
     source_url: str = Field(..., min_length=10)
     property_type: Optional[str] = Field(None)
+    image_urls: Optional[list] = Field(default_factory=list)
 
     @field_validator("description", mode="before")
     @classmethod
@@ -69,26 +70,46 @@ class PropertyListing(BaseModel):
 class FirecrawlExtractor:
     """Extract listings using Firecrawl AI."""
 
-    # Ultra-simple schema - just ONE listing
+    # Full schema with all details
     LISTING_SCHEMA = {
         "type": "object",
         "properties": {
-            "title": {"type": "string"},
-            "price": {"type": "number"},
-            "source_url": {"type": "string"},
+            "title": {"type": "string", "description": "Property title/headline"},
+            "price": {"type": "number", "description": "Price as number"},
+            "currency": {"type": "string", "description": "Currency code like USD, EUR, VES"},
+            "source_url": {"type": "string", "description": "URL to property details"},
+            "location": {"type": "string", "description": "Full address or area"},
+            "bedrooms": {"type": "number", "description": "Number of bedrooms"},
+            "bathrooms": {"type": "number", "description": "Number of bathrooms"},
+            "area_sqm": {"type": "number", "description": "Area in square meters"},
+            "property_type": {"type": "string", "description": "Type: house, apartment, land, etc"},
+            "description": {"type": "string", "description": "Brief description"},
+            "image_urls": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Array of photo URLs"
+            },
         },
-        "required": ["title"],
+        "required": ["title", "source_url"],
     }
 
     EXTRACTION_PROMPT = """
-    This is a real estate listing page. Find just ONE property listing on the page.
+    Extract ONE property listing from this page with ALL available details.
 
     Extract:
-    - title: The property headline or title
-    - price: The price as a number (if visible)
-    - source_url: The URL/link to this property
+    - title: Property headline
+    - price: Numeric price (no currency symbols)
+    - currency: Currency code (USD, EUR, VES, etc)
+    - source_url: URL to the property page
+    - location: Address or location area
+    - bedrooms: Number of bedrooms
+    - bathrooms: Number of bathrooms
+    - area_sqm: Property area in square meters
+    - property_type: house, apartment, land, commercial, etc
+    - description: Brief property description
+    - image_urls: Array of ALL photo/image URLs for this property
 
-    Just return ONE listing to test the extraction.
+    Extract as much data as available. Some fields may be missing.
     """
 
     def __init__(self):
@@ -185,6 +206,10 @@ class SupabaseStorage:
 
         for listing in listings:
             try:
+                # Handle image URLs - use first as thumbnail, store all in array
+                image_urls = getattr(listing, 'image_urls', None) or []
+                thumbnail = image_urls[0] if image_urls else getattr(listing, 'thumbnail_url', None)
+
                 data = {
                     "source": source,
                     "source_url": listing.source_url,
@@ -196,9 +221,10 @@ class SupabaseStorage:
                     "bedrooms": listing.bedrooms,
                     "bathrooms": listing.bathrooms,
                     "area_sqm": listing.area_sqm,
-                    "thumbnail_url": listing.thumbnail_url,
+                    "thumbnail_url": thumbnail,
                     "description_short": listing.description,
                     "property_type": listing.property_type,
+                    "image_urls": image_urls,  # Store all images
                     "scraped_at": now,
                     "last_seen_at": now,
                     "active": True,
