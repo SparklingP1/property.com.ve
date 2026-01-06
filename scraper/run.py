@@ -13,10 +13,12 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Generator
 from dataclasses import dataclass
 
-from firecrawl import Firecrawl
+from playwright.sync_api import sync_playwright, Browser, Page
+from bs4 import BeautifulSoup
 from supabase import create_client, Client
 from pydantic import BaseModel, Field, field_validator
 from tenacity import retry, stop_after_attempt, wait_exponential
+import re
 
 # Configure logging
 logging.basicConfig(
@@ -64,115 +66,157 @@ class PropertyListing(BaseModel):
 
 
 # =============================================================================
-# Firecrawl Extractor
+# Playwright Extractor
 # =============================================================================
 
-class FirecrawlExtractor:
-    """Extract listings using Firecrawl AI."""
-
-    # Full schema with all details
-    LISTING_SCHEMA = {
-        "type": "object",
-        "properties": {
-            "title": {"type": "string", "description": "Property title/headline"},
-            "price": {"type": "number", "description": "Price as number"},
-            "currency": {"type": "string", "description": "Currency code like USD, EUR, VES"},
-            "source_url": {"type": "string", "description": "URL to property details"},
-            "location": {"type": "string", "description": "Full address or area"},
-            "bedrooms": {"type": "number", "description": "Number of bedrooms"},
-            "bathrooms": {"type": "number", "description": "Number of bathrooms"},
-            "area_sqm": {"type": "number", "description": "Area in square meters"},
-            "property_type": {"type": "string", "description": "Type: house, apartment, land, etc"},
-            "description": {"type": "string", "description": "Brief description"},
-            "image_urls": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "Array of photo URLs"
-            },
-        },
-        "required": ["title", "source_url"],
-    }
-
-    EXTRACTION_PROMPT = """
-    Extract ONE property listing from this page with ALL available details.
-
-    Extract:
-    - title: Property headline
-    - price: Numeric price (no currency symbols)
-    - currency: Currency code (USD, EUR, VES, etc)
-    - source_url: URL to the property page
-    - location: Address or location area
-    - bedrooms: Number of bedrooms
-    - bathrooms: Number of bathrooms
-    - area_sqm: Property area in square meters
-    - property_type: house, apartment, land, commercial, etc
-    - description: Brief property description
-    - image_urls: Array of ALL photo/image URLs for this property
-
-    Extract as much data as available. Some fields may be missing.
-    """
+class PlaywrightExtractor:
+    """Extract listings using Playwright and BeautifulSoup - $0 cost!"""
 
     def __init__(self):
-        api_key = os.environ.get("FIRECRAWL_API_KEY")
-        if not api_key:
-            raise ValueError("FIRECRAWL_API_KEY environment variable required")
-        self.client = Firecrawl(api_key=api_key)
+        self.browser: Browser = None
+        self.playwright = None
+
+    def __enter__(self):
+        """Context manager entry - start browser."""
+        self.playwright = sync_playwright().start()
+        self.browser = self.playwright.chromium.launch(headless=True)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - close browser."""
+        if self.browser:
+            self.browser.close()
+        if self.playwright:
+            self.playwright.stop()
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
     def extract_listings(self, url: str, base_url: str) -> List[PropertyListing]:
-        """Extract listings from a page."""
-        logger.info(f"Extracting: {url}")
+        """Extract ALL listings from a BienesOnline page."""
+        logger.info(f"Scraping: {url}")
 
         try:
-            # Use Firecrawl extract() method - extract ONE listing
-            result = self.client.extract(
-                urls=[url],
-                prompt=self.EXTRACTION_PROMPT,
-                schema=self.LISTING_SCHEMA
-            )
+            # Load page with Playwright
+            page = self.browser.new_page()
+            page.goto(url, wait_until="networkidle")
+            html = page.content()
+            page.close()
 
-            # Debug logging
-            logger.info(f"Firecrawl response type: {type(result)}")
+            # Parse with BeautifulSoup
+            soup = BeautifulSoup(html, 'lxml')
+            listings = []
 
-            # Extract data - result should have .data attribute
-            extract_data = result.data if hasattr(result, 'data') else result
-            logger.info(f"Extract data type: {type(extract_data)}")
-            logger.info(f"Extract data: {extract_data}")
+            # Find all property cards - BienesOnline specific selectors
+            # Properties are in article or div elements with links to ficha-casa pages
+            property_links = soup.find_all('a', href=re.compile(r'ficha-casa-venta-.*\.php'))
 
-            if not extract_data:
-                logger.warning(f"No extraction result for: {url}")
-                return []
+            logger.info(f"Found {len(property_links)} potential property links")
 
-            # Since we're extracting just ONE listing, wrap it in an array
-            raw_listings = [extract_data] if isinstance(extract_data, dict) else []
-            logger.info(f"Raw listings count: {len(raw_listings)}")
-            validated = []
-
-            for raw in raw_listings:
+            # Process each unique property (avoid duplicates)
+            seen_urls = set()
+            for link in property_links:
                 try:
-                    # Make source_url absolute
-                    source_url = raw.get("source_url", "")
-                    if source_url and not source_url.startswith("http"):
-                        source_url = f"{base_url.rstrip('/')}/{source_url.lstrip('/')}"
-                        raw["source_url"] = source_url
-
-                    # Ensure required field exists
-                    if not raw.get("source_url"):
-                        logger.warning(f"Skipping listing without URL: {raw.get('title', 'unknown')}")
+                    source_url = link.get('href', '')
+                    if not source_url or source_url in seen_urls:
                         continue
 
-                    listing = PropertyListing(**raw)
-                    validated.append(listing)
-                    logger.info(f"Validated listing: {listing.title[:50]}...")
-                except Exception as e:
-                    logger.warning(f"Validation failed for {raw}: {e}")
+                    seen_urls.add(source_url)
 
-            logger.info(f"Extracted {len(validated)} listings")
-            return validated
+                    # Make URL absolute
+                    if not source_url.startswith('http'):
+                        source_url = f"{base_url.rstrip('/')}/{source_url.lstrip('/')}"
+
+                    # Find the containing card/article for this property
+                    card = link.find_parent(['article', 'div'], class_=re.compile(r'.*property.*|.*listing.*|.*card.*', re.I))
+                    if not card:
+                        card = link.find_parent(['article', 'div'])
+
+                    if not card:
+                        continue
+
+                    # Extract data from card
+                    raw_data = self._parse_bienes_online_card(card, source_url, base_url)
+                    if raw_data and raw_data.get('title'):
+                        listing = PropertyListing(**raw_data)
+                        listings.append(listing)
+                        logger.info(f"Extracted: {listing.title[:50]}...")
+
+                except Exception as e:
+                    logger.warning(f"Failed to parse property card: {e}")
+                    continue
+
+            logger.info(f"Successfully extracted {len(listings)} listings")
+            return listings
 
         except Exception as e:
             logger.error(f"Extraction failed: {e}")
             raise
+
+    def _parse_bienes_online_card(self, card, source_url: str, base_url: str) -> dict:
+        """Parse a single property card from BienesOnline."""
+        data = {"source_url": source_url}
+
+        # Title - get from link text
+        title_elem = card.find('a', href=re.compile(r'ficha-casa'))
+        if title_elem:
+            data['title'] = title_elem.get_text(strip=True)
+
+        # Price - look for "U$D" pattern
+        price_text = card.get_text()
+        price_match = re.search(r'U\$D\s*([\d,.]+)', price_text)
+        if price_match:
+            try:
+                price_str = price_match.group(1).replace('.', '').replace(',', '')
+                data['price'] = float(price_str)
+                data['currency'] = 'USD'
+            except:
+                pass
+
+        # Location - usually after title
+        location_patterns = [r'en\s+([^,]+)', r'Casa\s+en\s+Venta\s+en\s+([^,]+)']
+        for pattern in location_patterns:
+            loc_match = re.search(pattern, price_text, re.I)
+            if loc_match:
+                data['location'] = loc_match.group(1).strip()
+                break
+
+        # Bedrooms - look for "habitaciones" or bedroom icon
+        bed_match = re.search(r'(\d+)\s*habitaciones?', price_text, re.I)
+        if bed_match:
+            data['bedrooms'] = int(bed_match.group(1))
+
+        # Bathrooms - look for "baños"
+        bath_match = re.search(r'(\d+)\s*baños?', price_text, re.I)
+        if bath_match:
+            data['bathrooms'] = int(bath_match.group(1))
+
+        # Area - look for "m2" or "m²"
+        area_match = re.search(r'(\d+)\s*m[2²]', price_text)
+        if area_match:
+            data['area_sqm'] = float(area_match.group(1))
+
+        # Property type - infer from URL
+        if 'casa' in source_url.lower():
+            data['property_type'] = 'house'
+        elif 'apartamento' in source_url.lower():
+            data['property_type'] = 'apartment'
+        elif 'terreno' in source_url.lower():
+            data['property_type'] = 'land'
+
+        # Images - get thumbnail
+        img = card.find('img', src=re.compile(r'optimized|photos'))
+        if img:
+            img_url = img.get('src', '')
+            if img_url:
+                if not img_url.startswith('http'):
+                    img_url = f"{base_url.rstrip('/')}/{img_url.lstrip('/')}"
+                data['image_urls'] = [img_url]
+
+        # Description - get any text content
+        desc_elem = card.find(['p', 'div'], class_=re.compile(r'.*desc.*', re.I))
+        if desc_elem:
+            data['description'] = desc_elem.get_text(strip=True)[:200]
+
+        return data
 
 
 # =============================================================================
@@ -360,31 +404,21 @@ def main():
     logger.info(f"Time: {datetime.utcnow().isoformat()}")
     logger.info("=" * 60)
 
-    # Initialize
-    extractor = FirecrawlExtractor()
+    # Initialize storage
     storage = SupabaseStorage()
-
     results = []
 
-    # Skip Green-Acres for now - focus on BienesOnline
-    # try:
-    #     config = get_green_acres_config()
-    #     result = scrape_source(config, extractor, storage)
-    #     results.append(result)
-    #     logger.info(f"Green-Acres result: {result}")
-    # except Exception as e:
-    #     logger.error(f"Green-Acres failed: {e}")
-    #     results.append({"source": "Green-Acres", "error": str(e)})
-
-    # Scrape BienesOnline
-    try:
-        config = get_bienes_online_config()
-        result = scrape_source(config, extractor, storage)
-        results.append(result)
-        logger.info(f"BienesOnline result: {result}")
-    except Exception as e:
-        logger.error(f"BienesOnline failed: {e}")
-        results.append({"source": "BienesOnline", "error": str(e)})
+    # Use Playwright extractor as context manager
+    with PlaywrightExtractor() as extractor:
+        # Scrape BienesOnline only
+        try:
+            config = get_bienes_online_config()
+            result = scrape_source(config, extractor, storage)
+            results.append(result)
+            logger.info(f"BienesOnline result: {result}")
+        except Exception as e:
+            logger.error(f"BienesOnline failed: {e}")
+            results.append({"source": "BienesOnline", "error": str(e)})
 
     # Summary
     logger.info("=" * 60)
