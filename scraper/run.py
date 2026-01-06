@@ -357,7 +357,7 @@ def get_bienes_online_config() -> ScraperConfig:
 
 def scrape_source(
     config: ScraperConfig,
-    extractor: FirecrawlExtractor,
+    extractor: PlaywrightExtractor,
     storage: SupabaseStorage,
     rate_limit: float = 10.0
 ) -> dict:
