@@ -107,7 +107,7 @@ class PlaywrightExtractor:
 
             # Find all property cards - BienesOnline specific selectors
             # Properties are in article or div elements with links to ficha-casa pages
-            property_links = soup.find_all('a', href=re.compile(r'ficha-casa-venta-.*\.php'))
+            property_links = soup.find_all('a', href=re.compile(r'/ficha-casa-venta-.*_CAV\d+\.php'))
 
             logger.info(f"Found {len(property_links)} potential property links")
 
@@ -125,23 +125,16 @@ class PlaywrightExtractor:
                     if not source_url.startswith('http'):
                         source_url = f"{base_url.rstrip('/')}/{source_url.lstrip('/')}"
 
-                    # Find the containing card/article for this property
-                    card = link.find_parent(['article', 'div'], class_=re.compile(r'.*property.*|.*listing.*|.*card.*', re.I))
-                    if not card:
-                        card = link.find_parent(['article', 'div'])
-
-                    if not card:
-                        continue
-
-                    # Extract data from card
-                    raw_data = self._parse_bienes_online_card(card, source_url, base_url)
+                    # For BienesOnline, the link itself and its siblings contain the data
+                    # Extract data from link + siblings
+                    raw_data = self._parse_bienes_online_link(link, source_url, base_url)
                     if raw_data and raw_data.get('title'):
                         listing = PropertyListing(**raw_data)
                         listings.append(listing)
                         logger.info(f"Extracted: {listing.title[:50]}...")
 
                 except Exception as e:
-                    logger.warning(f"Failed to parse property card: {e}")
+                    logger.warning(f"Failed to parse property: {e}")
                     continue
 
             logger.info(f"Successfully extracted {len(listings)} listings")
@@ -151,48 +144,70 @@ class PlaywrightExtractor:
             logger.error(f"Extraction failed: {e}")
             raise
 
-    def _parse_bienes_online_card(self, card, source_url: str, base_url: str) -> dict:
-        """Parse a single property card from BienesOnline."""
+    def _parse_bienes_online_link(self, link, source_url: str, base_url: str) -> dict:
+        """Parse a single property from BienesOnline link and siblings."""
         data = {"source_url": source_url}
 
-        # Title - get from link text
-        title_elem = card.find('a', href=re.compile(r'ficha-casa'))
+        # Title - get from h3 inside the link
+        title_elem = link.find('h3')
         if title_elem:
             data['title'] = title_elem.get_text(strip=True)
+        else:
+            # Fallback to link text
+            data['title'] = link.get_text(strip=True)
 
-        # Price - look for "U$D" pattern
-        price_text = card.get_text()
-        price_match = re.search(r'U\$D\s*([\d,.]+)', price_text)
-        if price_match:
-            try:
-                price_str = price_match.group(1).replace('.', '').replace(',', '')
-                data['price'] = float(price_str)
-                data['currency'] = 'USD'
-            except:
-                pass
+        # Image - get from img inside the link
+        img = link.find('img')
+        if img:
+            img_url = img.get('src', '')
+            if img_url:
+                if not img_url.startswith('http'):
+                    img_url = f"{base_url.rstrip('/')}/{img_url.lstrip('/')}"
+                data['image_urls'] = [img_url]
 
-        # Location - usually after title
-        location_patterns = [r'en\s+([^,]+)', r'Casa\s+en\s+Venta\s+en\s+([^,]+)']
-        for pattern in location_patterns:
-            loc_match = re.search(pattern, price_text, re.I)
-            if loc_match:
-                data['location'] = loc_match.group(1).strip()
-                break
+        # Get all sibling paragraph tags after the link for price, location, specs
+        parent = link.parent
+        if parent:
+            # Get all text from parent and siblings
+            all_text = parent.get_text()
 
-        # Bedrooms - look for "habitaciones" or bedroom icon
-        bed_match = re.search(r'(\d+)\s*habitaciones?', price_text, re.I)
-        if bed_match:
-            data['bedrooms'] = int(bed_match.group(1))
+            # Also check for <li> elements with specs
+            li_elements = parent.find_all('li')
+            for li in li_elements:
+                li_text = li.get_text(strip=True)
 
-        # Bathrooms - look for "baños"
-        bath_match = re.search(r'(\d+)\s*baños?', price_text, re.I)
-        if bath_match:
-            data['bathrooms'] = int(bath_match.group(1))
+                # Bedrooms
+                if 'habitaciones' in li_text.lower():
+                    bed_match = re.search(r'(\d+)', li_text)
+                    if bed_match:
+                        data['bedrooms'] = int(bed_match.group(1))
 
-        # Area - look for "m2" or "m²"
-        area_match = re.search(r'(\d+)\s*m[2²]', price_text)
-        if area_match:
-            data['area_sqm'] = float(area_match.group(1))
+                # Bathrooms
+                if 'baños' in li_text.lower() or 'banos' in li_text.lower():
+                    bath_match = re.search(r'(\d+)', li_text)
+                    if bath_match:
+                        data['bathrooms'] = int(bath_match.group(1))
+
+                # Area
+                if 'm2' in li_text or 'm²' in li_text:
+                    area_match = re.search(r'(\d+)', li_text)
+                    if area_match:
+                        data['area_sqm'] = float(area_match.group(1))
+
+            # Price - look for "U$D" pattern
+            price_match = re.search(r'U\$D\s*([\d,.]+)', all_text)
+            if price_match:
+                try:
+                    price_str = price_match.group(1).replace('.', '').replace(',', '')
+                    data['price'] = float(price_str)
+                    data['currency'] = 'USD'
+                except:
+                    pass
+
+            # Location - look for "Casa en Venta en [location]" pattern
+            location_match = re.search(r'(?:Casa|Apartamento|Terreno)\s+en\s+Venta\s+en\s+([^,\n]+)', all_text, re.I)
+            if location_match:
+                data['location'] = location_match.group(1).strip()
 
         # Property type - infer from URL
         if 'casa' in source_url.lower():
@@ -201,20 +216,6 @@ class PlaywrightExtractor:
             data['property_type'] = 'apartment'
         elif 'terreno' in source_url.lower():
             data['property_type'] = 'land'
-
-        # Images - get thumbnail
-        img = card.find('img', src=re.compile(r'optimized|photos'))
-        if img:
-            img_url = img.get('src', '')
-            if img_url:
-                if not img_url.startswith('http'):
-                    img_url = f"{base_url.rstrip('/')}/{img_url.lstrip('/')}"
-                data['image_urls'] = [img_url]
-
-        # Description - get any text content
-        desc_elem = card.find(['p', 'div'], class_=re.compile(r'.*desc.*', re.I))
-        if desc_elem:
-            data['description'] = desc_elem.get_text(strip=True)[:200]
 
         return data
 
