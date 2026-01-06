@@ -148,13 +148,15 @@ class PlaywrightExtractor:
         """Parse a single property from BienesOnline link and siblings."""
         data = {"source_url": source_url}
 
-        # Title - get from h3 inside the link
-        title_elem = link.find('h3')
+        # Title - get from h2 or h3 inside the link
+        title_elem = link.find(['h2', 'h3'])
         if title_elem:
             data['title'] = title_elem.get_text(strip=True)
         else:
             # Fallback to link text
-            data['title'] = link.get_text(strip=True)
+            title_text = link.get_text(strip=True)
+            if title_text:
+                data['title'] = title_text
 
         # Image - get from img inside the link
         img = link.find('img')
