@@ -69,37 +69,26 @@ class PropertyListing(BaseModel):
 class FirecrawlExtractor:
     """Extract listings using Firecrawl AI."""
 
-    # Simplified schema for testing - just the essentials
+    # Ultra-simple schema - just ONE listing
     LISTING_SCHEMA = {
         "type": "object",
         "properties": {
-            "listings": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string", "description": "Property title or headline"},
-                        "price": {"type": "number", "description": "Price as a number"},
-                        "source_url": {"type": "string", "description": "URL to the property details page"},
-                    },
-                    "required": ["title"],
-                },
-            }
+            "title": {"type": "string"},
+            "price": {"type": "number"},
+            "source_url": {"type": "string"},
         },
+        "required": ["title"],
     }
 
     EXTRACTION_PROMPT = """
-    This is a real estate listing page showing multiple properties for sale.
+    This is a real estate listing page. Find just ONE property listing on the page.
 
-    Extract ALL property listings you can find on this page. Each listing card or item
-    shows a house/apartment for sale. Look for property cards, listing items, or search results.
+    Extract:
+    - title: The property headline or title
+    - price: The price as a number (if visible)
+    - source_url: The URL/link to this property
 
-    For each property found, extract:
-    - title: The property name or headline
-    - price: The numeric price (just the number, no currency symbols)
-    - source_url: The link/URL to view more details about this specific property
-
-    Return as many listings as you can find on the page. A typical page has 10-30 listings.
+    Just return ONE listing to test the extraction.
     """
 
     def __init__(self):
@@ -114,16 +103,11 @@ class FirecrawlExtractor:
         logger.info(f"Extracting: {url}")
 
         try:
-            # Use Firecrawl extract() method
+            # Use Firecrawl extract() method - extract ONE listing
             result = self.client.extract(
                 urls=[url],
                 prompt=self.EXTRACTION_PROMPT,
-                schema={
-                    "type": "object",
-                    "properties": {
-                        "listings": self.LISTING_SCHEMA["properties"]["listings"]
-                    }
-                }
+                schema=self.LISTING_SCHEMA
             )
 
             # Debug logging
@@ -138,15 +122,9 @@ class FirecrawlExtractor:
                 logger.warning(f"No extraction result for: {url}")
                 return []
 
-            # Get listings from extracted data
-            raw_listings = []
-            if isinstance(extract_data, dict):
-                raw_listings = extract_data.get("listings", [])
-            elif isinstance(extract_data, list):
-                # In case the result is directly the list
-                raw_listings = extract_data
-
-            logger.info(f"Raw listings count: {len(raw_listings) if isinstance(raw_listings, list) else 0}")
+            # Since we're extracting just ONE listing, wrap it in an array
+            raw_listings = [extract_data] if isinstance(extract_data, dict) else []
+            logger.info(f"Raw listings count: {len(raw_listings)}")
             validated = []
 
             for raw in raw_listings:
