@@ -19,6 +19,9 @@ from supabase import create_client, Client
 from pydantic import BaseModel, Field, field_validator
 from tenacity import retry, stop_after_attempt, wait_exponential
 import re
+import httpx
+import hashlib
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
@@ -264,6 +267,36 @@ class SupabaseStorage:
         if not url or not key:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY required")
         self.client: Client = create_client(url, key)
+        self.http_client = httpx.Client(timeout=30.0, follow_redirects=True)
+
+    def download_and_upload_image(self, image_url: str, property_id: str, index: int = 0) -> Optional[str]:
+        """Download image and upload to Supabase Storage. Returns public URL or None."""
+        try:
+            # Download image
+            response = self.http_client.get(image_url)
+            response.raise_for_status()
+            image_data = response.content
+
+            # Generate filename: property-id/image-0.jpg
+            ext = Path(image_url).suffix or '.jpg'
+            filename = f"{property_id}/image-{index}{ext}"
+
+            # Upload to Supabase Storage bucket 'property-images'
+            # Note: Bucket must be created in Supabase dashboard first
+            self.client.storage.from_("property-images").upload(
+                filename,
+                image_data,
+                file_options={"content-type": response.headers.get("content-type", "image/jpeg"), "upsert": "true"}
+            )
+
+            # Get public URL
+            public_url = self.client.storage.from_("property-images").get_public_url(filename)
+            logger.info(f"Uploaded image: {filename}")
+            return public_url
+
+        except Exception as e:
+            logger.warning(f"Failed to download/upload image {image_url}: {e}")
+            return None
 
     def upsert_listings(self, listings: List[PropertyListing], source: str) -> dict:
         """Upsert listings to database."""
@@ -276,9 +309,20 @@ class SupabaseStorage:
 
         for listing in listings:
             try:
-                # Handle image URLs - use first as thumbnail, store all in array
-                image_urls = getattr(listing, 'image_urls', None) or []
-                thumbnail = image_urls[0] if image_urls else getattr(listing, 'thumbnail_url', None)
+                # Generate unique property ID from source URL
+                property_id = hashlib.md5(listing.source_url.encode()).hexdigest()[:12]
+
+                # Download and re-host images
+                original_image_urls = getattr(listing, 'image_urls', None) or []
+                hosted_image_urls = []
+
+                for idx, img_url in enumerate(original_image_urls):
+                    hosted_url = self.download_and_upload_image(img_url, property_id, idx)
+                    if hosted_url:
+                        hosted_image_urls.append(hosted_url)
+
+                # Use first hosted image as thumbnail
+                thumbnail = hosted_image_urls[0] if hosted_image_urls else None
 
                 data = {
                     "source": source,
@@ -294,7 +338,7 @@ class SupabaseStorage:
                     "thumbnail_url": thumbnail,
                     "description_short": listing.description,
                     "property_type": listing.property_type,
-                    "image_urls": image_urls,  # Store all images
+                    "image_urls": hosted_image_urls,  # Store self-hosted images
                     "scraped_at": now,
                     "last_seen_at": now,
                     "active": True,
