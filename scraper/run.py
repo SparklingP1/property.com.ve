@@ -266,11 +266,13 @@ class PlaywrightExtractor:
 
         return data
 
-    def extract_rentahouse_listings(self, url: str, base_url: str, max_pages: int = 5) -> List[PropertyListing]:
-        """Extract listings from Rent-A-House with pagination support."""
+    def extract_rentahouse_listings(self, url: str, base_url: str, max_pages: int = 5, storage=None, source_id: str = None) -> List[PropertyListing]:
+        """Extract listings from Rent-A-House with pagination support and batch uploads."""
         logger.info(f"Scraping Rent-A-House: {url}")
 
         all_listings = []
+        batch_size = 10  # Upload every 10 pages
+        total_uploaded = 0
 
         for page_num in range(1, max_pages + 1):
             try:
@@ -328,6 +330,14 @@ class PlaywrightExtractor:
                         logger.warning(f"Failed to parse {source_url}: {e}")
                         continue
 
+                # Batch upload every 10 pages
+                if storage and source_id and page_num % batch_size == 0 and all_listings:
+                    logger.info(f"📦 Uploading batch of {len(all_listings)} listings after page {page_num}...")
+                    result = storage.upsert_listings(all_listings, source_id)
+                    total_uploaded += result.get('upserted', 0)
+                    logger.info(f"✅ Batch uploaded: {result.get('upserted', 0)} upserted, {result.get('errors', 0)} errors. Total uploaded so far: {total_uploaded}")
+                    all_listings = []  # Clear batch
+
                 # Rate limiting between pages
                 if page_num < max_pages:
                     time.sleep(10)
@@ -336,7 +346,7 @@ class PlaywrightExtractor:
                 logger.error(f"Failed to scrape page {page_num}: {e}")
                 continue
 
-        logger.info(f"Total Rent-A-House listings extracted: {len(all_listings)}")
+        logger.info(f"Total Rent-A-House listings extracted: {len(all_listings)} (plus {total_uploaded} already uploaded)")
         return all_listings
 
     def _parse_rentahouse_listing(self, url: str, base_url: str) -> dict:
@@ -828,9 +838,15 @@ def scrape_source(
 
     for i, url in enumerate(config.page_urls):
         try:
-            # Rent-A-House uses special pagination extraction
+            # Rent-A-House uses special pagination extraction with batch uploads
             if config.source_id == "rentahouse":
-                listings = extractor.extract_rentahouse_listings(url, config.base_url, max_pages=max_pages)
+                listings = extractor.extract_rentahouse_listings(
+                    url,
+                    config.base_url,
+                    max_pages=max_pages,
+                    storage=storage,
+                    source_id=config.source_id
+                )
             else:
                 # BienesOnline and others use standard extraction
                 listings = extractor.extract_listings(url, config.base_url)
@@ -844,7 +860,7 @@ def scrape_source(
             logger.error(f"Failed {url}: {e}")
             continue
 
-    # Store in Supabase
+    # Store remaining listings in Supabase (those not uploaded in batches)
     result = storage.upsert_listings(all_listings, config.source_id)
 
     # Mark stale
