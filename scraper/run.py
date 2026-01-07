@@ -321,6 +321,12 @@ class PlaywrightExtractor:
                                 logger.info(f"Skipping commercial property: {raw_data.get('title', '')[:60]}")
                                 continue
 
+                            # Filter: Only for-sale properties (exclude rentals)
+                            transaction_type = raw_data.get('transaction_type', '').lower()
+                            if transaction_type == 'rent':
+                                logger.info(f"Skipping rental property: {raw_data.get('title', '')[:60]}")
+                                continue
+
                             listing = PropertyListing(**raw_data)
                             all_listings.append(listing)
                             logger.info(f"Extracted: {listing.title[:60]}...")
