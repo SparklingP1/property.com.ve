@@ -55,18 +55,90 @@ export default async function ListingPage({ params }: ListingPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
+  // First, check if listing exists (active or inactive)
   const { data: listing, error } = await supabase
     .from('listings')
     .select('*')
     .eq('id', id)
-    .eq('active', true)
     .single();
 
   if (error || !listing) {
     notFound();
   }
 
-  // Fetch related listings
+  // If listing is inactive, show "no longer available" page with similar properties
+  if (!listing.active) {
+    // Fetch similar available properties based on location and type
+    const { data: similarListings } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('active', true)
+      .eq('property_type', listing.property_type || 'apartment')
+      .limit(6)
+      .order('scraped_at', { ascending: false });
+
+    // Filter by city/state if available
+    const filtered =
+      similarListings?.filter(
+        (l) =>
+          l.city === listing.city ||
+          l.state === listing.state ||
+          l.region === listing.region
+      ) || [];
+
+    const finalSimilar = filtered.length > 0 ? filtered.slice(0, 6) : similarListings || [];
+
+    return (
+      <div className="container py-8">
+        <div className="bg-stone-50 border border-stone-200 rounded-2xl p-8 mb-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="text-3xl font-bold mb-4">Property No Longer Available</h1>
+            <p className="text-lg text-stone-600 mb-2">
+              This property has been sold, rented, or removed from the market.
+            </p>
+            <p className="text-stone-500 mb-6">
+              {listing.title && (
+                <span className="block text-sm mt-2 italic">{listing.title}</span>
+              )}
+            </p>
+            <div className="flex gap-4 justify-center">
+              <a
+                href="/search"
+                className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+              >
+                Browse All Properties
+              </a>
+              <a
+                href="/find-property"
+                className="px-6 py-3 bg-stone-200 text-stone-900 rounded-lg font-medium hover:bg-stone-300 transition-colors"
+              >
+                Request Property Search
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Similar Available Properties */}
+        {finalSimilar.length > 0 && (
+          <section>
+            <h2 className="text-2xl font-bold mb-6">Similar Available Properties</h2>
+            <ListingGrid listings={finalSimilar as Listing[]} />
+            <div className="text-center mt-8">
+              <a
+                href={`/search?property_type=${listing.property_type}${listing.state ? `&state=${encodeURIComponent(listing.state)}` : ''}`}
+                className="text-primary hover:underline font-medium"
+              >
+                View all {listing.property_type || 'properties'}{' '}
+                {listing.state ? `in ${listing.state}` : 'in this area'} →
+              </a>
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  }
+
+  // Fetch related listings for active properties
   const { data: relatedListings } = await supabase
     .from('listings')
     .select('*')

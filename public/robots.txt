@@ -1,0 +1,31 @@
+# robots.txt for property.com.ve
+# Property listing aggregator for Venezuela
+
+User-agent: *
+Allow: /
+
+# Block API routes from indexing
+Disallow: /api/
+
+# Prevent crawling of infinite filter combinations
+# Allow simple searches but block 3+ combined filters to avoid crawl bloat
+Disallow: /search?*&*&*&
+
+# Block duplicate content with UTM parameters
+Disallow: /*?utm_source=
+Disallow: /*?utm_medium=
+Disallow: /*?utm_campaign=
+
+# Allow all property listing pages
+Allow: /listing/
+
+# Sitemaps
+Sitemap: https://property.com.ve/sitemap.xml
+Sitemap: https://property.com.ve/sitemap-static.xml
+Sitemap: https://property.com.ve/sitemap-guides.xml
+Sitemap: https://property.com.ve/sitemap-listings.xml
+Sitemap: https://property.com.ve/sitemap-locations.xml
+
+# Crawl rate (optional - for polite crawlers)
+# 1 second delay between requests
+Crawl-delay: 1
