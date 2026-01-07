@@ -32,6 +32,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import translator for English conversion
+try:
+    from translator import PropertyTranslator
+    TRANSLATION_ENABLED = True
+except ImportError:
+    TRANSLATION_ENABLED = False
+    logger.warning("Translation module not available - listings will be stored in Spanish")
+
 
 # =============================================================================
 # Models
@@ -72,6 +80,19 @@ class PropertyListing(BaseModel):
     photo_count: Optional[int] = Field(None, ge=0)
     description_full: Optional[str] = Field(None)
 
+    # English translations (for international buyers)
+    title_en: Optional[str] = Field(None)
+    description_short_en: Optional[str] = Field(None)
+    description_full_en: Optional[str] = Field(None)
+
+    # Spanish originals (preserved for reference)
+    title_es: Optional[str] = Field(None)
+    description_short_es: Optional[str] = Field(None)
+    description_full_es: Optional[str] = Field(None)
+
+    # Translation metadata
+    translation_model: Optional[str] = Field(None)
+
     @field_validator("description", mode="before")
     @classmethod
     def truncate_description(cls, v: Optional[str]) -> Optional[str]:
@@ -99,6 +120,16 @@ class PlaywrightExtractor:
     def __init__(self):
         self.browser: Browser = None
         self.playwright = None
+        self.translator = None
+
+        # Initialize translator if enabled
+        if TRANSLATION_ENABLED:
+            try:
+                self.translator = PropertyTranslator()
+                logger.info("✅ Translation enabled - listings will be converted to English")
+            except Exception as e:
+                logger.warning(f"Translation initialization failed: {e}")
+                self.translator = None
 
     def __enter__(self):
         """Context manager entry - start browser."""
@@ -356,9 +387,17 @@ class PlaywrightExtractor:
                                 logger.info(f"Skipping rental property: {raw_data.get('title', '')[:60]}")
                                 continue
 
+                            # Translate to English for international buyers
+                            if self.translator:
+                                try:
+                                    raw_data = self.translator.translate_listing(raw_data)
+                                except Exception as e:
+                                    logger.warning(f"Translation failed for {source_url}: {e}")
+
                             listing = PropertyListing(**raw_data)
                             all_listings.append(listing)
-                            logger.info(f"Extracted: {listing.title[:60]}...")
+                            title_display = raw_data.get('title_en') or listing.title
+                            logger.info(f"Extracted: {title_display[:60]}...")
                         else:
                             logger.warning(f"No data extracted for {source_url}")
                     except Exception as e:
@@ -778,6 +817,20 @@ class SupabaseStorage:
                     "agent_office": getattr(listing, 'agent_office', None),
                     "reference_code": getattr(listing, 'reference_code', None),
                     "photo_count": getattr(listing, 'photo_count', None) or len(hosted_image_urls),
+
+                    # English translations
+                    "title_en": getattr(listing, 'title_en', None),
+                    "description_short_en": getattr(listing, 'description_short_en', None),
+                    "description_full_en": getattr(listing, 'description_full_en', None),
+
+                    # Spanish originals
+                    "title_es": getattr(listing, 'title_es', None),
+                    "description_short_es": getattr(listing, 'description_short_es', None),
+                    "description_full_es": getattr(listing, 'description_full_es', None),
+
+                    # Translation metadata
+                    "translation_model": getattr(listing, 'translation_model', None),
+                    "translated_at": now if getattr(listing, 'title_en', None) else None,
                 }
 
                 self.client.table("listings").upsert(
