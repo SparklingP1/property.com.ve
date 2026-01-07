@@ -4,13 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Search } from 'lucide-react';
 
 export function SearchBar() {
@@ -18,13 +11,10 @@ export function SearchBar() {
   const [isPending, startTransition] = useTransition();
 
   const [location, setLocation] = useState('');
-  const [transactionType, setTransactionType] = useState('all');
 
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (location) params.set('q', location);
-    if (transactionType && transactionType !== 'all')
-      params.set('transaction', transactionType);
 
     startTransition(() => {
       router.push(`/search?${params.toString()}`);
@@ -42,17 +32,6 @@ export function SearchBar() {
           className="h-14 text-base px-5"
         />
       </div>
-
-      <Select value={transactionType} onValueChange={setTransactionType}>
-        <SelectTrigger className="h-14 md:w-48 text-base">
-          <SelectValue placeholder="Buy or Rent" />
-        </SelectTrigger>
-        <SelectContent className="bg-white">
-          <SelectItem value="all">Buy or Rent</SelectItem>
-          <SelectItem value="sale">For Sale</SelectItem>
-          <SelectItem value="rent">For Rent</SelectItem>
-        </SelectContent>
-      </Select>
 
       <Button
         onClick={handleSearch}
