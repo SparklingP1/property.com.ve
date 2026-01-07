@@ -40,8 +40,21 @@ def detect_total_pages(url: str) -> int:
                 match = re.search(r'[?&]page=(\d+)', current_url)
                 if match:
                     detected_page = int(match.group(1))
-                    # Only trust if it's a reasonable number (> 100 for rentahouse)
-                    if detected_page > 100:
+
+                    # If we got 9999 back, the site doesn't redirect - verify it has properties
+                    if detected_page >= 9999:
+                        html = page.content()
+                        soup = BeautifulSoup(html, 'lxml')
+                        # Check if there are any property listings on this page
+                        properties = soup.find_all(['div', 'article'], class_=re.compile(r'property|listing|card', re.I))
+                        if len(properties) == 0:
+                            logger.warning(f"Page 9999 has no properties - site doesn't redirect, need different strategy")
+                        else:
+                            logger.info(f"✅ Detected max page from redirect: {detected_page}")
+                            browser.close()
+                            return detected_page
+                    # Only trust redirect if it's a reasonable number (100-9000)
+                    elif detected_page > 100:
                         logger.info(f"✅ Detected max page from redirect: {detected_page}")
                         browser.close()
                         return detected_page
@@ -99,7 +112,43 @@ def detect_total_pages(url: str) -> int:
                         browser.close()
                         return max_visible
                     else:
-                        logger.warning(f"Max visible page ({max_visible}) seems too low, using fallback")
+                        logger.warning(f"Max visible page ({max_visible}) seems too low, trying binary search")
+
+                        # Strategy 3: Binary search to find actual max page
+                        # This is needed for sites that only show nearby pagination links
+                        logger.info("Binary searching for actual max page...")
+
+                        def has_properties_on_page(page_num: int) -> bool:
+                            """Check if a specific page has property listings"""
+                            try:
+                                test_url = f"{url}{'&' if '?' in url else '?'}page={page_num}"
+                                page.goto(test_url, wait_until="networkidle", timeout=60000)
+                                html = page.content()
+                                soup = BeautifulSoup(html, 'lxml')
+                                properties = soup.find_all(['div', 'article'], class_=re.compile(r'property|listing|card', re.I))
+                                return len(properties) > 0
+                            except Exception as e:
+                                logger.warning(f"Error checking page {page_num}: {e}")
+                                return False
+
+                        # Binary search between max_visible and a reasonable upper bound
+                        low = max_visible
+                        high = 10000
+                        actual_max = max_visible
+
+                        while low <= high:
+                            mid = (low + high) // 2
+                            logger.info(f"  Checking page {mid}...")
+
+                            if has_properties_on_page(mid):
+                                actual_max = mid
+                                low = mid + 1
+                            else:
+                                high = mid - 1
+
+                        logger.info(f"✅ Binary search found max page: {actual_max}")
+                        browser.close()
+                        return actual_max
 
             browser.close()
 
