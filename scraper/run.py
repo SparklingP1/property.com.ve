@@ -313,6 +313,12 @@ class PlaywrightExtractor:
                     try:
                         raw_data = self._parse_rentahouse_listing(source_url, base_url)
                         if raw_data and raw_data.get('title'):
+                            # Filter: Only residential properties (apartment, house)
+                            property_type = raw_data.get('property_type', '').lower()
+                            if property_type in ['commercial', 'office', 'building']:
+                                logger.info(f"Skipping commercial property: {raw_data.get('title', '')[:60]}")
+                                continue
+
                             listing = PropertyListing(**raw_data)
                             all_listings.append(listing)
                             logger.info(f"Extracted: {listing.title[:60]}...")
@@ -880,10 +886,10 @@ def main():
         #     logger.error(f"BienesOnline failed: {e}")
         #     results.append({"source": "BienesOnline", "error": str(e)})
 
-        # Scrape Rent-A-House (1 page = ~12 listings for initial test)
+        # Scrape Rent-A-House (83 pages = ~1,000 residential listings)
         try:
             config = get_rentahouse_config()
-            result = scrape_source(config, extractor, storage, max_pages=1)
+            result = scrape_source(config, extractor, storage, max_pages=83)
             results.append(result)
             logger.info(f"Rent-A-House result: {result}")
         except Exception as e:
