@@ -200,7 +200,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
         </div>
 
         {/* Related Listings */}
-        {relatedListings?.length > 0 && (
+        {(relatedListings?.length ?? 0) > 0 && (
           <section className="mt-16">
             <h2 className="text-2xl font-bold mb-6">Similar Properties</h2>
             <ListingGrid listings={relatedListings as Listing[]} />
