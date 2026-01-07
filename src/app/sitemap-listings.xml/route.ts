@@ -1,5 +1,7 @@
 import { MetadataRoute } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { getListingUrl } from '@/lib/slug';
+import type { Listing } from '@/types/listing';
 
 /**
  * Property listings sitemap
@@ -14,20 +16,21 @@ export async function GET() {
   let listingPages: MetadataRoute.Sitemap = [];
 
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Fetch all active listings (up to 50,000 - sitemap limit)
     // Prioritize recently updated listings
+    // Need minimal fields for SEO URL generation
     const { data: listings } = await supabase
       .from('listings')
-      .select('id, scraped_at, last_seen_at, active')
+      .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, scraped_at, last_seen_at')
       .eq('active', true)
       .order('last_seen_at', { ascending: false })
       .limit(50000); // Sitemap max limit
 
     if (listings) {
       listingPages = listings.map((listing) => ({
-        url: `${baseUrl}/listing/${listing.id}`,
+        url: `${baseUrl}${getListingUrl(listing as Listing)}`,
         // Use last_seen_at for more accurate "when was this last confirmed"
         lastModified: new Date(listing.last_seen_at || listing.scraped_at),
         changeFrequency: 'daily' as const,

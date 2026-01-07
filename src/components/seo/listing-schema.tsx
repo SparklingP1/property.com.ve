@@ -1,4 +1,5 @@
 import type { Listing } from '@/types/listing';
+import { getListingUrl } from '@/lib/slug';
 
 interface ListingSchemaProps {
   listing: Listing;
@@ -8,9 +9,9 @@ export function ListingSchema({ listing }: ListingSchemaProps) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',
-    name: listing.title,
-    description: listing.description_short || undefined,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/listing/${listing.id}`,
+    name: listing.title_en || listing.title,
+    description: listing.description_short_en || listing.description_short || undefined,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}${getListingUrl(listing)}`,
     datePosted: listing.scraped_at,
     offers: {
       '@type': 'Offer',

@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 /**
  * Location-based search pages sitemap
@@ -14,7 +14,7 @@ export async function GET() {
   const locationPages: MetadataRoute.Sitemap = [];
 
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Get unique states with active listings
     const { data: statesData } = await supabase

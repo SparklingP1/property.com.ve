@@ -59,7 +59,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       {/* Hero Section - Compact */}
       <section className="relative overflow-hidden bg-stone-900 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,63,0.15),transparent_50%)]"></div>
-        <div className="container relative py-12 md:py-16">
+        <div className="container relative py-12 pb-20 md:py-16">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left: Headline */}
             <div className="space-y-5">
@@ -122,7 +122,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       </section>
 
       {/* Featured Listings */}
-      <section className="bg-stone-50 py-12 mt-8">
+      <section className="bg-stone-50 py-12 mt-4">
         <div className="container">
           <div className="flex items-end justify-between mb-10">
             <div>
@@ -130,7 +130,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                 Latest Listings
               </h2>
               <p className="text-lg text-stone-600">
-                Handpicked properties updated daily
+                Updated daily
               </p>
             </div>
             <a
@@ -143,6 +143,16 @@ export default async function HomePage({ searchParams }: PageProps) {
           <Suspense fallback={<ListingSkeleton count={12} />}>
             <FeaturedListings searchParams={params} />
           </Suspense>
+
+          {/* Mobile View All Button */}
+          <div className="md:hidden text-center mt-8">
+            <a
+              href="/search"
+              className="inline-block w-full sm:w-auto px-8 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors"
+            >
+              View All Properties →
+            </a>
+          </div>
         </div>
       </section>
 

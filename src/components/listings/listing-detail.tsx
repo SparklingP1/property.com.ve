@@ -8,6 +8,43 @@ interface ListingDetailProps {
   listing: Listing;
 }
 
+/**
+ * Translate common Spanish property style terms to English
+ */
+function translatePropertyStyle(style: string | null): string | null {
+  if (!style) return null;
+
+  const translations: Record<string, string> = {
+    // Levels
+    'un nivel': 'one level',
+    'dos niveles': 'two levels',
+    'tres niveles': 'three levels',
+    'multiple niveles': 'multiple levels',
+
+    // House styles
+    'casa quinta': 'detached house',
+    'townhouse': 'townhouse',
+    'adosado': 'townhouse',
+    'unifamiliar': 'single family',
+
+    // Apartment styles
+    'pent-house': 'penthouse',
+    'penthouse': 'penthouse',
+    'duplex': 'duplex',
+    'triplex': 'triplex',
+    'estudio': 'studio',
+
+    // General
+    'moderno': 'modern',
+    'contemporaneo': 'contemporary',
+    'colonial': 'colonial',
+    'rustico': 'rustic',
+  };
+
+  const lowerStyle = style.toLowerCase().trim();
+  return translations[lowerStyle] || style;
+}
+
 export function ListingDetail({ listing }: ListingDetailProps) {
   const formatPrice = (price: number | null, currency: string) => {
     if (!price) return 'Price on request';
@@ -126,7 +163,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
               <div className="flex items-center gap-2">
                 <Home className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Style:</span>
-                <span className="font-medium">{listing.property_style}</span>
+                <span className="font-medium capitalize">{translatePropertyStyle(listing.property_style)}</span>
               </div>
             )}
             {listing.condition && (
