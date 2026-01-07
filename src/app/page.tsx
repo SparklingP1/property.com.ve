@@ -64,37 +64,37 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   return (
     <>
-      {/* Hero Section - Asymmetric Layout */}
+      {/* Hero Section - Compact */}
       <section className="relative overflow-hidden bg-stone-900 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,63,0.15),transparent_50%)]"></div>
-        <div className="container relative py-20 md:py-32">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="container relative py-12 md:py-16">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left: Headline */}
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="inline-block">
-                <div className="text-xs font-medium tracking-wider text-amber-200 mb-4 uppercase">
-                  Venezuela's Property Market
+                <div className="text-xs font-medium tracking-wider text-amber-200 mb-3 uppercase">
+                  Venezuela's Market Opens to Investment
                 </div>
               </div>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
                 Discover<br />
                 Your Next<br />
                 <span className="text-amber-100">Space</span>
               </h1>
-              <p className="text-xl text-stone-300 max-w-md leading-relaxed">
-                1,000+ curated properties across Venezuela. From coastal
+              <p className="text-lg text-stone-300 max-w-md leading-relaxed">
+                10,000+ curated properties across Venezuela. From coastal
                 apartments to mountain estates.
               </p>
-              <div className="flex flex-wrap gap-4 pt-4">
+              <div className="flex flex-wrap gap-3 pt-2">
                 <a
                   href="/search"
-                  className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105"
+                  className="px-7 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105"
                 >
                   Start Searching
                 </a>
                 <a
                   href="/guides"
-                  className="px-8 py-4 bg-stone-800 hover:bg-stone-700 text-white font-semibold rounded-lg transition-colors border border-stone-700"
+                  className="px-7 py-3 bg-stone-800 hover:bg-stone-700 text-white font-semibold rounded-lg transition-colors border border-stone-700"
                 >
                   Buying Guide
                 </a>
@@ -102,22 +102,18 @@ export default async function HomePage({ searchParams }: PageProps) {
             </div>
 
             {/* Right: Stats Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6 transform translate-y-8">
-                <div className="text-4xl font-bold text-amber-100">1,000+</div>
-                <div className="text-stone-400 mt-2">Active Listings</div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
+                <div className="text-3xl font-bold text-amber-100">10,000+</div>
+                <div className="text-stone-400 mt-2 text-sm">Active Listings</div>
               </div>
-              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6">
-                <div className="text-4xl font-bold text-amber-100">12+</div>
-                <div className="text-stone-400 mt-2">States Covered</div>
+              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
+                <div className="text-3xl font-bold text-amber-100">12+</div>
+                <div className="text-stone-400 mt-2 text-sm">States Covered</div>
               </div>
-              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6">
-                <div className="text-4xl font-bold text-amber-100">3</div>
-                <div className="text-stone-400 mt-2">Verified Sources</div>
-              </div>
-              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6 transform translate-y-8">
-                <div className="text-4xl font-bold text-amber-100">24/7</div>
-                <div className="text-stone-400 mt-2">Updated</div>
+              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
+                <div className="text-3xl font-bold text-amber-100">24/7</div>
+                <div className="text-stone-400 mt-2 text-sm">Updated</div>
               </div>
             </div>
           </div>
