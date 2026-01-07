@@ -12,7 +12,7 @@ import uuid
 import time
 import argparse
 from datetime import datetime, timedelta
-from typing import List, Optional, Generator
+from typing import List, Optional, Generator, Tuple
 from dataclasses import dataclass
 
 from playwright.sync_api import sync_playwright, Browser, Page
@@ -117,16 +117,18 @@ class PropertyListing(BaseModel):
 class PlaywrightExtractor:
     """Extract listings using Playwright and BeautifulSoup - $0 cost!"""
 
-    def __init__(self):
+    def __init__(self, storage=None):
         self.browser: Browser = None
         self.playwright = None
         self.translator = None
+        self.storage = storage
 
         # Initialize translator if enabled
         if TRANSLATION_ENABLED:
             try:
                 self.translator = PropertyTranslator()
                 logger.info("✅ Translation enabled - listings will be converted to English")
+                logger.info("💡 Smart translation: Only new/changed listings will be translated")
             except Exception as e:
                 logger.warning(f"Translation initialization failed: {e}")
                 self.translator = None
@@ -143,6 +145,69 @@ class PlaywrightExtractor:
             self.browser.close()
         if self.playwright:
             self.playwright.stop()
+
+    def needs_translation(self, source_url: str, title: str, description_full: str) -> Tuple[bool, dict]:
+        """Check if a listing needs translation.
+
+        Returns True if:
+        - Listing doesn't exist in database (new listing)
+        - Listing exists but Spanish content has changed
+        - Listing exists but has no English translation
+
+        Args:
+            source_url: The listing's source URL (unique identifier)
+            title: Current Spanish title
+            description_full: Current Spanish full description
+
+        Returns:
+            tuple: (needs_translation: bool, existing_translations: dict)
+        """
+        if not self.storage:
+            # No storage connection - translate everything
+            return True, {}
+
+        try:
+            # Query database for existing listing
+            result = self.storage.client.table("listings").select(
+                "title_en, title_es, description_short_en, description_full_en, description_full_es, translation_model"
+            ).eq("source_url", source_url).single().execute()
+
+            existing = result.data if result.data else None
+
+            if not existing:
+                # New listing - needs translation
+                logger.debug(f"New listing, needs translation: {source_url}")
+                return True, {}
+
+            # Check if already translated
+            if not existing.get('title_en'):
+                # Exists but not translated - needs translation
+                logger.debug(f"Untranslated listing, needs translation: {source_url}")
+                return True, {}
+
+            # Check if Spanish content changed
+            title_changed = existing.get('title_es') != title
+            desc_changed = existing.get('description_full_es') != description_full
+
+            if title_changed or desc_changed:
+                # Content changed - needs re-translation
+                logger.info(f"Content changed, needs re-translation: {source_url}")
+                return True, {}
+
+            # Already translated and content unchanged - return existing translations
+            logger.debug(f"Already translated, skipping: {source_url}")
+            existing_translations = {
+                'title_en': existing.get('title_en'),
+                'description_short_en': existing.get('description_short_en'),
+                'description_full_en': existing.get('description_full_en'),
+                'translation_model': existing.get('translation_model')
+            }
+            return False, existing_translations
+
+        except Exception as e:
+            # On error, default to translating (safe fallback)
+            logger.debug(f"Error checking translation status, defaulting to translate: {e}")
+            return True, {}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
     def extract_listings(self, url: str, base_url: str) -> List[PropertyListing]:
@@ -387,10 +452,23 @@ class PlaywrightExtractor:
                                 logger.info(f"Skipping rental property: {raw_data.get('title', '')[:60]}")
                                 continue
 
-                            # Translate to English for international buyers
+                            # Smart translation: Only translate new or changed listings
                             if self.translator:
                                 try:
-                                    raw_data = self.translator.translate_listing(raw_data)
+                                    # Check if translation is needed
+                                    title = raw_data.get('title', '')
+                                    desc_full = raw_data.get('description_full', '')
+
+                                    needs_trans, existing_trans = self.needs_translation(source_url, title, desc_full)
+
+                                    if needs_trans:
+                                        # Translate the listing
+                                        raw_data = self.translator.translate_listing(raw_data)
+                                        logger.info(f"✅ Translated: {title[:60]}...")
+                                    else:
+                                        # Use existing translations from database
+                                        raw_data.update(existing_trans)
+                                        logger.debug(f"⏭️  Skipped translation (unchanged): {title[:60]}...")
                                 except Exception as e:
                                     logger.warning(f"Translation failed for {source_url}: {e}")
 
@@ -1064,8 +1142,8 @@ def main():
     storage = SupabaseStorage()
     results = []
 
-    # Use Playwright extractor as context manager
-    with PlaywrightExtractor() as extractor:
+    # Use Playwright extractor as context manager (pass storage for smart translation)
+    with PlaywrightExtractor(storage=storage) as extractor:
         # Scrape BienesOnline - DISABLED FOR NOW
         # try:
         #     config = get_bienes_online_config()
