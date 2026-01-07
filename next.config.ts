@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.bienesonline.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'rentahouse.com.ve',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.rentahouse.com.ve',
+      },
     ],
   },
 };

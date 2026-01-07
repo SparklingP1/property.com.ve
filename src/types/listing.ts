@@ -3,9 +3,13 @@ export type PropertyType =
   | 'house'
   | 'land'
   | 'commercial'
-  | 'office';
+  | 'office'
+  | 'building'
+  | 'annex';
 
 export type Currency = 'USD' | 'VES' | 'EUR';
+
+export type TransactionType = 'sale' | 'rent';
 
 export interface Listing {
   id: string;
@@ -22,11 +26,30 @@ export interface Listing {
   thumbnail_url: string | null;
   image_urls: string[] | null;
   description_short: string | null;
+  description_full: string | null;
   property_type: PropertyType | null;
   scraped_at: string;
   last_seen_at: string;
   active: boolean;
   created_at: string;
+
+  // Enhanced fields (Rent-A-House and others)
+  parking_spaces: number | null;
+  condition: string | null;
+  furnished: boolean | null;
+  transaction_type: TransactionType | null;
+  property_style: string | null;
+  city: string | null;
+  neighborhood: string | null;
+  state: string | null;
+  total_area_sqm: number | null;
+  land_area_sqm: number | null;
+  amenities: string[] | null;
+  features: Record<string, any> | null;
+  agent_name: string | null;
+  agent_office: string | null;
+  reference_code: string | null;
+  photo_count: number | null;
 }
 
 export interface ListingFilters {

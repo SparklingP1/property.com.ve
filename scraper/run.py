@@ -51,6 +51,25 @@ class PropertyListing(BaseModel):
     property_type: Optional[str] = Field(None)
     image_urls: Optional[list] = Field(default_factory=list)
 
+    # Enhanced fields for Rent-A-House and others
+    parking_spaces: Optional[int] = Field(None, ge=0, le=100)
+    condition: Optional[str] = Field(None)
+    furnished: Optional[bool] = Field(None)
+    transaction_type: Optional[str] = Field(None)  # 'sale' or 'rent'
+    property_style: Optional[str] = Field(None)
+    city: Optional[str] = Field(None)
+    neighborhood: Optional[str] = Field(None)
+    state: Optional[str] = Field(None)
+    total_area_sqm: Optional[float] = Field(None, ge=0)
+    land_area_sqm: Optional[float] = Field(None, ge=0)
+    amenities: Optional[list] = Field(default_factory=list)
+    features: Optional[dict] = Field(default_factory=dict)
+    agent_name: Optional[str] = Field(None)
+    agent_office: Optional[str] = Field(None)
+    reference_code: Optional[str] = Field(None)
+    photo_count: Optional[int] = Field(None, ge=0)
+    description_full: Optional[str] = Field(None)
+
     @field_validator("description", mode="before")
     @classmethod
     def truncate_description(cls, v: Optional[str]) -> Optional[str]:
@@ -247,6 +266,226 @@ class PlaywrightExtractor:
 
         return data
 
+    def extract_rentahouse_listings(self, url: str, base_url: str, max_pages: int = 5) -> List[PropertyListing]:
+        """Extract listings from Rent-A-House with pagination support."""
+        logger.info(f"Scraping Rent-A-House: {url}")
+
+        all_listings = []
+
+        for page_num in range(1, max_pages + 1):
+            try:
+                page_url = f"{url}?page={page_num}"
+                logger.info(f"Scraping page {page_num}: {page_url}")
+
+                # Load page
+                page = self.browser.new_page()
+                page.goto(page_url, wait_until="networkidle")
+                html = page.content()
+                page.close()
+
+                # Parse with BeautifulSoup
+                soup = BeautifulSoup(html, 'lxml')
+
+                # Find all property links
+                # Pattern: /[property-type]_en_[sale/rental]_en_[city]_en_[neighborhood]_rah-[code].html
+                property_links = soup.find_all('a', href=re.compile(r'_rah-\d+.*\.html'))
+
+                if not property_links:
+                    logger.info(f"No properties found on page {page_num}, stopping pagination")
+                    break
+
+                logger.info(f"Found {len(property_links)} property links on page {page_num}")
+
+                # Extract unique URLs
+                seen_urls = set()
+                for link in property_links:
+                    source_url = link.get('href', '')
+                    if not source_url or source_url in seen_urls:
+                        continue
+
+                    seen_urls.add(source_url)
+
+                    # Make URL absolute
+                    if not source_url.startswith('http'):
+                        source_url = f"{base_url.rstrip('/')}/{source_url.lstrip('/')}"
+
+                    # Visit individual listing page to get all details
+                    try:
+                        raw_data = self._parse_rentahouse_listing(source_url, base_url)
+                        if raw_data and raw_data.get('title'):
+                            listing = PropertyListing(**raw_data)
+                            all_listings.append(listing)
+                            logger.info(f"Extracted: {listing.title[:60]}...")
+                        else:
+                            logger.warning(f"No data extracted for {source_url}")
+                    except Exception as e:
+                        logger.warning(f"Failed to parse {source_url}: {e}")
+                        continue
+
+                # Rate limiting between pages
+                if page_num < max_pages:
+                    time.sleep(10)
+
+            except Exception as e:
+                logger.error(f"Failed to scrape page {page_num}: {e}")
+                continue
+
+        logger.info(f"Total Rent-A-House listings extracted: {len(all_listings)}")
+        return all_listings
+
+    def _parse_rentahouse_listing(self, url: str, base_url: str) -> dict:
+        """Parse a single Rent-A-House listing page."""
+        try:
+            # Load listing page
+            page = self.browser.new_page()
+            page.goto(url, wait_until="networkidle", timeout=30000)
+            html = page.content()
+            page.close()
+
+            soup = BeautifulSoup(html, 'lxml')
+            data = {"source_url": url}
+
+            # Extract RAH code from URL
+            rah_match = re.search(r'rah-(\d+-\d+)', url)
+            if rah_match:
+                data['reference_code'] = f"VE {rah_match.group(1)}"
+
+            # Title
+            title = soup.find('h1')
+            if title:
+                data['title'] = title.get_text(strip=True)
+
+            # Price
+            price_elem = soup.find(text=re.compile(r'[\d,\.]+'))
+            if price_elem:
+                price_text = price_elem.strip()
+                price_match = re.search(r'([\d,\.]+)', price_text)
+                if price_match:
+                    try:
+                        price_str = price_match.group(1).replace(',', '').replace('.', '')
+                        data['price'] = float(price_str)
+                        data['currency'] = 'USD'
+                    except:
+                        pass
+
+            # Location parsing from URL
+            # Pattern: /[property-type]_en_[sale/rental]_en_[city]_en_[neighborhood]
+            url_parts = url.split('_en_')
+            if len(url_parts) >= 4:
+                # Property type and transaction
+                prop_type_part = url_parts[0].split('/')[-1]
+                transaction_part = url_parts[1]
+
+                # Transaction type
+                if 'venta' in transaction_part:
+                    data['transaction_type'] = 'sale'
+                elif 'alquiler' in transaction_part:
+                    data['transaction_type'] = 'rent'
+
+                # Property type
+                if 'apartamento' in prop_type_part:
+                    data['property_type'] = 'apartment'
+                elif 'casa' in prop_type_part:
+                    data['property_type'] = 'house'
+                elif 'comercial' in prop_type_part:
+                    data['property_type'] = 'commercial'
+                elif 'edificio' in prop_type_part:
+                    data['property_type'] = 'building'
+
+                # City and neighborhood
+                if len(url_parts) >= 3:
+                    data['city'] = url_parts[2].replace('-', ' ').title()
+                if len(url_parts) >= 4:
+                    neighborhood = url_parts[3].split('_rah')[0].replace('-', ' ').title()
+                    data['neighborhood'] = neighborhood
+
+            # Extract all text for pattern matching
+            page_text = soup.get_text()
+
+            # Bedrooms
+            bed_match = re.search(r'(\d+)\s*(?:habitacion|dormitorio|recamara)', page_text, re.I)
+            if bed_match:
+                data['bedrooms'] = int(bed_match.group(1))
+
+            # Bathrooms
+            bath_match = re.search(r'(\d+)\s*baño', page_text, re.I)
+            if bath_match:
+                data['bathrooms'] = int(bath_match.group(1))
+
+            # Parking
+            parking_match = re.search(r'(\d+)\s*(?:puesto|estacionamiento|parking)', page_text, re.I)
+            if parking_match:
+                data['parking_spaces'] = int(parking_match.group(1))
+
+            # Area (private area)
+            area_match = re.search(r'(?:área privada|area privada).*?(\d+)\s*m', page_text, re.I)
+            if area_match:
+                data['area_sqm'] = float(area_match.group(1))
+
+            # Total area
+            total_area_match = re.search(r'(?:área total|area total|construcción|construida).*?(\d+)\s*m', page_text, re.I)
+            if total_area_match:
+                data['total_area_sqm'] = float(total_area_match.group(1))
+
+            # Condition
+            if 'usado' in page_text.lower():
+                data['condition'] = 'used'
+            elif 'nuevo' in page_text.lower():
+                data['condition'] = 'new'
+
+            # Agent name
+            agent_match = re.search(r'(?:Agente|Asesor)[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)', page_text)
+            if agent_match:
+                data['agent_name'] = agent_match.group(1).strip()
+
+            # Amenities
+            amenities = []
+            amenity_keywords = {
+                'piscina': 'pool',
+                'vigilancia': 'security',
+                'parque infantil': 'playground',
+                'ascensor': 'elevator',
+                'gimnasio': 'gym',
+                'planta eléctrica': 'generator',
+                'cancha': 'sports_court',
+                'salón de fiestas': 'party_room'
+            }
+            for spanish, english in amenity_keywords.items():
+                if spanish in page_text.lower():
+                    amenities.append(english)
+
+            if amenities:
+                data['amenities'] = amenities
+
+            # Images
+            images = []
+            img_tags = soup.find_all('img')
+            for img in img_tags:
+                src = img.get('src', '')
+                # Skip logos, icons, etc.
+                if src and ('properti' in src.lower() or 'inmueble' in src.lower() or 'foto' in src.lower()):
+                    if not src.startswith('http'):
+                        src = f"{base_url.rstrip('/')}/{src.lstrip('/')}"
+                    if src.startswith('http'):
+                        images.append(src)
+
+            if images:
+                data['image_urls'] = images
+                data['photo_count'] = len(images)
+
+            # Description
+            desc_elem = soup.find('p', class_=re.compile(r'desc', re.I))
+            if desc_elem:
+                desc_text = desc_elem.get_text(strip=True)
+                data['description_full'] = desc_text
+                data['description'] = desc_text[:200] + '...' if len(desc_text) > 200 else desc_text
+
+            return data
+
+        except Exception as e:
+            logger.error(f"Failed to parse Rent-A-House listing {url}: {e}")
+            return {}
+
 
 # =============================================================================
 # Supabase Storage
@@ -331,17 +570,36 @@ class SupabaseStorage:
                     "price": listing.price,
                     "currency": listing.currency,
                     "location": listing.location,
-                    "region": self._extract_region(listing.location or ""),
+                    "region": self._extract_region(listing.location or listing.city or ""),
                     "bedrooms": listing.bedrooms,
                     "bathrooms": listing.bathrooms,
                     "area_sqm": listing.area_sqm,
                     "thumbnail_url": thumbnail,
                     "description_short": listing.description,
+                    "description_full": getattr(listing, 'description_full', None),
                     "property_type": listing.property_type,
                     "image_urls": hosted_image_urls,  # Store self-hosted images
                     "scraped_at": now,
                     "last_seen_at": now,
                     "active": True,
+
+                    # Enhanced fields
+                    "parking_spaces": getattr(listing, 'parking_spaces', None),
+                    "condition": getattr(listing, 'condition', None),
+                    "furnished": getattr(listing, 'furnished', None),
+                    "transaction_type": getattr(listing, 'transaction_type', None),
+                    "property_style": getattr(listing, 'property_style', None),
+                    "city": getattr(listing, 'city', None),
+                    "neighborhood": getattr(listing, 'neighborhood', None),
+                    "state": getattr(listing, 'state', None),
+                    "total_area_sqm": getattr(listing, 'total_area_sqm', None),
+                    "land_area_sqm": getattr(listing, 'land_area_sqm', None),
+                    "amenities": getattr(listing, 'amenities', None),
+                    "features": getattr(listing, 'features', None),
+                    "agent_name": getattr(listing, 'agent_name', None),
+                    "agent_office": getattr(listing, 'agent_office', None),
+                    "reference_code": getattr(listing, 'reference_code', None),
+                    "photo_count": getattr(listing, 'photo_count', None) or len(hosted_image_urls),
                 }
 
                 self.client.table("listings").upsert(
@@ -425,11 +683,28 @@ def get_bienes_online_config() -> ScraperConfig:
     )
 
 
+def get_rentahouse_config() -> ScraperConfig:
+    """Rent-A-House Venezuela scraper config."""
+    base = "https://rentahouse.com.ve"
+    urls = []
+
+    # Start with the main property search page
+    urls.append(f"{base}/buscar-propiedades")
+
+    return ScraperConfig(
+        name="Rent-A-House",
+        source_id="rentahouse",
+        base_url=base,
+        page_urls=urls
+    )
+
+
 def scrape_source(
     config: ScraperConfig,
     extractor: PlaywrightExtractor,
     storage: SupabaseStorage,
-    rate_limit: float = 10.0
+    rate_limit: float = 10.0,
+    max_pages: int = 5
 ) -> dict:
     """Scrape a single source."""
     logger.info(f"Starting scrape: {config.name}")
@@ -438,7 +713,13 @@ def scrape_source(
 
     for i, url in enumerate(config.page_urls):
         try:
-            listings = extractor.extract_listings(url, config.base_url)
+            # Rent-A-House uses special pagination extraction
+            if config.source_id == "rentahouse":
+                listings = extractor.extract_rentahouse_listings(url, config.base_url, max_pages=max_pages)
+            else:
+                # BienesOnline and others use standard extraction
+                listings = extractor.extract_listings(url, config.base_url)
+
             all_listings.extend(listings)
 
             if i < len(config.page_urls) - 1:
@@ -480,7 +761,7 @@ def main():
 
     # Use Playwright extractor as context manager
     with PlaywrightExtractor() as extractor:
-        # Scrape BienesOnline only
+        # Scrape BienesOnline
         try:
             config = get_bienes_online_config()
             result = scrape_source(config, extractor, storage)
@@ -489,6 +770,16 @@ def main():
         except Exception as e:
             logger.error(f"BienesOnline failed: {e}")
             results.append({"source": "BienesOnline", "error": str(e)})
+
+        # Scrape Rent-A-House (start with 2 pages for testing)
+        try:
+            config = get_rentahouse_config()
+            result = scrape_source(config, extractor, storage, max_pages=2)
+            results.append(result)
+            logger.info(f"Rent-A-House result: {result}")
+        except Exception as e:
+            logger.error(f"Rent-A-House failed: {e}")
+            results.append({"source": "Rent-A-House", "error": str(e)})
 
     # Summary
     logger.info("=" * 60)
