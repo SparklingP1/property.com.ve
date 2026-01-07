@@ -1,17 +1,15 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { AdvancedSearchFilters } from './advanced-search-filters';
-import { SearchResults } from './search-results';
-import { ListingSkeleton } from '@/components/listings/listing-skeleton';
 import { Button } from '@/components/ui/button';
 import { SlidersHorizontal, X } from 'lucide-react';
 
 interface CollapsibleFiltersProps {
-  searchParams: { [key: string]: string | undefined };
+  children: ReactNode;
 }
 
-export function CollapsibleFilters({ searchParams }: CollapsibleFiltersProps) {
+export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
@@ -52,9 +50,7 @@ export function CollapsibleFilters({ searchParams }: CollapsibleFiltersProps) {
 
         {/* Results */}
         <main className={filtersOpen ? '' : 'lg:col-span-2'}>
-          <Suspense fallback={<ListingSkeleton count={12} />}>
-            <SearchResults searchParams={searchParams} />
-          </Suspense>
+          {children}
         </main>
       </div>
     </>
