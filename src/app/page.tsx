@@ -122,7 +122,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       </section>
 
       {/* Featured Listings */}
-      <section className="bg-stone-50 py-16 mt-16">
+      <section className="bg-stone-50 py-12 mt-8">
         <div className="container">
           <div className="flex items-end justify-between mb-10">
             <div>
