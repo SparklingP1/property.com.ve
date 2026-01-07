@@ -334,7 +334,7 @@ class PlaywrightExtractor:
         return all_listings
 
     def _parse_rentahouse_listing(self, url: str, base_url: str) -> dict:
-        """Parse a single Rent-A-House listing page."""
+        """Parse a single Rent-A-House listing page with proper HTML structure parsing."""
         try:
             # Load listing page
             page = self.browser.new_page()
@@ -345,156 +345,254 @@ class PlaywrightExtractor:
             soup = BeautifulSoup(html, 'lxml')
             data = {"source_url": url}
 
-            # Extract RAH code from URL
-            rah_match = re.search(r'rah-(\d+-\d+)', url)
-            if rah_match:
-                data['reference_code'] = f"VE {rah_match.group(1)}"
+            # Title - from meta tag or h1
+            meta_title = soup.find('meta', property='og:title')
+            if meta_title:
+                data['title'] = meta_title.get('content', '').strip()
+            else:
+                h1 = soup.find('h1')
+                if h1:
+                    data['title'] = h1.get_text(strip=True)
 
-            # Title
-            title = soup.find('h1')
-            if title:
-                data['title'] = title.get_text(strip=True)
+            # Price - from div.price strong
+            price_div = soup.find('div', class_='price')
+            if price_div:
+                price_strong = price_div.find('strong')
+                if price_strong:
+                    price_text = price_strong.get_text(strip=True)
+                    # Extract currency and amount (e.g., "USD 58.000")
+                    price_match = re.search(r'(USD|VES|EUR)\s*([\d,.]+)', price_text)
+                    if price_match:
+                        data['currency'] = price_match.group(1)
+                        try:
+                            # Remove thousand separators and convert
+                            price_str = price_match.group(2).replace('.', '').replace(',', '')
+                            data['price'] = float(price_str)
+                        except:
+                            pass
 
-            # Price
-            price_elem = soup.find(text=re.compile(r'[\d,\.]+'))
-            if price_elem:
-                price_text = price_elem.strip()
-                price_match = re.search(r'([\d,\.]+)', price_text)
-                if price_match:
-                    try:
-                        price_str = price_match.group(1).replace(',', '').replace('.', '')
-                        data['price'] = float(price_str)
-                        data['currency'] = 'USD'
-                    except:
-                        pass
+            # Extract from property-detailes-list (structured data)
+            details_list = soup.find('ul', class_='property-detailes-list')
+            if details_list:
+                for li in details_list.find_all('li'):
+                    text = li.get_text(strip=True)
 
-            # Location parsing from URL
-            # Pattern: /[property-type]_en_[sale/rental]_en_[city]_en_[neighborhood]
-            url_parts = url.split('_en_')
-            if len(url_parts) >= 4:
-                # Property type and transaction
-                prop_type_part = url_parts[0].split('/')[-1]
-                transaction_part = url_parts[1]
+                    # RAH Code
+                    if 'Código RAH:' in text:
+                        code_span = li.find('span', class_='float-right')
+                        if code_span:
+                            data['reference_code'] = code_span.get_text(strip=True)
 
-                # Transaction type
-                if 'venta' in transaction_part:
-                    data['transaction_type'] = 'sale'
-                elif 'alquiler' in transaction_part:
-                    data['transaction_type'] = 'rent'
+                    # Property Type
+                    elif 'Tipo de Propiedad:' in text:
+                        type_span = li.find('span', class_='float-right')
+                        if type_span:
+                            prop_type = type_span.get_text(strip=True).lower()
+                            if 'apartamento' in prop_type:
+                                data['property_type'] = 'apartment'
+                            elif 'casa' in prop_type:
+                                data['property_type'] = 'house'
+                            elif 'comercial' in prop_type or 'local' in prop_type:
+                                data['property_type'] = 'commercial'
+                            elif 'edificio' in prop_type:
+                                data['property_type'] = 'building'
+                            elif 'terreno' in prop_type:
+                                data['property_type'] = 'land'
+                            elif 'oficina' in prop_type:
+                                data['property_type'] = 'office'
 
-                # Property type
-                if 'apartamento' in prop_type_part:
-                    data['property_type'] = 'apartment'
-                elif 'casa' in prop_type_part:
-                    data['property_type'] = 'house'
-                elif 'comercial' in prop_type_part:
-                    data['property_type'] = 'commercial'
-                elif 'edificio' in prop_type_part:
-                    data['property_type'] = 'building'
+                    # Property Style
+                    elif 'Estilo:' in text:
+                        style_span = li.find('span', class_='float-right')
+                        if style_span:
+                            data['property_style'] = style_span.get_text(strip=True)
 
-                # City and neighborhood
-                if len(url_parts) >= 3:
-                    data['city'] = url_parts[2].replace('-', ' ').title()
-                if len(url_parts) >= 4:
-                    neighborhood = url_parts[3].split('_rah')[0].replace('-', ' ').title()
-                    data['neighborhood'] = neighborhood
+                    # Private Area
+                    elif 'Área Privada:' in text:
+                        area_span = li.find('span', class_='float-right')
+                        if area_span:
+                            area_text = area_span.get_text(strip=True)
+                            area_match = re.search(r'(\d+)\s*m', area_text)
+                            if area_match:
+                                data['area_sqm'] = float(area_match.group(1))
 
-            # Extract all text for pattern matching
-            page_text = soup.get_text()
+                    # Total Area
+                    elif 'Área Total:' in text or 'Área Construida:' in text:
+                        area_span = li.find('span', class_='float-right')
+                        if area_span:
+                            area_text = area_span.get_text(strip=True)
+                            area_match = re.search(r'(\d+)\s*m', area_text)
+                            if area_match:
+                                data['total_area_sqm'] = float(area_match.group(1))
 
-            # Bedrooms
-            bed_match = re.search(r'(\d+)\s*(?:habitacion|dormitorio|recamara)', page_text, re.I)
-            if bed_match:
-                data['bedrooms'] = int(bed_match.group(1))
+                    # Land Area
+                    elif 'Área del Terreno:' in text:
+                        area_span = li.find('span', class_='float-right')
+                        if area_span:
+                            area_text = area_span.get_text(strip=True)
+                            area_match = re.search(r'(\d+)\s*m', area_text)
+                            if area_match:
+                                data['land_area_sqm'] = float(area_match.group(1))
 
-            # Bathrooms
-            bath_match = re.search(r'(\d+)\s*baño', page_text, re.I)
-            if bath_match:
-                data['bathrooms'] = int(bath_match.group(1))
+                    # Condition
+                    elif 'Estado Del Inmueble:' in text:
+                        condition_span = li.find('span', class_='float-right')
+                        if condition_span:
+                            condition = condition_span.get_text(strip=True).lower()
+                            if 'usado' in condition:
+                                data['condition'] = 'used'
+                            elif 'nuevo' in condition:
+                                data['condition'] = 'new'
 
-            # Parking
-            parking_match = re.search(r'(\d+)\s*(?:puesto|estacionamiento|parking)', page_text, re.I)
-            if parking_match:
-                data['parking_spaces'] = int(parking_match.group(1))
+                    # Bedrooms
+                    elif 'Dormitorios:' in text or 'Habitaciones:' in text:
+                        bed_span = li.find('span', class_='float-right')
+                        if bed_span:
+                            bed_text = bed_span.get_text(strip=True)
+                            bed_match = re.search(r'(\d+)', bed_text)
+                            if bed_match:
+                                data['bedrooms'] = int(bed_match.group(1))
 
-            # Area (private area)
-            area_match = re.search(r'(?:área privada|area privada).*?(\d+)\s*m', page_text, re.I)
-            if area_match:
-                data['area_sqm'] = float(area_match.group(1))
+                    # Bathrooms
+                    elif 'Total Baños:' in text:
+                        bath_span = li.find('span', class_='float-right')
+                        if bath_span:
+                            bath_text = bath_span.get_text(strip=True)
+                            bath_match = re.search(r'(\d+)', bath_text)
+                            if bath_match:
+                                data['bathrooms'] = int(bath_match.group(1))
 
-            # Total area
-            total_area_match = re.search(r'(?:área total|area total|construcción|construida).*?(\d+)\s*m', page_text, re.I)
-            if total_area_match:
-                data['total_area_sqm'] = float(total_area_match.group(1))
+                    # Parking
+                    elif 'Puestos De Estacionamiento:' in text:
+                        parking_span = li.find('span', class_='float-right')
+                        if parking_span:
+                            parking_text = parking_span.get_text(strip=True)
+                            parking_match = re.search(r'(\d+)', parking_text)
+                            if parking_match:
+                                data['parking_spaces'] = int(parking_match.group(1))
 
-            # Condition
-            if 'usado' in page_text.lower():
-                data['condition'] = 'used'
-            elif 'nuevo' in page_text.lower():
-                data['condition'] = 'new'
+                    # Furnished
+                    elif 'Amoblado:' in text:
+                        furnished_span = li.find('span', class_='float-right')
+                        if furnished_span:
+                            furnished_text = furnished_span.get_text(strip=True).lower()
+                            data['furnished'] = 'sí' in furnished_text or 'si' in furnished_text
 
-            # Agent name
-            agent_match = re.search(r'(?:Agente|Asesor)[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)', page_text)
-            if agent_match:
-                data['agent_name'] = agent_match.group(1).strip()
+            # Transaction type from URL
+            if '_venta_' in url:
+                data['transaction_type'] = 'sale'
+            elif '_alquiler_' in url or '_arriendo_' in url:
+                data['transaction_type'] = 'rent'
 
-            # Amenities
+            # Location details
+            location_section = soup.find('h2', text='Ubicación')
+            if location_section:
+                location_list = location_section.find_next('ul', class_='property-detailes-list-min')
+                if location_list:
+                    for li in location_list.find_all('li'):
+                        text = li.get_text(strip=True)
+
+                        if 'Estado:' in text:
+                            state_span = li.find('span', class_='float-right')
+                            if state_span:
+                                data['state'] = state_span.get_text(strip=True)
+
+                        elif 'Ciudad:' in text:
+                            city_span = li.find('span', class_='float-right')
+                            if city_span:
+                                data['city'] = city_span.get_text(strip=True)
+
+                        elif 'Urbanización:' in text:
+                            neighborhood_span = li.find('span', class_='float-right')
+                            if neighborhood_span:
+                                data['neighborhood'] = neighborhood_span.get_text(strip=True)
+
+            # Amenities from "Detalles" and "Dispositivos" sections
             amenities = []
-            amenity_keywords = {
-                'piscina': 'pool',
-                'vigilancia': 'security',
-                'parque infantil': 'playground',
-                'ascensor': 'elevator',
-                'gimnasio': 'gym',
-                'planta eléctrica': 'generator',
-                'cancha': 'sports_court',
-                'salón de fiestas': 'party_room'
-            }
-            for spanish, english in amenity_keywords.items():
-                if spanish in page_text.lower():
-                    amenities.append(english)
+
+            # Check amenities lists
+            amenity_sections = soup.find_all('ul', class_='property-detailes-list-min')
+            for section in amenity_sections:
+                for li in section.find_all('li'):
+                    text = li.get_text(strip=True).lower()
+
+                    # Only include items with checkmark (✅)
+                    if '✅' in text or 'sí' in text or 'si' in text:
+                        if 'ascensor' in text:
+                            amenities.append('elevator')
+                        elif 'piscina' in text:
+                            amenities.append('pool')
+                        elif 'vigilancia' in text or 'seguridad' in text:
+                            amenities.append('security')
+                        elif 'gimnasio' in text:
+                            amenities.append('gym')
+                        elif 'planta eléctrica' in text or 'planta electrica' in text:
+                            amenities.append('generator')
+                        elif 'parque infantil' in text:
+                            amenities.append('playground')
+                        elif 'cancha' in text:
+                            amenities.append('sports_court')
+                        elif 'salón de fiestas' in text or 'salon de fiestas' in text:
+                            amenities.append('party_room')
+                        elif 'portero' in text:
+                            amenities.append('concierge')
 
             if amenities:
-                data['amenities'] = amenities
+                data['amenities'] = list(set(amenities))  # Remove duplicates
 
-            # Images - Rent-A-House uses lazy loading with data-src and data-srcset
+            # Agent name
+            agent_card = soup.find('div', class_='agent-card')
+            if agent_card:
+                agent_h2 = agent_card.find('h2', itemprop='name')
+                if agent_h2:
+                    data['agent_name'] = agent_h2.get_text(strip=True)
+
+            # Images - Extract HIGHEST quality (2048x1600) from srcset
             images = []
-            img_tags = soup.find_all('img')
-            for img in img_tags:
-                # Check both src and data-src (for lazy loading)
-                src = img.get('data-src') or img.get('src', '')
+            seen_ids = set()
 
-                # Also check data-srcset for better quality images
-                if not src:
-                    srcset = img.get('data-srcset', '')
-                    if srcset:
-                        # Extract the first URL from srcset
-                        parts = srcset.split(',')
-                        if parts:
-                            src = parts[0].strip().split()[0]
+            # Find all srcset attributes
+            for img in soup.find_all('img'):
+                srcset = img.get('data-srcset', '')
+                if not srcset:
+                    continue
 
-                # Filter for property images from CDN
-                if src and ('sparkplatform.com' in src or 'cdn.photos' in src or 'properti' in src.lower()):
-                    if not src.startswith('http'):
-                        src = f"{base_url.rstrip('/')}/{src.lstrip('/')}"
-                    if src.startswith('http') and src not in images:
-                        images.append(src)
+                # Extract image IDs from srcset (look for the unique timestamp ID)
+                # Pattern: https://cdn.photos.sparkplatform.com/ven/20260107012842044244000000.jpg
+                id_matches = re.findall(r'sparkplatform\.com/ven/(\d+)', srcset)
+
+                for img_id in id_matches:
+                    if img_id not in seen_ids:
+                        seen_ids.add(img_id)
+                        # Build highest quality URL (2048x1600)
+                        high_res_url = f"https://cdn.resize.sparkplatform.com/ven/2048x1600/true/{img_id}-o.jpg"
+                        images.append(high_res_url)
 
             if images:
                 data['image_urls'] = images
                 data['photo_count'] = len(images)
 
             # Description
-            desc_elem = soup.find('p', class_=re.compile(r'desc', re.I))
-            if desc_elem:
-                desc_text = desc_elem.get_text(strip=True)
-                data['description_full'] = desc_text
-                data['description'] = desc_text[:200] + '...' if len(desc_text) > 200 else desc_text
+            desc_section = soup.find('h2', text='Descripción')
+            if desc_section:
+                desc_p = desc_section.find_next('p')
+                if desc_p:
+                    desc_text = desc_p.get_text(strip=True)
+                    data['description_full'] = desc_text
+                    data['description'] = desc_text[:200] + '...' if len(desc_text) > 200 else desc_text
+
+            # Set region from state/city for compatibility
+            if data.get('city'):
+                data['location'] = data['city']
+            if data.get('state'):
+                data['region'] = data['state']
 
             return data
 
         except Exception as e:
             logger.error(f"Failed to parse Rent-A-House listing {url}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {}
 
 
