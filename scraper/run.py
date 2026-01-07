@@ -2,6 +2,7 @@
 """
 Standalone scraper for Property.com.ve
 Runs via GitHub Actions on a weekly schedule.
+Supports distributed scraping with page ranges for high-volume sources.
 """
 
 import os
@@ -9,6 +10,7 @@ import sys
 import logging
 import uuid
 import time
+import argparse
 from datetime import datetime, timedelta
 from typing import List, Optional, Generator
 from dataclasses import dataclass
@@ -266,17 +268,44 @@ class PlaywrightExtractor:
 
         return data
 
-    def extract_rentahouse_listings(self, url: str, base_url: str, max_pages: int = 5, storage=None, source_id: str = None) -> List[PropertyListing]:
-        """Extract listings from Rent-A-House with pagination support and batch uploads."""
+    def extract_rentahouse_listings(
+        self,
+        url: str,
+        base_url: str,
+        max_pages: int = 5,
+        start_page: int = 1,
+        end_page: Optional[int] = None,
+        storage=None,
+        source_id: str = None
+    ) -> List[PropertyListing]:
+        """Extract listings from Rent-A-House with pagination support and batch uploads.
+
+        Args:
+            url: Base search URL (can include filters)
+            base_url: Base domain URL
+            max_pages: Maximum pages to scrape (used if end_page not specified)
+            start_page: Starting page number (for distributed scraping)
+            end_page: Ending page number (for distributed scraping)
+            storage: SupabaseStorage instance for batch uploads
+            source_id: Source identifier for database
+
+        Returns:
+            List of PropertyListing objects
+        """
+        actual_end_page = end_page if end_page is not None else (start_page + max_pages - 1)
+
         logger.info(f"Scraping Rent-A-House: {url}")
+        logger.info(f"📄 Page range: {start_page} to {actual_end_page} ({actual_end_page - start_page + 1} pages)")
 
         all_listings = []
         batch_size = 10  # Upload every 10 pages
         total_uploaded = 0
 
-        for page_num in range(1, max_pages + 1):
+        for page_num in range(start_page, actual_end_page + 1):
             try:
-                page_url = f"{url}?page={page_num}"
+                # Append page parameter (handle existing query params)
+                separator = '&' if '?' in url else '?'
+                page_url = f"{url}{separator}page={page_num}"
                 logger.info(f"Scraping page {page_num}: {page_url}")
 
                 # Load page
@@ -833,12 +862,20 @@ def get_bienes_online_config() -> ScraperConfig:
 
 
 def get_rentahouse_config() -> ScraperConfig:
-    """Rent-A-House Venezuela scraper config."""
+    """Rent-A-House Venezuela scraper config.
+
+    Uses filtered search to only get for-sale residential properties:
+    - tipo_negocio=venta (only sales, not rentals)
+    - tipo_inmueble=Apartamento,Casa,Townhouse (residential only)
+
+    Total: 15,405 listings across 1,284 pages (as of Jan 2026)
+    """
     base = "https://rentahouse.com.ve"
     urls = []
 
-    # Start with the main property search page
-    urls.append(f"{base}/buscar-propiedades")
+    # Filtered search: for-sale residential properties only
+    search_url = f"{base}/buscar-propiedades?tipo_negocio=venta&tipo_inmueble=Apartamento,Casa,Townhouse"
+    urls.append(search_url)
 
     return ScraperConfig(
         name="Rent-A-House",
@@ -853,9 +890,24 @@ def scrape_source(
     extractor: PlaywrightExtractor,
     storage: SupabaseStorage,
     rate_limit: float = 10.0,
-    max_pages: int = 5
+    max_pages: int = 5,
+    start_page: int = 1,
+    end_page: Optional[int] = None
 ) -> dict:
-    """Scrape a single source."""
+    """Scrape a single source.
+
+    Args:
+        config: Scraper configuration
+        extractor: Playwright extractor instance
+        storage: Supabase storage instance
+        rate_limit: Delay between requests (seconds)
+        max_pages: Maximum pages to scrape (if end_page not specified)
+        start_page: Starting page number (for distributed scraping)
+        end_page: Ending page number (for distributed scraping)
+
+    Returns:
+        Dictionary with scrape results and statistics
+    """
     logger.info(f"Starting scrape: {config.name}")
 
     all_listings: List[PropertyListing] = []
@@ -868,6 +920,8 @@ def scrape_source(
                     url,
                     config.base_url,
                     max_pages=max_pages,
+                    start_page=start_page,
+                    end_page=end_page,
                     storage=storage,
                     source_id=config.source_id
                 )
@@ -903,11 +957,54 @@ def scrape_source(
 # Main
 # =============================================================================
 
+def parse_args():
+    """Parse command-line arguments for distributed scraping."""
+    parser = argparse.ArgumentParser(
+        description='Property.com.ve Scraper - Supports distributed scraping with page ranges'
+    )
+    parser.add_argument(
+        '--start-page',
+        type=int,
+        default=1,
+        help='Starting page number (for distributed scraping, default: 1)'
+    )
+    parser.add_argument(
+        '--end-page',
+        type=int,
+        default=None,
+        help='Ending page number (for distributed scraping, default: None = use max-pages)'
+    )
+    parser.add_argument(
+        '--max-pages',
+        type=int,
+        default=1284,
+        help='Maximum pages to scrape if end-page not specified (default: 1284)'
+    )
+    return parser.parse_args()
+
+
 def main():
-    """Run the scraper."""
+    """Run the scraper with optional page range support for distributed scraping.
+
+    Examples:
+        # Scrape all pages (single job):
+        python scraper/run.py
+
+        # Scrape specific page range (distributed job):
+        python scraper/run.py --start-page 1 --end-page 150
+
+        # Scrape first 100 pages:
+        python scraper/run.py --max-pages 100
+    """
+    args = parse_args()
+
     logger.info("=" * 60)
     logger.info("Property.com.ve Scraper Starting")
     logger.info(f"Time: {datetime.utcnow().isoformat()}")
+    if args.end_page:
+        logger.info(f"📄 Page Range: {args.start_page} to {args.end_page}")
+    else:
+        logger.info(f"📄 Max Pages: {args.max_pages} (starting from page {args.start_page})")
     logger.info("=" * 60)
 
     # Initialize storage
@@ -926,10 +1023,17 @@ def main():
         #     logger.error(f"BienesOnline failed: {e}")
         #     results.append({"source": "BienesOnline", "error": str(e)})
 
-        # Scrape Rent-A-House (83 pages = ~1,000 residential listings)
+        # Scrape Rent-A-House (15,405 listings across 1,284 pages)
         try:
             config = get_rentahouse_config()
-            result = scrape_source(config, extractor, storage, max_pages=83)
+            result = scrape_source(
+                config,
+                extractor,
+                storage,
+                max_pages=args.max_pages,
+                start_page=args.start_page,
+                end_page=args.end_page
+            )
             results.append(result)
             logger.info(f"Rent-A-House result: {result}")
         except Exception as e:
