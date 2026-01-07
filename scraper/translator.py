@@ -2,34 +2,39 @@
 """
 AI-powered translation service for property listings.
 Translates Spanish property listings to natural English for international buyers.
+Uses Google Gemini 2.0 Flash-Lite for cost-effective, high-quality translation.
 """
 
 import os
 import logging
 from typing import Dict, List, Optional
-from openai import OpenAI
+import google.generativeai as genai
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
 
 class PropertyTranslator:
-    """Translates property listings from Spanish to English using AI."""
+    """Translates property listings from Spanish to English using Google Gemini."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.0-flash-lite"):
         """Initialize the translator.
 
         Args:
-            api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
-            model: OpenAI model to use (gpt-4o-mini is fast and cost-effective)
+            api_key: Google AI API key (defaults to GEMINI_API_KEY env var)
+            model: Gemini model to use (gemini-2.0-flash-lite is most cost-effective)
         """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         if not self.api_key:
-            raise ValueError("OpenAI API key required (OPENAI_API_KEY env var)")
+            raise ValueError("Google Gemini API key required (GEMINI_API_KEY env var)")
 
-        self.client = OpenAI(api_key=self.api_key)
-        self.model = model
-        logger.info(f"Initialized PropertyTranslator with model: {model}")
+        # Configure Gemini
+        genai.configure(api_key=self.api_key)
+        self.model_name = model
+        self.model = genai.GenerativeModel(model)
+
+        logger.info(f"✅ Initialized PropertyTranslator with {model}")
+        logger.info(f"💰 Cost: $0.07/1M input, $0.30/1M output tokens")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def translate_listing(self, listing_data: Dict) -> Dict:
@@ -55,25 +60,17 @@ class PropertyTranslator:
         prompt = self._build_translation_prompt(title_es, desc_short_es, desc_full_es)
 
         try:
-            # Call OpenAI API
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a professional real estate copywriter specializing in translating Venezuelan property listings for English-speaking international buyers. Translate and lightly rewrite to sound natural and appealing while maintaining accuracy."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.3,  # Lower temperature for more consistent translations
-                max_tokens=1000
+            # Call Gemini API
+            response = self.model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.3,  # Lower for more consistent translations
+                    "max_output_tokens": 1000,
+                }
             )
 
             # Parse response
-            translation = response.choices[0].message.content
+            translation = response.text
             parsed = self._parse_translation(translation)
 
             # Add English translations to listing data
@@ -87,7 +84,7 @@ class PropertyTranslator:
             listing_data['description_full_es'] = desc_full_es
 
             # Add metadata
-            listing_data['translation_model'] = self.model
+            listing_data['translation_model'] = self.model_name
 
             logger.info(f"✅ Translated: {title_es[:50]}... → {parsed.get('title', '')[:50]}...")
             return listing_data
@@ -106,8 +103,10 @@ class PropertyTranslator:
         desc_short: str,
         desc_full: str
     ) -> str:
-        """Build the translation prompt."""
-        prompt = f"""Translate this Venezuelan property listing to English. Make it sound natural and appealing for international buyers.
+        """Build the translation prompt for Gemini."""
+        prompt = f"""You are a professional real estate copywriter specializing in translating Venezuelan property listings for English-speaking international buyers.
+
+Translate and lightly rewrite to sound natural and appealing while maintaining accuracy.
 
 **TITLE (Spanish):**
 {title}
@@ -123,7 +122,7 @@ class PropertyTranslator:
 2. Translate the short description (keep under 200 characters)
 3. Translate the full description, rewriting slightly to sound natural in English
 4. Keep location names as proper nouns (Caracas, Distrito Metropolitano, etc.)
-5. Convert measurements if needed (already in m²)
+5. Keep measurements in m² (already metric)
 6. Use US real estate terminology where appropriate
 7. Maintain all factual information accurately
 
@@ -135,7 +134,7 @@ DESC_FULL_EN: [translated full description]"""
         return prompt
 
     def _parse_translation(self, response: str) -> Dict[str, str]:
-        """Parse the AI response into structured fields."""
+        """Parse the Gemini response into structured fields."""
         result = {}
 
         lines = response.strip().split('\n')
@@ -214,7 +213,7 @@ def translate_listing(listing_data: Dict, api_key: Optional[str] = None) -> Dict
 
     Args:
         listing_data: Dictionary with Spanish property data
-        api_key: OpenAI API key (optional)
+        api_key: Google Gemini API key (optional)
 
     Returns:
         Dictionary with English translations added

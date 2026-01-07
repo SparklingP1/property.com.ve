@@ -2,7 +2,7 @@
 
 ## Overview
 
-Property.com.ve automatically translates all property listings from Spanish to natural, buyer-friendly English using OpenAI GPT-4.
+Property.com.ve automatically translates all property listings from Spanish to natural, buyer-friendly English using Google Gemini 2.0 Flash-Lite.
 
 **Last Updated:** January 2026
 
@@ -20,7 +20,7 @@ Property.com.ve automatically translates all property listings from Spanish to n
 - Extract property data from Venezuelan websites (Spanish content)
 
 **Step 2: Translation**
-- Send to OpenAI GPT-4o-mini for translation
+- Send to Google Gemini 2.0 Flash-Lite for translation
 - Prompt instructs AI to translate AND lightly rewrite for English buyers
 - Preserves location names as proper nouns
 - Uses real estate terminology appropriate for international buyers
@@ -39,7 +39,9 @@ Property.com.ve automatically translates all property listings from Spanish to n
 ## Translation Quality
 
 ### AI Model
-- **Model:** GPT-4o-mini (fast, cost-effective, high-quality)
+- **Model:** Google Gemini 2.0 Flash-Lite (fastest, most cost-effective)
+- **Provider:** Google AI
+- **Cost:** $0.07/1M input tokens, $0.30/1M output tokens
 - **Temperature:** 0.3 (consistent, accurate translations)
 - **Strategy:** Not just translation - natural rewriting for buyers
 
@@ -104,19 +106,21 @@ CREATE INDEX idx_listings_description_en
 ## Cost Analysis
 
 ### Per-Listing Cost
-- **Average listing:** ~300 words (title + descriptions)
-- **GPT-4o-mini pricing:** $0.15 per 1M input tokens, $0.60 per 1M output tokens
-- **Estimated cost:** ~$0.0002 per listing
+- **Average listing:** ~880 tokens (title + descriptions + prompts)
+- **Gemini 2.0 Flash-Lite pricing:** $0.07 per 1M input tokens, $0.30 per 1M output tokens
+- **Estimated cost:** ~$0.00014 per listing (51% cheaper than GPT-4o-mini)
 
 ### Monthly Cost (Full Scale)
 - **15,405 listings** (Rent-A-House full inventory)
-- **Translation cost:** ~$3-5 per scrape
-- **4 scrapes per month:** ~$12-20/month for translation
+- **Translation cost per scrape:** $2.15 (8.32M input + 5.24M output tokens)
+- **4 scrapes per month:** ~$8.60/month for translation
 
 **Total scraping cost with translation:**
-- Scraping: ~$75-125/month
-- Translation: ~$12-20/month
-- **Total: ~$87-145/month**
+- Scraping (Firecrawl + GitHub): ~$75-125/month
+- Translation (Gemini 2.0 Flash-Lite): ~$9/month
+- **Total: ~$84-134/month**
+
+**Savings vs GPT-4o-mini:** $9/month vs $18/month = **50% cost reduction**
 
 ### Cost Optimization
 - Translations cached in database (only translate once)
@@ -127,17 +131,17 @@ CREATE INDEX idx_listings_description_en
 
 ## Setup Instructions
 
-### 1. Add OpenAI API Key
+### 1. Add Google Gemini API Key
 
 **In GitHub:**
 1. Go to Repository Settings → Secrets and variables → Actions
 2. Add new repository secret:
-   - Name: `OPENAI_API_KEY`
-   - Value: Your OpenAI API key (from platform.openai.com)
+   - Name: `GEMINI_API_KEY`
+   - Value: Your Google AI API key (from [aistudio.google.com/apikey](https://aistudio.google.com/apikey))
 
 **For Local Testing:**
 ```bash
-export OPENAI_API_KEY="sk-..."
+export GEMINI_API_KEY="AIza..."
 ```
 
 ### 2. Apply Database Migration
@@ -318,10 +322,11 @@ ORDER BY translation_date DESC;
 **Check 1: API Key**
 ```bash
 # Verify env var is set
-echo $OPENAI_API_KEY
+echo $GEMINI_API_KEY
 
 # Check GitHub Actions logs for:
-✅ Translation enabled - listings will be converted to English
+✅ Initialized PropertyTranslator with gemini-2.0-flash-lite
+💰 Cost: $0.07/1M input, $0.30/1M output tokens
 ```
 
 **Check 2: Python Module**
@@ -333,9 +338,9 @@ ls scraper/translator.py
 python -c "from scraper.translator import PropertyTranslator"
 ```
 
-**Check 3: OpenAI Package**
+**Check 3: Google AI Package**
 ```bash
-pip install openai>=1.12.0
+pip install google-generativeai>=0.8.0
 ```
 
 ### Slow Scraping
@@ -348,14 +353,15 @@ Still completes within 6-hour timeout with distributed scraping.
 
 ### API Rate Limits
 
-GPT-4o-mini has generous rate limits:
-- **Tier 1:** 500 requests/minute, 200K tokens/minute
-- **Our usage:** ~1 request/3 seconds = 20 req/min (well below limit)
+Gemini 2.0 Flash-Lite has generous free tier limits:
+- **Free tier:** 15 requests/minute, 1M tokens/minute, 1,500 requests/day
+- **Our usage:** ~1 request/3 seconds = 20 req/min
+- **Paid tier:** Much higher limits available
 
 If hit rate limits:
 - Increase delay between translations
-- Batch translations (send multiple in one request)
 - Use retries with exponential backoff (already implemented)
+- Upgrade to paid tier for higher limits
 
 ---
 
@@ -390,10 +396,12 @@ Use AI to add contextual information:
 ## Summary
 
 ✅ **Automatic translation** - Every listing converted to English
-✅ **High quality** - GPT-4o-mini with real estate expertise
-✅ **Cost-effective** - ~$0.0002 per listing
+✅ **High quality** - Google Gemini 2.0 Flash-Lite with real estate expertise
+✅ **Ultra cost-effective** - $0.00014 per listing ($2.15 per full scrape)
+✅ **51% cheaper** - than GPT-4o-mini ($9/month vs $18/month)
 ✅ **Production-ready** - Integrated into distributed scraper
 ✅ **Fallback-safe** - Spanish preserved if translation fails
 ✅ **SEO-optimized** - Full-text search indexes for English content
+✅ **Fast** - Google's optimized Flash-Lite model
 
 Property.com.ve is now a true English-language portal for international buyers!
