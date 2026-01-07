@@ -4,7 +4,6 @@ import { SearchBar } from '@/components/search/search-bar';
 import { ListingGrid } from '@/components/listings/listing-grid';
 import { ListingSkeleton } from '@/components/listings/listing-skeleton';
 import { EmailSignupForm } from '@/components/forms/email-signup-form';
-import { Building2, MapPin, Shield, TrendingUp } from 'lucide-react';
 import type { Listing } from '@/types/listing';
 
 interface PageProps {
@@ -52,13 +51,6 @@ async function FeaturedListings({
   );
 }
 
-const stats = [
-  { icon: Building2, value: '1,000+', label: 'Properties Listed' },
-  { icon: MapPin, value: '10+', label: 'Regions Covered' },
-  { icon: Shield, value: '100%', label: 'Verified Sources' },
-  { icon: TrendingUp, value: 'Weekly', label: 'Updates' },
-];
-
 export default async function HomePage({ searchParams }: PageProps) {
   const params = await searchParams;
 
@@ -77,9 +69,9 @@ export default async function HomePage({ searchParams }: PageProps) {
                 </div>
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-                Discover<br />
-                Your Next<br />
-                <span className="text-amber-100">Space</span>
+                Find Your<br />
+                Perfect<br />
+                <span className="text-amber-100">Property</span>
               </h1>
               <p className="text-lg text-stone-300 max-w-md leading-relaxed">
                 10,000+ curated properties across Venezuela. From coastal
