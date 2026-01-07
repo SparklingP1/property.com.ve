@@ -24,7 +24,8 @@ COMMENT ON COLUMN listings.title_en IS 'AI-translated and rewritten title for En
 COMMENT ON COLUMN listings.description_short_en IS 'AI-translated short description (200 chars)';
 COMMENT ON COLUMN listings.description_full_en IS 'AI-translated and naturally rewritten full description';
 COMMENT ON COLUMN listings.title_es IS 'Original Spanish title from source website';
-COMMENT ON COLUMN listings.description_es IS 'Original Spanish description from source website';
+COMMENT ON COLUMN listings.description_short_es IS 'Original Spanish short description from source website';
+COMMENT ON COLUMN listings.description_full_es IS 'Original Spanish full description from source website';
 
 -- Migration strategy:
 -- 1. New listings: Translate during scraping, store both ES and EN
