@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.rentahouse.com.ve',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.photos.sparkplatform.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.resize.sparkplatform.com',
+      },
     ],
   },
 };

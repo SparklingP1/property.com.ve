@@ -29,6 +29,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
   const sourceLabels: Record<string, string> = {
     'green-acres': 'Green-Acres',
     bienesonline: 'BienesOnline',
+    rentahouse: 'Rent-A-House',
   };
 
   // Combine thumbnail_url and image_urls for the gallery

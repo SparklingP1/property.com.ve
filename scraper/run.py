@@ -457,16 +457,27 @@ class PlaywrightExtractor:
             if amenities:
                 data['amenities'] = amenities
 
-            # Images
+            # Images - Rent-A-House uses lazy loading with data-src and data-srcset
             images = []
             img_tags = soup.find_all('img')
             for img in img_tags:
-                src = img.get('src', '')
-                # Skip logos, icons, etc.
-                if src and ('properti' in src.lower() or 'inmueble' in src.lower() or 'foto' in src.lower()):
+                # Check both src and data-src (for lazy loading)
+                src = img.get('data-src') or img.get('src', '')
+
+                # Also check data-srcset for better quality images
+                if not src:
+                    srcset = img.get('data-srcset', '')
+                    if srcset:
+                        # Extract the first URL from srcset
+                        parts = srcset.split(',')
+                        if parts:
+                            src = parts[0].strip().split()[0]
+
+                # Filter for property images from CDN
+                if src and ('sparkplatform.com' in src or 'cdn.photos' in src or 'properti' in src.lower()):
                     if not src.startswith('http'):
                         src = f"{base_url.rstrip('/')}/{src.lstrip('/')}"
-                    if src.startswith('http'):
+                    if src.startswith('http') and src not in images:
                         images.append(src)
 
             if images:
