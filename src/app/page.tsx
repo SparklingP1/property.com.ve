@@ -64,94 +64,163 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-16 md:py-24">
-        <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-              Find Your Dream Property in Venezuela
-            </h1>
-            <p className="text-lg md:text-xl text-primary-100 mb-8">
-              Search thousands of properties from multiple sources. Apartments,
-              houses, land, and commercial spaces across all regions.
-            </p>
+      {/* Hero Section - Asymmetric Layout */}
+      <section className="relative overflow-hidden bg-stone-900 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,63,0.15),transparent_50%)]"></div>
+        <div className="container relative py-20 md:py-32">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Headline */}
+            <div className="space-y-6">
+              <div className="inline-block">
+                <div className="text-xs font-medium tracking-wider text-amber-200 mb-4 uppercase">
+                  Venezuela's Property Market
+                </div>
+              </div>
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
+                Discover<br />
+                Your Next<br />
+                <span className="text-amber-100">Space</span>
+              </h1>
+              <p className="text-xl text-stone-300 max-w-md leading-relaxed">
+                1,000+ curated properties across Venezuela. From coastal
+                apartments to mountain estates.
+              </p>
+              <div className="flex flex-wrap gap-4 pt-4">
+                <a
+                  href="/search"
+                  className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105"
+                >
+                  Start Searching
+                </a>
+                <a
+                  href="/guides"
+                  className="px-8 py-4 bg-stone-800 hover:bg-stone-700 text-white font-semibold rounded-lg transition-colors border border-stone-700"
+                >
+                  Buying Guide
+                </a>
+              </div>
+            </div>
+
+            {/* Right: Stats Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6 transform translate-y-8">
+                <div className="text-4xl font-bold text-amber-100">1,000+</div>
+                <div className="text-stone-400 mt-2">Active Listings</div>
+              </div>
+              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6">
+                <div className="text-4xl font-bold text-amber-100">12+</div>
+                <div className="text-stone-400 mt-2">States Covered</div>
+              </div>
+              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6">
+                <div className="text-4xl font-bold text-amber-100">3</div>
+                <div className="text-stone-400 mt-2">Verified Sources</div>
+              </div>
+              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-6 transform translate-y-8">
+                <div className="text-4xl font-bold text-amber-100">24/7</div>
+                <div className="text-stone-400 mt-2">Updated</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Search Bar */}
-      <section className="container -mt-8 relative z-10">
-        <Suspense fallback={<div className="h-20 bg-white rounded-xl shadow-lg animate-pulse" />}>
-          <SearchBar />
-        </Suspense>
-      </section>
-
-      {/* Stats Section */}
-      <section className="container py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="bg-white rounded-xl p-6 text-center shadow-sm border border-border"
-            >
-              <stat.icon className="h-8 w-8 text-primary mx-auto mb-3" />
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
+      {/* Quick Search Bar - Overlapping */}
+      <section className="container -mt-12 relative z-10">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 border border-stone-200">
+          <Suspense fallback={<div className="h-16 animate-pulse bg-stone-100 rounded-lg" />}>
+            <SearchBar />
+          </Suspense>
         </div>
       </section>
 
       {/* Featured Listings */}
-      <section className="container py-12">
-        <h2 className="text-3xl font-bold mb-8">Featured Properties</h2>
-        <Suspense fallback={<ListingSkeleton count={12} />}>
-          <FeaturedListings searchParams={params} />
-        </Suspense>
+      <section className="bg-stone-50 py-16 mt-16">
+        <div className="container">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold text-stone-900 mb-2">
+                Latest Listings
+              </h2>
+              <p className="text-lg text-stone-600">
+                Handpicked properties updated daily
+              </p>
+            </div>
+            <a
+              href="/search"
+              className="hidden md:block text-stone-900 font-semibold hover:text-amber-700 transition-colors"
+            >
+              View All →
+            </a>
+          </div>
+          <Suspense fallback={<ListingSkeleton count={12} />}>
+            <FeaturedListings searchParams={params} />
+          </Suspense>
+        </div>
       </section>
 
-      {/* Email Signup Section */}
-      <section className="bg-primary-50 py-16">
-        <div className="container">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-            <p className="text-muted-foreground mb-8">
-              Get the latest property listings and market insights delivered to
-              your inbox weekly.
+      {/* Split CTA Section - Asymmetric */}
+      <section className="container py-20">
+        <div className="grid md:grid-cols-5 gap-8">
+          {/* Buyers - Larger */}
+          <div className="md:col-span-3 bg-amber-600 text-white rounded-3xl p-10 md:p-12 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500 rounded-full blur-3xl opacity-30 transform translate-x-20 -translate-y-20"></div>
+            <div className="relative z-10">
+              <h3 className="text-3xl md:text-4xl font-bold mb-4">
+                Find Your Perfect Home
+              </h3>
+              <p className="text-amber-50 text-lg mb-8 max-w-md">
+                Browse thousands of verified listings. Get personalized
+                recommendations and expert guidance.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href="/search"
+                  className="px-8 py-4 bg-white text-amber-700 rounded-lg font-semibold hover:bg-stone-100 transition-colors"
+                >
+                  Start Searching
+                </a>
+                <a
+                  href="/find-property"
+                  className="px-8 py-4 bg-amber-700 text-white rounded-lg font-semibold hover:bg-amber-800 transition-colors border border-amber-500"
+                >
+                  Get Matched
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Agents - Smaller */}
+          <div className="md:col-span-2 bg-stone-900 text-white rounded-3xl p-8 md:p-10">
+            <h3 className="text-2xl md:text-3xl font-bold mb-4">
+              List With Us
+            </h3>
+            <p className="text-stone-400 mb-8">
+              Real estate agents: reach thousands of potential buyers.
             </p>
-            <EmailSignupForm />
+            <a
+              href="/list-your-property"
+              className="inline-flex px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              Get Started →
+            </a>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="container py-16">
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
-            <h3 className="text-2xl font-bold mb-4">Looking to Buy?</h3>
-            <p className="text-muted-foreground mb-6">
-              Tell us what you&apos;re looking for and we&apos;ll connect you with
-              matching properties and agents.
+      {/* Newsletter Section */}
+      <section className="bg-stone-900 py-16">
+        <div className="container">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Stay in the Loop
+            </h2>
+            <p className="text-stone-400 text-lg mb-8">
+              Weekly market updates, new listings, and buying tips delivered to
+              your inbox.
             </p>
-            <a
-              href="/find-property"
-              className="inline-flex items-center justify-center px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
-            >
-              Find Your Property
-            </a>
-          </div>
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-border">
-            <h3 className="text-2xl font-bold mb-4">Real Estate Agent?</h3>
-            <p className="text-muted-foreground mb-6">
-              List your properties on our platform and reach thousands of
-              potential buyers.
-            </p>
-            <a
-              href="/list-your-property"
-              className="inline-flex items-center justify-center px-6 py-3 bg-foreground text-white rounded-lg font-medium hover:bg-foreground/90 transition-colors"
-            >
-              List Your Property
-            </a>
+            <div className="bg-stone-800 rounded-2xl p-6">
+              <EmailSignupForm />
+            </div>
           </div>
         </div>
       </section>

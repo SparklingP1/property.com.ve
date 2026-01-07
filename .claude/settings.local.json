@@ -42,7 +42,15 @@
       "WebFetch(domain:www.firecrawl.dev)",
       "Bash(gh:*)",
       "Bash(https://api.github.com/repos/SparklingP1/property.com.ve/actions/workflows/scrape.yml/dispatches )",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(/tmp/logs.zip)",
+      "Bash(/tmp/logs2.zip)",
+      "Bash(/tmp/logs3.zip)",
+      "Bash(npx tsc:*)",
+      "Bash(git restore:*)",
+      "Bash(cat:*)",
+      "Bash(python test_extraction.py:*)",
+      "Bash(npx tsx:*)"
     ]
   }
 }
