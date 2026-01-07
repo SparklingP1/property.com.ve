@@ -39,10 +39,14 @@ export function ListingDetail({ listing }: ListingDetailProps) {
     ? [listing.thumbnail_url]
     : [];
 
+  // Use English translations with fallback to Spanish/original
+  const displayTitle = listing.title_en || listing.title;
+  const displayDescription = listing.description_full_en || listing.description_full || listing.description_short_en || listing.description_short;
+
   return (
     <div>
       {/* Image Gallery */}
-      <ListingImages images={images} title={listing.title} />
+      <ListingImages images={images} title={displayTitle} />
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
@@ -58,7 +62,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
             </Badge>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-            {listing.title}
+            {displayTitle}
           </h1>
           <p className="text-muted-foreground flex items-center gap-1">
             <MapPin className="h-4 w-4" />
@@ -185,11 +189,11 @@ export function ListingDetail({ listing }: ListingDetailProps) {
       )}
 
       {/* Description */}
-      {(listing.description_full || listing.description_short) && (
+      {displayDescription && (
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-3">Description</h2>
           <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-            {listing.description_full || listing.description_short}
+            {displayDescription}
           </p>
         </div>
       )}

@@ -26,8 +26,9 @@ export async function generateMetadata({
     return { title: 'Listing Not Found' };
   }
 
-  const title = listing.title;
+  const title = listing.title_en || listing.title;
   const description =
+    listing.description_short_en ||
     listing.description_short ||
     `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.location || 'Venezuela'}`;
 
@@ -97,8 +98,8 @@ export default async function ListingPage({ params }: ListingPageProps) {
               This property has been sold, rented, or removed from the market.
             </p>
             <p className="text-stone-500 mb-6">
-              {listing.title && (
-                <span className="block text-sm mt-2 italic">{listing.title}</span>
+              {(listing.title_en || listing.title) && (
+                <span className="block text-sm mt-2 italic">{listing.title_en || listing.title}</span>
               )}
             </p>
             <div className="flex gap-4 justify-center">
