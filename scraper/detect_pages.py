@@ -26,30 +26,61 @@ def detect_total_pages(url: str) -> int:
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
 
-            # Load first page
+            # Strategy 1: Try the high page number redirect test FIRST
+            # This is most reliable for sites that only show nearby pagination links
+            logger.info("Trying high page number to find limit...")
+            page = browser.new_page()
+            try:
+                page.goto(f"{url}{'&' if '?' in url else '?'}page=9999",
+                         wait_until="networkidle", timeout=60000)
+
+                # Check if we got redirected to a specific max page
+                current_url = page.url
+                match = re.search(r'[?&]page=(\d+)', current_url)
+                if match:
+                    detected_page = int(match.group(1))
+                    # Only trust if it's a reasonable number (> 100 for rentahouse)
+                    if detected_page > 100:
+                        logger.info(f"✅ Detected max page from redirect: {detected_page}")
+                        browser.close()
+                        return detected_page
+                    else:
+                        logger.warning(f"Redirect gave suspiciously low page: {detected_page}")
+
+                # Try to find pagination text on the high page
+                html = page.content()
+                soup = BeautifulSoup(html, 'lxml')
+                pagination_text = soup.find(text=re.compile(r'of\s+(\d+)', re.IGNORECASE))
+                if pagination_text:
+                    match = re.search(r'of\s+(\d+)', pagination_text, re.IGNORECASE)
+                    if match:
+                        total = int(match.group(1))
+                        if total > 100:
+                            logger.info(f"✅ Found pagination text on high page: {total} pages")
+                            browser.close()
+                            return total
+
+            except Exception as e:
+                logger.warning(f"High page test failed: {e}")
+
+            # Strategy 2: Load first page and look for pagination indicators
             logger.info(f"Checking pagination at: {url}")
             page.goto(url, wait_until="networkidle", timeout=60000)
             html = page.content()
-            browser.close()
-
-            # Parse with BeautifulSoup
             soup = BeautifulSoup(html, 'lxml')
 
-            # Find pagination indicators
-            # Common patterns: "Page X of Y" or last page number link
-
-            # Strategy 1: Look for "of XXX" text
+            # Look for "of XXX" text
             pagination_text = soup.find(text=re.compile(r'of\s+(\d+)', re.IGNORECASE))
             if pagination_text:
                 match = re.search(r'of\s+(\d+)', pagination_text, re.IGNORECASE)
                 if match:
                     total = int(match.group(1))
                     logger.info(f"✅ Found pagination text: {total} pages")
+                    browser.close()
                     return total
 
-            # Strategy 2: Find all page number links and get the highest
+            # Find all page number links (but don't trust if too low)
             page_links = soup.find_all('a', href=re.compile(r'[?&]page=(\d+)'))
             if page_links:
                 page_numbers = []
@@ -60,28 +91,20 @@ def detect_total_pages(url: str) -> int:
                         page_numbers.append(int(match.group(1)))
 
                 if page_numbers:
-                    total = max(page_numbers)
-                    logger.info(f"✅ Found max page number in links: {total}")
-                    return total
+                    max_visible = max(page_numbers)
+                    logger.info(f"Found max visible page link: {max_visible}")
+                    # Only trust if it's high enough
+                    if max_visible > 1000:
+                        logger.info(f"✅ Using max visible page: {max_visible}")
+                        browser.close()
+                        return max_visible
+                    else:
+                        logger.warning(f"Max visible page ({max_visible}) seems too low, using fallback")
 
-            # Strategy 3: Try navigating to a very high page and see what we get
-            logger.info("Trying high page number to find limit...")
-            page = browser.new_page()
-            page.goto(f"{url}{'&' if '?' in url else '?'}page=9999",
-                     wait_until="networkidle", timeout=60000)
-            html = page.content()
-            soup = BeautifulSoup(html, 'lxml')
-
-            # Check if we got redirected or see a max page indicator
-            current_url = page.url
-            match = re.search(r'[?&]page=(\d+)', current_url)
-            if match:
-                total = int(match.group(1))
-                logger.info(f"✅ Detected max page from redirect: {total}")
-                return total
+            browser.close()
 
             # Fallback: return a safe default
-            logger.warning("Could not detect page count, using default: 1284")
+            logger.warning("Could not reliably detect page count, using default: 1284")
             return 1284
 
     except Exception as e:
