@@ -761,20 +761,20 @@ def main():
 
     # Use Playwright extractor as context manager
     with PlaywrightExtractor() as extractor:
-        # Scrape BienesOnline
-        try:
-            config = get_bienes_online_config()
-            result = scrape_source(config, extractor, storage)
-            results.append(result)
-            logger.info(f"BienesOnline result: {result}")
-        except Exception as e:
-            logger.error(f"BienesOnline failed: {e}")
-            results.append({"source": "BienesOnline", "error": str(e)})
+        # Scrape BienesOnline - DISABLED FOR NOW
+        # try:
+        #     config = get_bienes_online_config()
+        #     result = scrape_source(config, extractor, storage)
+        #     results.append(result)
+        #     logger.info(f"BienesOnline result: {result}")
+        # except Exception as e:
+        #     logger.error(f"BienesOnline failed: {e}")
+        #     results.append({"source": "BienesOnline", "error": str(e)})
 
-        # Scrape Rent-A-House (start with 2 pages for testing)
+        # Scrape Rent-A-House (1 page = ~12 listings for initial test)
         try:
             config = get_rentahouse_config()
-            result = scrape_source(config, extractor, storage, max_pages=2)
+            result = scrape_source(config, extractor, storage, max_pages=1)
             results.append(result)
             logger.info(f"Rent-A-House result: {result}")
         except Exception as e:
