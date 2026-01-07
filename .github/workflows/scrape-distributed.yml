@@ -66,6 +66,7 @@ jobs:
     needs: detect
     runs-on: ubuntu-latest
     timeout-minutes: 360  # 6 hours per job
+    environment: Production
 
     strategy:
       max-parallel: 10  # Run up to 10 jobs concurrently
