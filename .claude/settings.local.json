@@ -50,7 +50,8 @@
       "Bash(git restore:*)",
       "Bash(cat:*)",
       "Bash(python test_extraction.py:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(python scripts/test-agent-office.py:*)"
     ]
   }
 }

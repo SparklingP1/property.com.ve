@@ -556,12 +556,30 @@ class PlaywrightExtractor:
             if amenities:
                 data['amenities'] = list(set(amenities))  # Remove duplicates
 
-            # Agent name
+            # Agent name and office
             agent_card = soup.find('div', class_='agent-card')
             if agent_card:
                 agent_h2 = agent_card.find('h2', itemprop='name')
                 if agent_h2:
                     data['agent_name'] = agent_h2.get_text(strip=True)
+
+                # Try to find agent office/company name in agent card
+                agent_office_elem = agent_card.find('span', class_='agent-office')
+                if not agent_office_elem:
+                    agent_office_elem = agent_card.find('p', class_='agent-company')
+                if not agent_office_elem:
+                    # Look for any text containing "Rent-A-House"
+                    for elem in agent_card.find_all(['span', 'p', 'div']):
+                        text = elem.get_text(strip=True)
+                        if 'Rent-A-House' in text or 'RAH' in text:
+                            data['agent_office'] = text
+                            break
+                else:
+                    data['agent_office'] = agent_office_elem.get_text(strip=True)
+
+            # If agent_office still not found and we know this is Rent-A-House
+            if 'agent_office' not in data and 'rentahouse' in url.lower():
+                data['agent_office'] = 'Rent-A-House Venezuela'
 
             # Images - Extract HIGHEST quality (2048x1600) from srcset
             images = []
