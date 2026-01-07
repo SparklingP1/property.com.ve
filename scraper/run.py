@@ -902,10 +902,10 @@ def main():
         #     logger.error(f"BienesOnline failed: {e}")
         #     results.append({"source": "BienesOnline", "error": str(e)})
 
-        # Scrape Rent-A-House (83 pages = ~1,000 residential listings)
+        # Scrape Rent-A-House (Test with 5 pages first to validate batch uploads)
         try:
             config = get_rentahouse_config()
-            result = scrape_source(config, extractor, storage, max_pages=83)
+            result = scrape_source(config, extractor, storage, max_pages=5)
             results.append(result)
             logger.info(f"Rent-A-House result: {result}")
         except Exception as e:
