@@ -42,12 +42,17 @@ export async function GET() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${listingPages
   .map(
-    (page) => `  <url>
+    (page) => {
+      const lastMod = page.lastModified instanceof Date
+        ? page.lastModified.toISOString()
+        : page.lastModified;
+      return `  <url>
     <loc>${page.url}</loc>
-    <lastmod>${page.lastModified?.toISOString()}</lastmod>
+    <lastmod>${lastMod}</lastmod>
     <changefreq>${page.changeFrequency}</changefreq>
     <priority>${page.priority}</priority>
-  </url>`
+  </url>`;
+    }
   )
   .join('\n')}
 </urlset>`;
