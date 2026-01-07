@@ -61,19 +61,6 @@ def detect_total_pages(url: str) -> int:
                     else:
                         logger.warning(f"Redirect gave suspiciously low page: {detected_page}")
 
-                # Try to find pagination text on the high page
-                html = page.content()
-                soup = BeautifulSoup(html, 'lxml')
-                pagination_text = soup.find(text=re.compile(r'of\s+(\d+)', re.IGNORECASE))
-                if pagination_text:
-                    match = re.search(r'of\s+(\d+)', pagination_text, re.IGNORECASE)
-                    if match:
-                        total = int(match.group(1))
-                        if total > 100:
-                            logger.info(f"✅ Found pagination text on high page: {total} pages")
-                            browser.close()
-                            return total
-
             except Exception as e:
                 logger.warning(f"High page test failed: {e}")
 
