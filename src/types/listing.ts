@@ -20,6 +20,7 @@ export interface Listing {
   bathrooms: number | null;
   area_sqm: number | null;
   thumbnail_url: string | null;
+  image_urls: string[] | null;
   description_short: string | null;
   property_type: PropertyType | null;
   scraped_at: string;

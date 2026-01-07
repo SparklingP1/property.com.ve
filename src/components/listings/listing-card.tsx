@@ -27,13 +27,16 @@ export function ListingCard({ listing }: ListingCardProps) {
     office: 'Office',
   };
 
+  // Use thumbnail_url if available, otherwise use first image from image_urls array
+  const imageUrl = listing.thumbnail_url || (listing.image_urls && listing.image_urls.length > 0 ? listing.image_urls[0] : null);
+
   return (
     <Link href={`/listing/${listing.id}`}>
       <Card className="group card-hover overflow-hidden h-full">
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {listing.thumbnail_url ? (
+          {imageUrl ? (
             <Image
-              src={listing.thumbnail_url}
+              src={imageUrl}
               alt={listing.title}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"

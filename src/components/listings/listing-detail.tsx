@@ -1,8 +1,8 @@
-import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bed, Bath, Maximize, MapPin, ExternalLink } from 'lucide-react';
 import type { Listing } from '@/types/listing';
+import { ListingImages } from './listing-images';
 
 interface ListingDetailProps {
   listing: Listing;
@@ -31,24 +31,17 @@ export function ListingDetail({ listing }: ListingDetailProps) {
     bienesonline: 'BienesOnline',
   };
 
+  // Combine thumbnail_url and image_urls for the gallery
+  const images = listing.image_urls && listing.image_urls.length > 0
+    ? listing.image_urls
+    : listing.thumbnail_url
+    ? [listing.thumbnail_url]
+    : [];
+
   return (
     <div>
-      {/* Image */}
-      <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden rounded-xl bg-muted mb-6">
-        {listing.thumbnail_url ? (
-          <Image
-            src={listing.thumbnail_url}
-            alt={listing.title}
-            fill
-            className="object-cover"
-            priority
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-muted-foreground">No image available</span>
-          </div>
-        )}
-      </div>
+      {/* Image Gallery */}
+      <ListingImages images={images} title={listing.title} />
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
