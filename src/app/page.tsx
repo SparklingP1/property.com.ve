@@ -93,8 +93,8 @@ export default async function HomePage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* Right: Stats Cards */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Right: Stats Cards - Hidden on mobile */}
+            <div className="hidden md:grid grid-cols-3 gap-3">
               <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
                 <div className="text-3xl font-bold text-amber-100">10,000+</div>
                 <div className="text-stone-400 mt-2 text-sm">Active Listings</div>
