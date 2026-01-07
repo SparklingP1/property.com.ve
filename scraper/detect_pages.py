@@ -45,9 +45,9 @@ def detect_total_pages(url: str) -> int:
                     if detected_page >= 9999:
                         html = page.content()
                         soup = BeautifulSoup(html, 'lxml')
-                        # Check if there are any property listings on this page
-                        properties = soup.find_all(['div', 'article'], class_=re.compile(r'property|listing|card', re.I))
-                        if len(properties) == 0:
+                        # Check using the same pattern as the actual scraper
+                        property_links = soup.find_all('a', href=re.compile(r'_rah-\d+.*\.html'))
+                        if len(property_links) == 0:
                             logger.warning(f"Page 9999 has no properties - site doesn't redirect, need different strategy")
                         else:
                             logger.info(f"✅ Detected max page from redirect: {detected_page}")
@@ -125,8 +125,9 @@ def detect_total_pages(url: str) -> int:
                                 page.goto(test_url, wait_until="networkidle", timeout=60000)
                                 html = page.content()
                                 soup = BeautifulSoup(html, 'lxml')
-                                properties = soup.find_all(['div', 'article'], class_=re.compile(r'property|listing|card', re.I))
-                                return len(properties) > 0
+                                # Use the same pattern as the actual scraper
+                                property_links = soup.find_all('a', href=re.compile(r'_rah-\d+.*\.html'))
+                                return len(property_links) > 0
                             except Exception as e:
                                 logger.warning(f"Error checking page {page_num}: {e}")
                                 return False
