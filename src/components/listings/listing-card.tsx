@@ -30,6 +30,9 @@ export function ListingCard({ listing }: ListingCardProps) {
   // Use thumbnail_url if available, otherwise use first image from image_urls array
   const imageUrl = listing.thumbnail_url || (listing.image_urls && listing.image_urls.length > 0 ? listing.image_urls[0] : null);
 
+  // Use English translations with fallback to Spanish/original
+  const displayTitle = listing.title_en || listing.title;
+
   return (
     <Link href={`/listing/${listing.id}`}>
       <Card className="group card-hover overflow-hidden h-full">
@@ -37,7 +40,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           {imageUrl ? (
             <Image
               src={imageUrl}
-              alt={listing.title}
+              alt={displayTitle}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -59,7 +62,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             {formatPrice(listing.price, listing.currency)}
           </p>
           <h3 className="font-semibold text-lg mt-1 line-clamp-2 text-foreground">
-            {listing.title}
+            {displayTitle}
           </h3>
           <p className="text-muted-foreground text-sm mt-1 flex items-center gap-1">
             <MapPin className="h-3 w-3" />

@@ -50,6 +50,20 @@ export interface Listing {
   agent_office: string | null;
   reference_code: string | null;
   photo_count: number | null;
+
+  // English translations (for international buyers)
+  title_en: string | null;
+  description_short_en: string | null;
+  description_full_en: string | null;
+
+  // Spanish originals (preserved for reference)
+  title_es: string | null;
+  description_short_es: string | null;
+  description_full_es: string | null;
+
+  // Translation metadata
+  translation_model: string | null;
+  translated_at: string | null;
 }
 
 export interface ListingFilters {
