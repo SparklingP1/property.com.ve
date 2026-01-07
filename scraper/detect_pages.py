@@ -64,23 +64,13 @@ def detect_total_pages(url: str) -> int:
             except Exception as e:
                 logger.warning(f"High page test failed: {e}")
 
-            # Strategy 2: Load first page and look for pagination indicators
+            # Strategy 2: Load first page and check pagination links
             logger.info(f"Checking pagination at: {url}")
             page.goto(url, wait_until="networkidle", timeout=60000)
             html = page.content()
             soup = BeautifulSoup(html, 'lxml')
 
-            # Look for "of XXX" text
-            pagination_text = soup.find(text=re.compile(r'of\s+(\d+)', re.IGNORECASE))
-            if pagination_text:
-                match = re.search(r'of\s+(\d+)', pagination_text, re.IGNORECASE)
-                if match:
-                    total = int(match.group(1))
-                    logger.info(f"✅ Found pagination text: {total} pages")
-                    browser.close()
-                    return total
-
-            # Find all page number links (but don't trust if too low)
+            # Find all page number links and use binary search if needed
             page_links = soup.find_all('a', href=re.compile(r'[?&]page=(\d+)'))
             if page_links:
                 page_numbers = []
