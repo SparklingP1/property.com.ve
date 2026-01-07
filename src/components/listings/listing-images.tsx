@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PhotoGalleryModal } from './photo-gallery-modal';
 
 interface ListingImagesProps {
   images: string[];
@@ -11,6 +12,7 @@ interface ListingImagesProps {
 
 export function ListingImages({ images, title }: ListingImagesProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   if (!images || images.length === 0) {
     return (
@@ -34,34 +36,40 @@ export function ListingImages({ images, title }: ListingImagesProps) {
     <div className="mb-6">
       {/* Main Image */}
       <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden rounded-xl bg-muted mb-4">
-        <Image
-          src={images[currentIndex]}
-          alt={`${title} - Image ${currentIndex + 1}`}
-          fill
-          className="object-cover"
-          priority
-        />
+        <button
+          onClick={() => setIsGalleryOpen(true)}
+          className="absolute inset-0 z-0 cursor-pointer"
+          aria-label="Open photo gallery"
+        >
+          <Image
+            src={images[currentIndex]}
+            alt={`${title} - Image ${currentIndex + 1}`}
+            fill
+            className="object-cover"
+            priority
+          />
+        </button>
 
         {/* Navigation Arrows (only show if more than 1 image) */}
         {images.length > 1 && (
           <>
             <button
               onClick={previousImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors z-10"
               aria-label="Previous image"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
             <button
               onClick={nextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors z-10"
               aria-label="Next image"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
 
             {/* Image Counter */}
-            <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+            <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm z-10">
               {currentIndex + 1} / {images.length}
             </div>
           </>
@@ -91,14 +99,27 @@ export function ListingImages({ images, title }: ListingImagesProps) {
             </button>
           ))}
           {images.length > 6 && (
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-              <span className="text-sm text-muted-foreground font-medium">
+            <button
+              onClick={() => setIsGalleryOpen(true)}
+              className="relative aspect-square overflow-hidden rounded-lg bg-stone-900 hover:bg-stone-800 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label={`View all ${images.length} photos`}
+            >
+              <span className="text-sm text-white font-medium">
                 +{images.length - 6}
               </span>
-            </div>
+            </button>
           )}
         </div>
       )}
+
+      {/* Photo Gallery Modal */}
+      <PhotoGalleryModal
+        images={images}
+        title={title}
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        initialIndex={currentIndex}
+      />
     </div>
   );
 }
