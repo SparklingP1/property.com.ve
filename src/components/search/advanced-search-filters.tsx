@@ -111,7 +111,7 @@ export function AdvancedSearchFilters() {
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder="Any" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="all">Any</SelectItem>
             <SelectItem value="sale">For Sale</SelectItem>
             <SelectItem value="rent">For Rent</SelectItem>
@@ -128,7 +128,7 @@ export function AdvancedSearchFilters() {
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder="Any" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="all">Any Type</SelectItem>
             <SelectItem value="apartment">Apartment</SelectItem>
             <SelectItem value="house">House</SelectItem>
@@ -146,7 +146,7 @@ export function AdvancedSearchFilters() {
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder="Any State" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="all">All States</SelectItem>
             <SelectItem value="Distrito Metropolitano">
               Distrito Metropolitano
@@ -196,7 +196,7 @@ export function AdvancedSearchFilters() {
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder="Any" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="all">Any</SelectItem>
             <SelectItem value="1">1+</SelectItem>
             <SelectItem value="2">2+</SelectItem>
@@ -214,7 +214,7 @@ export function AdvancedSearchFilters() {
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder="Any" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="all">Any</SelectItem>
             <SelectItem value="1">1+</SelectItem>
             <SelectItem value="2">2+</SelectItem>
@@ -231,7 +231,7 @@ export function AdvancedSearchFilters() {
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder="Any" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="all">Any</SelectItem>
             <SelectItem value="1">1+</SelectItem>
             <SelectItem value="2">2+</SelectItem>
@@ -270,7 +270,7 @@ export function AdvancedSearchFilters() {
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder="Any" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="all">Any</SelectItem>
             <SelectItem value="true">Furnished</SelectItem>
             <SelectItem value="false">Unfurnished</SelectItem>

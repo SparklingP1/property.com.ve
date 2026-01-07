@@ -40,7 +40,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   return (
     <Link href={listingUrl}>
       <Card className="group card-hover overflow-hidden h-full">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div className="relative aspect-[3/2] overflow-hidden bg-muted">
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -61,19 +61,19 @@ export function ListingCard({ listing }: ListingCardProps) {
           )}
         </div>
 
-        <CardContent className="p-4">
-          <p className="text-2xl font-bold text-primary-700">
+        <CardContent className="p-3">
+          <p className="text-xl font-bold text-primary-700">
             {formatPrice(listing.price, listing.currency)}
           </p>
-          <h3 className="font-semibold text-lg mt-1 line-clamp-2 text-foreground">
+          <h3 className="font-semibold text-base mt-1 line-clamp-2 text-foreground">
             {displayTitle}
           </h3>
-          <p className="text-muted-foreground text-sm mt-1 flex items-center gap-1">
+          <p className="text-muted-foreground text-xs mt-1 flex items-center gap-1">
             <MapPin className="h-3 w-3" />
             {[listing.city || listing.location, listing.neighborhood, listing.state || listing.region].filter(Boolean).join(', ')}
           </p>
 
-          <div className="flex flex-wrap gap-3 mt-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-2 mt-3 text-xs text-muted-foreground">
             {listing.bedrooms !== null && (
               <span className="flex items-center gap-1">
                 <Bed className="h-4 w-4" />

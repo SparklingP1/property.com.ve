@@ -1,8 +1,5 @@
-import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { AdvancedSearchFilters } from '@/components/search/advanced-search-filters';
-import { SearchResults } from '@/components/search/search-results';
-import { ListingSkeleton } from '@/components/listings/listing-skeleton';
+import { CollapsibleFilters } from '@/components/search/collapsible-filters';
 
 export const metadata: Metadata = {
   title: 'Search Properties | Property.com.ve',
@@ -34,24 +31,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       {/* Search Interface */}
       <div className="container py-8">
-        <div className="grid lg:grid-cols-[320px,1fr] gap-8">
-          {/* Filters Sidebar */}
-          <aside className="lg:sticky lg:top-8 h-fit">
-            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
-              <h2 className="text-lg font-semibold mb-6 text-stone-900">
-                Refine Your Search
-              </h2>
-              <AdvancedSearchFilters />
-            </div>
-          </aside>
-
-          {/* Results */}
-          <main>
-            <Suspense fallback={<ListingSkeleton count={12} />}>
-              <SearchResults searchParams={params} />
-            </Suspense>
-          </main>
-        </div>
+        <CollapsibleFilters searchParams={params} />
       </div>
     </div>
   );
