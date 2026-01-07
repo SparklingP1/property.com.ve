@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bed, Bath, Maximize } from 'lucide-react';
+import { Bed, Bath, Maximize, Car, MapPin } from 'lucide-react';
 import type { Listing } from '@/types/listing';
 
 interface ListingCardProps {
@@ -61,27 +61,34 @@ export function ListingCard({ listing }: ListingCardProps) {
           <h3 className="font-semibold text-lg mt-1 line-clamp-2 text-foreground">
             {listing.title}
           </h3>
-          <p className="text-muted-foreground text-sm mt-1">
-            {[listing.location, listing.region].filter(Boolean).join(', ')}
+          <p className="text-muted-foreground text-sm mt-1 flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {[listing.city || listing.location, listing.neighborhood, listing.state || listing.region].filter(Boolean).join(', ')}
           </p>
 
-          <div className="flex gap-4 mt-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-3 mt-4 text-sm text-muted-foreground">
             {listing.bedrooms !== null && (
               <span className="flex items-center gap-1">
                 <Bed className="h-4 w-4" />
-                {listing.bedrooms} beds
+                {listing.bedrooms}
               </span>
             )}
             {listing.bathrooms !== null && (
               <span className="flex items-center gap-1">
                 <Bath className="h-4 w-4" />
-                {listing.bathrooms} baths
+                {listing.bathrooms}
               </span>
             )}
             {listing.area_sqm !== null && (
               <span className="flex items-center gap-1">
                 <Maximize className="h-4 w-4" />
-                {listing.area_sqm} m&sup2;
+                {listing.area_sqm}m²
+              </span>
+            )}
+            {listing.parking_spaces !== null && listing.parking_spaces > 0 && (
+              <span className="flex items-center gap-1">
+                <Car className="h-4 w-4" />
+                {listing.parking_spaces}
               </span>
             )}
           </div>

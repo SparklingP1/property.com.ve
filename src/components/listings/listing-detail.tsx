@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bed, Bath, Maximize, MapPin, ExternalLink } from 'lucide-react';
+import { Bed, Bath, Maximize, MapPin, ExternalLink, Car, Home, CheckCircle2, User } from 'lucide-react';
 import type { Listing } from '@/types/listing';
 import { ListingImages } from './listing-images';
 
@@ -62,13 +62,18 @@ export function ListingDetail({ listing }: ListingDetailProps) {
           </h1>
           <p className="text-muted-foreground flex items-center gap-1">
             <MapPin className="h-4 w-4" />
-            {[listing.location, listing.region].filter(Boolean).join(', ')}
+            {[listing.city || listing.location, listing.neighborhood, listing.state || listing.region].filter(Boolean).join(', ')}
           </p>
         </div>
         <div className="text-right">
           <p className="text-3xl md:text-4xl font-bold text-primary">
             {formatPrice(listing.price, listing.currency)}
           </p>
+          {listing.transaction_type && (
+            <Badge variant="secondary" className="mt-2">
+              For {listing.transaction_type === 'sale' ? 'Sale' : 'Rent'}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -94,18 +99,97 @@ export function ListingDetail({ listing }: ListingDetailProps) {
           <div className="flex items-center gap-2">
             <Maximize className="h-5 w-5 text-muted-foreground" />
             <span className="text-lg">
-              <strong>{listing.area_sqm}</strong> m&sup2;
+              <strong>{listing.area_sqm}</strong> m²
+            </span>
+          </div>
+        )}
+        {listing.parking_spaces !== null && (
+          <div className="flex items-center gap-2">
+            <Car className="h-5 w-5 text-muted-foreground" />
+            <span className="text-lg">
+              <strong>{listing.parking_spaces}</strong> Parking
             </span>
           </div>
         )}
       </div>
 
+      {/* Property Details */}
+      {(listing.property_style || listing.condition || listing.furnished !== null || listing.total_area_sqm || listing.reference_code) && (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-3">Property Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {listing.property_style && (
+              <div className="flex items-center gap-2">
+                <Home className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Style:</span>
+                <span className="font-medium">{listing.property_style}</span>
+              </div>
+            )}
+            {listing.condition && (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Condition:</span>
+                <span className="font-medium capitalize">{listing.condition}</span>
+              </div>
+            )}
+            {listing.furnished !== null && (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Furnished:</span>
+                <span className="font-medium">{listing.furnished ? 'Yes' : 'No'}</span>
+              </div>
+            )}
+            {listing.total_area_sqm && (
+              <div className="flex items-center gap-2">
+                <Maximize className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Total Area:</span>
+                <span className="font-medium">{listing.total_area_sqm} m²</span>
+              </div>
+            )}
+            {listing.reference_code && (
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Reference:</span>
+                <span className="font-medium">{listing.reference_code}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Amenities */}
+      {listing.amenities && listing.amenities.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-3">Amenities</h2>
+          <div className="flex flex-wrap gap-2">
+            {listing.amenities.map((amenity) => (
+              <Badge key={amenity} variant="outline" className="capitalize">
+                {amenity.replace('_', ' ')}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Agent Info */}
+      {listing.agent_name && (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-3">Listed By</h2>
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{listing.agent_name}</span>
+            {listing.agent_office && (
+              <span className="text-muted-foreground">• {listing.agent_office}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Description */}
-      {listing.description_short && (
+      {(listing.description_full || listing.description_short) && (
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-3">Description</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            {listing.description_short}
+          <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+            {listing.description_full || listing.description_short}
           </p>
         </div>
       )}
