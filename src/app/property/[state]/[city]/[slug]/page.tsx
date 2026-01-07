@@ -7,40 +7,46 @@ import { ListingGrid } from '@/components/listings/listing-grid';
 import type { Listing } from '@/types/listing';
 import { getListingUrl } from '@/lib/slug';
 
-interface ListingPageProps {
-  params: Promise<{ id: string }>;
+interface PropertyPageProps {
+  params: Promise<{ state: string; city: string; slug: string }>;
 }
 
 export async function generateMetadata({
   params,
-}: ListingPageProps): Promise<Metadata> {
-  const { id } = await params;
+}: PropertyPageProps): Promise<Metadata> {
+  const { slug } = await params;
   const supabase = await createClient();
 
   const { data: listing } = await supabase
     .from('listings')
     .select('*')
-    .eq('id', id)
+    .eq('url_slug', slug)
     .single();
 
   if (!listing) {
-    return { title: 'Listing Not Found' };
+    return { title: 'Property Not Found' };
   }
 
   const title = listing.title_en || listing.title;
   const description =
     listing.description_short_en ||
     listing.description_short ||
-    `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.location || 'Venezuela'}`;
+    `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.city || listing.location || 'Venezuela'}`;
+
+  // Generate canonical URL
+  const canonicalUrl = `${process.env.NEXT_PUBLIC_SITE_URL}${getListingUrl(listing)}`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description,
       type: 'website',
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/listing/${id}`,
+      url: canonicalUrl,
       images: listing.thumbnail_url ? [listing.thumbnail_url] : [],
       siteName: 'Property.com.ve',
     },
@@ -53,24 +59,20 @@ export async function generateMetadata({
   };
 }
 
-export default async function ListingPage({ params }: ListingPageProps) {
-  const { id } = await params;
+export default async function PropertyPage({ params }: PropertyPageProps) {
+  const { slug } = await params;
   const supabase = await createClient();
 
   // First, check if listing exists (active or inactive)
   const { data: listing, error } = await supabase
     .from('listings')
     .select('*')
-    .eq('id', id)
+    .eq('url_slug', slug)
     .single();
 
   if (error || !listing) {
     notFound();
   }
-
-  // Redirect to new SEO-friendly URL
-  const newUrl = getListingUrl(listing as Listing);
-  redirect(newUrl);
 
   // If listing is inactive, show "no longer available" page with similar properties
   if (!listing.active) {
@@ -149,7 +151,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     .from('listings')
     .select('*')
     .eq('active', true)
-    .neq('id', id)
+    .neq('url_slug', slug)
     .eq('region', listing.region)
     .limit(3);
 

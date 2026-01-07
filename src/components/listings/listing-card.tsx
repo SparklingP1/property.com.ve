@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bed, Bath, Maximize, Car, MapPin } from 'lucide-react';
 import type { Listing } from '@/types/listing';
+import { getListingUrl } from '@/lib/slug';
 
 interface ListingCardProps {
   listing: Listing;
@@ -33,8 +34,11 @@ export function ListingCard({ listing }: ListingCardProps) {
   // Use English translations with fallback to Spanish/original
   const displayTitle = listing.title_en || listing.title;
 
+  // Get SEO-friendly URL
+  const listingUrl = getListingUrl(listing);
+
   return (
-    <Link href={`/listing/${listing.id}`}>
+    <Link href={listingUrl}>
       <Card className="group card-hover overflow-hidden h-full">
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {imageUrl ? (

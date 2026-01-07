@@ -803,6 +803,49 @@ class SupabaseStorage:
         self.client: Client = create_client(url, key)
         self.http_client = httpx.Client(timeout=30.0, follow_redirects=True)
 
+    @staticmethod
+    def _slugify(text: str) -> str:
+        """Convert text to URL-friendly slug."""
+        import unicodedata
+        # Remove accents
+        text = unicodedata.normalize('NFD', text)
+        text = text.encode('ascii', 'ignore').decode('utf-8')
+        # Lowercase and replace spaces with hyphens
+        text = text.lower().strip()
+        text = re.sub(r'[^\w\s-]', '', text)
+        text = re.sub(r'[-\s]+', '-', text)
+        return text.strip('-')
+
+    def _generate_url_slug(self, listing: PropertyListing, property_id: str) -> str:
+        """Generate SEO-friendly URL slug.
+
+        Format: {bedrooms}-bed-{property_type}-{neighborhood}-for-sale-{short_id}
+        Example: 3-bed-apartment-cumbres-de-curumo-for-sale-abc123
+        """
+        parts = []
+
+        # Add bedrooms if available
+        if listing.bedrooms:
+            parts.append(f"{listing.bedrooms}-bed")
+
+        # Add property type
+        if listing.property_type:
+            parts.append(self._slugify(listing.property_type))
+
+        # Add neighborhood, fallback to city
+        location = getattr(listing, 'neighborhood', None) or getattr(listing, 'city', None)
+        if location:
+            parts.append(self._slugify(location))
+
+        # Add transaction type
+        transaction = getattr(listing, 'transaction_type', 'sale') or 'sale'
+        parts.append(f"for-{transaction}")
+
+        # Add short ID for uniqueness (last 8 chars of property_id)
+        parts.append(property_id[-8:])
+
+        return '-'.join(parts)
+
     def download_and_upload_image(self, image_url: str, property_id: str, index: int = 0) -> Optional[str]:
         """Download image and upload to Supabase Storage. Returns public URL or None."""
         try:
@@ -858,10 +901,14 @@ class SupabaseStorage:
                 # Use first hosted image as thumbnail
                 thumbnail = hosted_image_urls[0] if hosted_image_urls else None
 
+                # Generate SEO-friendly URL slug
+                url_slug = self._generate_url_slug(listing, property_id)
+
                 data = {
                     "source": source,
                     "source_url": listing.source_url,
                     "title": listing.title,
+                    "url_slug": url_slug,
                     "price": listing.price,
                     "currency": listing.currency,
                     "location": listing.location,
