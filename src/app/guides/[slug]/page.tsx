@@ -40,7 +40,7 @@ export async function generateMetadata({
 
 function parseMarkdownContent(content: string) {
   const lines = content.split('\n');
-  const elements: JSX.Element[] = [];
+  const elements = [];
   let currentList: { type: 'ul' | 'ol'; items: string[] } | null = null;
   let listKey = 0;
 
