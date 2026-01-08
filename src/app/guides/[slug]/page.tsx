@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { guides, getGuideBySlug } from '@/lib/guides';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
@@ -70,52 +72,10 @@ export default async function GuidePage({ params }: GuidePageProps) {
         </header>
 
         {/* Content */}
-        <article className="prose prose-neutral max-w-none">
-          {guide.content.split('\n').map((paragraph, index) => {
-            const trimmed = paragraph.trim();
-            if (!trimmed) return null;
-
-            if (trimmed.startsWith('## ')) {
-              return (
-                <h2 key={index} className="text-2xl font-bold mt-8 mb-4">
-                  {trimmed.replace('## ', '')}
-                </h2>
-              );
-            }
-            if (trimmed.startsWith('### ')) {
-              return (
-                <h3 key={index} className="text-xl font-semibold mt-6 mb-3">
-                  {trimmed.replace('### ', '')}
-                </h3>
-              );
-            }
-            if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-              return (
-                <p key={index} className="font-semibold mt-4">
-                  {trimmed.replace(/\*\*/g, '')}
-                </p>
-              );
-            }
-            if (trimmed.startsWith('- ')) {
-              return (
-                <li key={index} className="ml-4">
-                  {trimmed.replace('- ', '')}
-                </li>
-              );
-            }
-            if (/^\d+\./.test(trimmed)) {
-              return (
-                <li key={index} className="ml-4 list-decimal">
-                  {trimmed.replace(/^\d+\.\s*/, '')}
-                </li>
-              );
-            }
-            return (
-              <p key={index} className="my-4 text-muted-foreground leading-relaxed">
-                {trimmed}
-              </p>
-            );
-          })}
+        <article className="prose prose-neutral max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-muted-foreground prose-p:leading-relaxed prose-ul:my-4 prose-ol:my-4 prose-li:my-2 prose-strong:text-foreground">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {guide.content}
+          </ReactMarkdown>
         </article>
 
         {/* CTA */}
