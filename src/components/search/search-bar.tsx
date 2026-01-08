@@ -17,16 +17,10 @@ export function SearchBar() {
     const params = new URLSearchParams();
 
     if (location) {
-      // Parse the query for smart search
+      // Parse the query for smart search (property type, transaction type, location)
       const parsed = parseSearchQuery(location);
 
-      // Apply parsed filters
-      if (parsed.bedrooms) {
-        params.set('bedrooms', parsed.bedrooms.toString());
-      }
-      if (parsed.bathrooms) {
-        params.set('bathrooms', parsed.bathrooms.toString());
-      }
+      // Apply parsed filters (no bedrooms/bathrooms - use manual filters for those)
       if (parsed.propertyType) {
         params.set('type', parsed.propertyType);
       }
@@ -53,7 +47,7 @@ export function SearchBar() {
     <div className="flex flex-col md:flex-row gap-3">
       <div className="flex-1">
         <Input
-          placeholder="Try: '2 bedroom apartment Caracas' or 'casa en venta Valencia'"
+          placeholder="Try: 'apartment Caracas' or 'casa en venta Valencia'"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}

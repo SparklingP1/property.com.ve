@@ -22,16 +22,11 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   let effectiveParams = { ...searchParams };
 
   // If there's a query string and no explicit filters are set, try smart parsing
-  if (searchParams.q && !searchParams.bedrooms && !searchParams.type && !searchParams.transaction) {
+  // Note: bedroom/bathroom parsing disabled - use manual filters for precision
+  if (searchParams.q && !searchParams.type && !searchParams.transaction) {
     const parsed = parseSearchQuery(searchParams.q);
 
     // Apply parsed filters only if they were detected
-    if (parsed.bedrooms) {
-      effectiveParams.bedrooms = parsed.bedrooms.toString();
-    }
-    if (parsed.bathrooms) {
-      effectiveParams.bathrooms = parsed.bathrooms.toString();
-    }
     if (parsed.propertyType) {
       effectiveParams.type = parsed.propertyType;
     }

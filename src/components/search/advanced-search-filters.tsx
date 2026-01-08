@@ -58,6 +58,7 @@ export function AdvancedSearchFilters() {
       const parsed = parseSearchQuery(keyword);
 
       // Apply parsed filters (only if not already set by manual filters)
+      // Note: bedrooms/bathrooms parsing disabled - use manual dropdowns for those
       if (parsed.transactionType && transactionType === 'all') {
         finalTransactionType = parsed.transactionType;
         detected.push(`${parsed.transactionType === 'rent' ? 'For Rent' : 'For Sale'}`);
@@ -65,14 +66,6 @@ export function AdvancedSearchFilters() {
       if (parsed.propertyType && propertyType === 'all') {
         finalPropertyType = parsed.propertyType;
         detected.push(`${parsed.propertyType.charAt(0).toUpperCase() + parsed.propertyType.slice(1)}`);
-      }
-      if (parsed.bedrooms && bedrooms === 'all') {
-        finalBedrooms = parsed.bedrooms.toString();
-        detected.push(`${parsed.bedrooms}+ Bedroom${parsed.bedrooms > 1 ? 's' : ''}`);
-      }
-      if (parsed.bathrooms && bathrooms === 'all') {
-        finalBathrooms = parsed.bathrooms.toString();
-        detected.push(`${parsed.bathrooms}+ Bathroom${parsed.bathrooms > 1 ? 's' : ''}`);
       }
       if (parsed.furnished !== undefined && furnished === 'all') {
         finalFurnished = parsed.furnished.toString();
@@ -141,14 +134,14 @@ export function AdvancedSearchFilters() {
         </Label>
         <Input
           id="keyword"
-          placeholder="Try: '2 bedroom apartment Caracas' or 'casa 3 habitaciones'"
+          placeholder="Try: 'apartment Caracas' or 'casa en venta Valencia'"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           className="border-stone-300"
         />
         <p className="text-xs text-stone-500">
-          Type naturally - we&apos;ll detect property type, bedrooms, and more
+          Type naturally - we&apos;ll detect property type, location, and transaction type
         </p>
         {detectedFilters.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">

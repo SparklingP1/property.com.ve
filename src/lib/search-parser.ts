@@ -96,43 +96,41 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
     remaining = remaining.replace(furnishedPatterns.no, ' ');
   }
 
-  // Extract bedrooms
-  const bedroomMatch = bedroomPattern.exec(remaining);
-  if (bedroomMatch) {
-    const value = bedroomMatch[1];
-    const numValue = parseInt(value, 10);
+  // Bedroom/bathroom parsing disabled - too confusing for users
+  // (they expect exact matches, not "1+ bedrooms")
+  // Users can still use the manual filter dropdowns for precise bedroom/bathroom filtering
 
-    if (!isNaN(numValue)) {
-      result.bedrooms = numValue;
-    } else {
-      // Try word to number conversion
-      const wordNum = numberWords[value.toLowerCase()];
-      if (wordNum) {
-        result.bedrooms = wordNum;
-      }
-    }
+  // Extract bedrooms - DISABLED
+  // const bedroomMatch = bedroomPattern.exec(remaining);
+  // if (bedroomMatch) {
+  //   const value = bedroomMatch[1];
+  //   const numValue = parseInt(value, 10);
+  //   if (!isNaN(numValue)) {
+  //     result.bedrooms = numValue;
+  //   } else {
+  //     const wordNum = numberWords[value.toLowerCase()];
+  //     if (wordNum) {
+  //       result.bedrooms = wordNum;
+  //     }
+  //   }
+  //   remaining = remaining.replace(bedroomMatch[0], ' ');
+  // }
 
-    remaining = remaining.replace(bedroomMatch[0], ' ');
-  }
-
-  // Extract bathrooms
-  const bathroomMatch = bathroomPattern.exec(remaining);
-  if (bathroomMatch) {
-    const value = bathroomMatch[1];
-    const numValue = parseInt(value, 10);
-
-    if (!isNaN(numValue)) {
-      result.bathrooms = numValue;
-    } else {
-      // Try word to number conversion
-      const wordNum = numberWords[value.toLowerCase()];
-      if (wordNum) {
-        result.bathrooms = wordNum;
-      }
-    }
-
-    remaining = remaining.replace(bathroomMatch[0], ' ');
-  }
+  // Extract bathrooms - DISABLED
+  // const bathroomMatch = bathroomPattern.exec(remaining);
+  // if (bathroomMatch) {
+  //   const value = bathroomMatch[1];
+  //   const numValue = parseInt(value, 10);
+  //   if (!isNaN(numValue)) {
+  //     result.bathrooms = numValue;
+  //   } else {
+  //     const wordNum = numberWords[value.toLowerCase()];
+  //     if (wordNum) {
+  //       result.bathrooms = wordNum;
+  //     }
+  //   }
+  //   remaining = remaining.replace(bathroomMatch[0], ' ');
+  // }
 
   // Clean up remaining keywords (remove extra spaces)
   result.remainingKeywords = remaining.trim().replace(/\s+/g, ' ');
