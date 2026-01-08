@@ -12,8 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, X } from 'lucide-react';
+import { Search, X, Sparkles } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { parseSearchQuery } from '@/lib/search-parser';
+import { Badge } from '@/components/ui/badge';
 
 export function AdvancedSearchFilters() {
   const router = useRouter();
@@ -42,19 +44,51 @@ export function AdvancedSearchFilters() {
   const handleSearch = () => {
     const params = new URLSearchParams();
 
-    if (keyword) params.set('q', keyword);
-    if (transactionType && transactionType !== 'all')
-      params.set('transaction', transactionType);
-    if (propertyType && propertyType !== 'all')
-      params.set('type', propertyType);
+    // Parse the keyword for smart search
+    let finalKeyword = keyword;
+    let finalTransactionType = transactionType;
+    let finalPropertyType = propertyType;
+    let finalBedrooms = bedrooms;
+    let finalBathrooms = bathrooms;
+    let finalFurnished = furnished;
+
+    if (keyword) {
+      const parsed = parseSearchQuery(keyword);
+
+      // Apply parsed filters (only if not already set by manual filters)
+      if (parsed.transactionType && transactionType === 'all') {
+        finalTransactionType = parsed.transactionType;
+      }
+      if (parsed.propertyType && propertyType === 'all') {
+        finalPropertyType = parsed.propertyType;
+      }
+      if (parsed.bedrooms && bedrooms === 'all') {
+        finalBedrooms = parsed.bedrooms.toString();
+      }
+      if (parsed.bathrooms && bathrooms === 'all') {
+        finalBathrooms = parsed.bathrooms.toString();
+      }
+      if (parsed.furnished !== undefined && furnished === 'all') {
+        finalFurnished = parsed.furnished.toString();
+      }
+
+      // Use remaining keywords for text search
+      finalKeyword = parsed.remainingKeywords || keyword;
+    }
+
+    if (finalKeyword) params.set('q', finalKeyword);
+    if (finalTransactionType && finalTransactionType !== 'all')
+      params.set('transaction', finalTransactionType);
+    if (finalPropertyType && finalPropertyType !== 'all')
+      params.set('type', finalPropertyType);
     if (city && city !== 'all') params.set('city', city);
     if (state && state !== 'all') params.set('state', state);
     if (minPrice) params.set('minPrice', minPrice);
     if (maxPrice) params.set('maxPrice', maxPrice);
-    if (bedrooms && bedrooms !== 'all') params.set('bedrooms', bedrooms);
-    if (bathrooms && bathrooms !== 'all') params.set('bathrooms', bathrooms);
+    if (finalBedrooms && finalBedrooms !== 'all') params.set('bedrooms', finalBedrooms);
+    if (finalBathrooms && finalBathrooms !== 'all') params.set('bathrooms', finalBathrooms);
     if (parking && parking !== 'all') params.set('parking', parking);
-    if (furnished && furnished !== 'all') params.set('furnished', furnished);
+    if (finalFurnished && finalFurnished !== 'all') params.set('furnished', finalFurnished);
     if (minArea) params.set('minArea', minArea);
     if (maxArea) params.set('maxArea', maxArea);
 
@@ -87,17 +121,24 @@ export function AdvancedSearchFilters() {
     <div className="space-y-6">
       {/* Keyword Search */}
       <div className="space-y-2">
-        <Label htmlFor="keyword" className="text-sm font-medium text-stone-700">
+        <Label htmlFor="keyword" className="text-sm font-medium text-stone-700 flex items-center gap-2">
           Search Keywords
+          <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 border-amber-200">
+            <Sparkles className="h-3 w-3 mr-1" />
+            Smart
+          </Badge>
         </Label>
         <Input
           id="keyword"
-          placeholder="Location, neighborhood..."
+          placeholder="Try: '2 bedroom apartment Caracas' or 'casa 3 habitaciones'"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           className="border-stone-300"
         />
+        <p className="text-xs text-stone-500">
+          Type naturally - we&apos;ll detect property type, bedrooms, and more
+        </p>
       </div>
 
       <Separator className="bg-stone-200" />

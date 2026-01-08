@@ -1,20 +1,26 @@
 import { createClient } from '@/lib/supabase/server';
-import { ListingCard } from '@/components/listings/listing-card';
+import { SearchResultsClient } from './search-results-client';
+import { SortSelect } from './sort-select';
 import type { Listing } from '@/types/listing';
 
 interface SearchResultsProps {
   searchParams: { [key: string]: string | undefined };
 }
 
+const RESULTS_PER_PAGE = 24;
+
 export async function SearchResults({ searchParams }: SearchResultsProps) {
   const supabase = await createClient();
+
+  // Get sort parameter (default: newest first)
+  const sortBy = searchParams.sort || 'scraped_at-desc';
+  const [sortField, sortDirection] = sortBy.split('-');
 
   // Build query
   let query = supabase
     .from('listings')
     .select('*', { count: 'exact' })
-    .eq('active', true)
-    .order('scraped_at', { ascending: false });
+    .eq('active', true);
 
   // Keyword search (title, location, city, neighborhood)
   if (searchParams.q) {
@@ -79,41 +85,32 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
     query = query.eq('furnished', searchParams.furnished === 'true');
   }
 
-  const { data: listings, count } = await query;
+  // Apply sorting
+  query = query.order(sortField, { ascending: sortDirection === 'asc' });
+
+  // Apply pagination - get first batch + count
+  const { data: listings, count } = await query.range(0, RESULTS_PER_PAGE - 1);
 
   const typedListings = (listings as Listing[]) || [];
-
-  if (typedListings.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <div className="bg-stone-100 rounded-2xl p-12 max-w-lg mx-auto">
-          <h3 className="text-2xl font-bold text-stone-900 mb-3">
-            No properties found
-          </h3>
-          <p className="text-stone-600 mb-6">
-            Try adjusting your filters to see more results.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>
       {/* Results Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-bold text-stone-900">
           {count?.toLocaleString() || 0} {count === 1 ? 'Property' : 'Properties'}{' '}
           Found
         </h2>
+        <SortSelect currentSort={sortBy} />
       </div>
 
-      {/* Results Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {typedListings.map((listing) => (
-          <ListingCard key={listing.id} listing={listing} />
-        ))}
-      </div>
+      {/* Results with Load More */}
+      <SearchResultsClient
+        initialListings={typedListings}
+        totalCount={count || 0}
+        searchParams={searchParams}
+        sortBy={sortBy}
+      />
     </div>
   );
 }
