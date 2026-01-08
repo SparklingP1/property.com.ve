@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ListingCard } from '@/components/listings/listing-card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,11 @@ export function SearchResultsClient({
   const [listings, setListings] = useState<Listing[]>(initialListings);
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Reset listings when search params or sort changes
+  useEffect(() => {
+    setListings(initialListings);
+  }, [initialListings, searchParams, sortBy]);
 
   const hasMore = listings.length < totalCount;
 

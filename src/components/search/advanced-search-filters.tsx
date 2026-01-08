@@ -40,8 +40,10 @@ export function AdvancedSearchFilters() {
   const [furnished, setFurnished] = useState(searchParams.get('furnished') || 'all');
   const [minArea, setMinArea] = useState(searchParams.get('minArea') || '');
   const [maxArea, setMaxArea] = useState(searchParams.get('maxArea') || '');
+  const [detectedFilters, setDetectedFilters] = useState<string[]>([]);
 
   const handleSearch = () => {
+    const detected: string[] = [];
     const params = new URLSearchParams();
 
     // Parse the keyword for smart search
@@ -58,22 +60,31 @@ export function AdvancedSearchFilters() {
       // Apply parsed filters (only if not already set by manual filters)
       if (parsed.transactionType && transactionType === 'all') {
         finalTransactionType = parsed.transactionType;
+        detected.push(`${parsed.transactionType === 'rent' ? 'For Rent' : 'For Sale'}`);
       }
       if (parsed.propertyType && propertyType === 'all') {
         finalPropertyType = parsed.propertyType;
+        detected.push(`${parsed.propertyType.charAt(0).toUpperCase() + parsed.propertyType.slice(1)}`);
       }
       if (parsed.bedrooms && bedrooms === 'all') {
         finalBedrooms = parsed.bedrooms.toString();
+        detected.push(`${parsed.bedrooms}+ Bedroom${parsed.bedrooms > 1 ? 's' : ''}`);
       }
       if (parsed.bathrooms && bathrooms === 'all') {
         finalBathrooms = parsed.bathrooms.toString();
+        detected.push(`${parsed.bathrooms}+ Bathroom${parsed.bathrooms > 1 ? 's' : ''}`);
       }
       if (parsed.furnished !== undefined && furnished === 'all') {
         finalFurnished = parsed.furnished.toString();
+        detected.push(parsed.furnished ? 'Furnished' : 'Unfurnished');
       }
 
       // Use remaining keywords for text search
       finalKeyword = parsed.remainingKeywords || keyword;
+
+      setDetectedFilters(detected);
+    } else {
+      setDetectedFilters([]);
     }
 
     if (finalKeyword) params.set('q', finalKeyword);
@@ -139,6 +150,16 @@ export function AdvancedSearchFilters() {
         <p className="text-xs text-stone-500">
           Type naturally - we&apos;ll detect property type, bedrooms, and more
         </p>
+        {detectedFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs text-stone-600">Detected:</span>
+            {detectedFilters.map((filter, idx) => (
+              <Badge key={idx} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                {filter}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       <Separator className="bg-stone-200" />

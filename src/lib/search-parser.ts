@@ -53,21 +53,11 @@ const furnishedPatterns = {
   no: /\b(unfurnished|sin muebles|sin amueblar)\b/gi,
 };
 
-// Bedroom patterns
-const bedroomPatterns = [
-  // "2 bedroom", "2 bedrooms", "2br", "2 bed"
-  /\b(\d+)\s*(?:bedroom|bedrooms|br|bed|hab|habitacion|habitaciones)\b/gi,
-  // "two bedroom", "two bedrooms"
-  /\b(one|two|three|four|five|six|un|una|uno|dos|tres|cuatro|cinco|seis)\s*(?:bedroom|bedrooms|br|bed|hab|habitacion|habitaciones)\b/gi,
-];
+// Bedroom pattern (combined - removed global flag to avoid state issues)
+const bedroomPattern = /\b(\d+|one|two|three|four|five|six|un|una|uno|dos|tres|cuatro|cinco|seis)\s*(?:bedroom|bedrooms|br|bed|hab|habitacion|habitaciones)\b/i;
 
-// Bathroom patterns
-const bathroomPatterns = [
-  // "2 bathroom", "2 bathrooms", "2ba", "2 bath"
-  /\b(\d+)\s*(?:bathroom|bathrooms|ba|bath|baño|baños)\b/gi,
-  // "two bathroom", "two bathrooms"
-  /\b(one|two|three|four|five|six|un|una|uno|dos|tres|cuatro|cinco|seis)\s*(?:bathroom|bathrooms|ba|bath|baño|baños)\b/gi,
-];
+// Bathroom pattern (combined - removed global flag to avoid state issues)
+const bathroomPattern = /\b(\d+|one|two|three|four|five|six|un|una|uno|dos|tres|cuatro|cinco|seis)\s*(?:bathroom|bathrooms|ba|bath|baño|baños)\b/i;
 
 export function parseSearchQuery(query: string): ParsedSearchQuery {
   if (!query || typeof query !== 'string') {
@@ -107,47 +97,41 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
   }
 
   // Extract bedrooms
-  for (const pattern of bedroomPatterns) {
-    const match = pattern.exec(remaining);
-    if (match) {
-      const value = match[1];
-      const numValue = parseInt(value, 10);
+  const bedroomMatch = bedroomPattern.exec(remaining);
+  if (bedroomMatch) {
+    const value = bedroomMatch[1];
+    const numValue = parseInt(value, 10);
 
-      if (!isNaN(numValue)) {
-        result.bedrooms = numValue;
-      } else {
-        // Try word to number conversion
-        const wordNum = numberWords[value.toLowerCase()];
-        if (wordNum) {
-          result.bedrooms = wordNum;
-        }
+    if (!isNaN(numValue)) {
+      result.bedrooms = numValue;
+    } else {
+      // Try word to number conversion
+      const wordNum = numberWords[value.toLowerCase()];
+      if (wordNum) {
+        result.bedrooms = wordNum;
       }
-
-      remaining = remaining.replace(pattern, ' ');
-      break; // Only match first bedroom count
     }
+
+    remaining = remaining.replace(bedroomMatch[0], ' ');
   }
 
   // Extract bathrooms
-  for (const pattern of bathroomPatterns) {
-    const match = pattern.exec(remaining);
-    if (match) {
-      const value = match[1];
-      const numValue = parseInt(value, 10);
+  const bathroomMatch = bathroomPattern.exec(remaining);
+  if (bathroomMatch) {
+    const value = bathroomMatch[1];
+    const numValue = parseInt(value, 10);
 
-      if (!isNaN(numValue)) {
-        result.bathrooms = numValue;
-      } else {
-        // Try word to number conversion
-        const wordNum = numberWords[value.toLowerCase()];
-        if (wordNum) {
-          result.bathrooms = wordNum;
-        }
+    if (!isNaN(numValue)) {
+      result.bathrooms = numValue;
+    } else {
+      // Try word to number conversion
+      const wordNum = numberWords[value.toLowerCase()];
+      if (wordNum) {
+        result.bathrooms = wordNum;
       }
-
-      remaining = remaining.replace(pattern, ' ');
-      break; // Only match first bathroom count
     }
+
+    remaining = remaining.replace(bathroomMatch[0], ' ');
   }
 
   // Clean up remaining keywords (remove extra spaces)
