@@ -48,19 +48,21 @@ jobs:
       - name: Detect page count and calculate ranges
         id: calculate
         run: |
-          echo "🔍 Detecting total page count..."
-          # Temporarily use known value while debugging detection
+          echo "🔍 Calculating page ranges..."
+          # Start from page 102 (pages 1-101 already scraped)
           TOTAL=1282
+          START=102
 
-          # Calculate ranges manually
-          RANGES='[{"start":1,"end":143,"name":"Job 1/9"},{"start":144,"end":286,"name":"Job 2/9"},{"start":287,"end":429,"name":"Job 3/9"},{"start":430,"end":572,"name":"Job 4/9"},{"start":573,"end":714,"name":"Job 5/9"},{"start":715,"end":856,"name":"Job 6/9"},{"start":857,"end":998,"name":"Job 7/9"},{"start":999,"end":1140,"name":"Job 8/9"},{"start":1141,"end":1282,"name":"Job 9/9"}]'
+          # Calculate ranges for remaining pages (102-1282 = 1181 pages across 9 jobs)
+          RANGES='[{"start":102,"end":232,"name":"Job 1/9"},{"start":233,"end":363,"name":"Job 2/9"},{"start":364,"end":494,"name":"Job 3/9"},{"start":495,"end":625,"name":"Job 4/9"},{"start":626,"end":756,"name":"Job 5/9"},{"start":757,"end":887,"name":"Job 6/9"},{"start":888,"end":1018,"name":"Job 7/9"},{"start":1019,"end":1149,"name":"Job 8/9"},{"start":1150,"end":1282,"name":"Job 9/9"}]'
 
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
           echo "ranges=$RANGES" >> $GITHUB_OUTPUT
           echo "jobs=9" >> $GITHUB_OUTPUT
 
-          echo "✅ Using $TOTAL total pages (hardcoded)"
-          echo "📊 Split into 9 parallel jobs"
+          echo "✅ Scraping pages $START-$TOTAL (1181 pages)"
+          echo "📊 Split into 9 parallel jobs (~131 pages each)"
+          echo "⏭️  Skipping pages 1-101 (already scraped)"
 
   scrape:
     name: ${{ matrix.page_range.name }} (Pages ${{ matrix.page_range.start }}-${{ matrix.page_range.end }})
