@@ -35,7 +35,7 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
         </Button>
       </div>
 
-      <div className="grid lg:grid-cols-[320px,1fr] gap-8">
+      <div className="grid lg:grid-cols-[480px,1fr] gap-8">
         {/* Filters Sidebar - Collapsible */}
         {filtersOpen && (
           <aside className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">

@@ -112,7 +112,7 @@ export function AdvancedSearchFilters() {
 
   return (
     <div className="space-y-6">
-      {/* Keyword Search */}
+      {/* Keyword Search - Full Width */}
       <div className="space-y-2">
         <Label htmlFor="keyword" className="text-sm font-medium text-stone-700 flex items-center gap-2">
           Search Keywords
@@ -146,164 +146,171 @@ export function AdvancedSearchFilters() {
 
       <Separator className="bg-stone-200" />
 
-      {/* Property Type */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-700">
-          Property Type
-        </Label>
-        <Select value={propertyType} onValueChange={setPropertyType}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder="Any" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">Any Type</SelectItem>
-            <SelectItem value="apartment">Apartment</SelectItem>
-            <SelectItem value="house">House</SelectItem>
-            <SelectItem value="land">Land</SelectItem>
-            <SelectItem value="commercial">Commercial</SelectItem>
-            <SelectItem value="office">Office</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Two Column Grid on Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Property Type */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-stone-700">
+              Property Type
+            </Label>
+            <Select value={propertyType} onValueChange={setPropertyType}>
+              <SelectTrigger className="border-stone-300">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">Any Type</SelectItem>
+                <SelectItem value="apartment">Apartment</SelectItem>
+                <SelectItem value="house">House</SelectItem>
+                <SelectItem value="land">Land</SelectItem>
+                <SelectItem value="commercial">Commercial</SelectItem>
+                <SelectItem value="office">Office</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Location */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-700">State</Label>
-        <Select value={state} onValueChange={setState}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder="Any State" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">All States</SelectItem>
-            <SelectItem value="Distrito Metropolitano">
-              Distrito Metropolitano
-            </SelectItem>
-            <SelectItem value="Miranda">Miranda</SelectItem>
-            <SelectItem value="Vargas">Vargas</SelectItem>
-            <SelectItem value="Carabobo">Carabobo</SelectItem>
-            <SelectItem value="Aragua">Aragua</SelectItem>
-            <SelectItem value="Zulia">Zulia</SelectItem>
-            <SelectItem value="Lara">Lara</SelectItem>
-            <SelectItem value="Anzoategui">Anzoategui</SelectItem>
-            <SelectItem value="Merida">Merida</SelectItem>
-            <SelectItem value="Portuguesa">Portuguesa</SelectItem>
-            <SelectItem value="Falcon">Falcon</SelectItem>
-            <SelectItem value="Nueva Esparta">Nueva Esparta</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          {/* State */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-stone-700">State</Label>
+            <Select value={state} onValueChange={setState}>
+              <SelectTrigger className="border-stone-300">
+                <SelectValue placeholder="Any State" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">All States</SelectItem>
+                <SelectItem value="Distrito Metropolitano">
+                  Distrito Metropolitano
+                </SelectItem>
+                <SelectItem value="Miranda">Miranda</SelectItem>
+                <SelectItem value="Vargas">Vargas</SelectItem>
+                <SelectItem value="Carabobo">Carabobo</SelectItem>
+                <SelectItem value="Aragua">Aragua</SelectItem>
+                <SelectItem value="Zulia">Zulia</SelectItem>
+                <SelectItem value="Lara">Lara</SelectItem>
+                <SelectItem value="Anzoategui">Anzoategui</SelectItem>
+                <SelectItem value="Merida">Merida</SelectItem>
+                <SelectItem value="Portuguesa">Portuguesa</SelectItem>
+                <SelectItem value="Falcon">Falcon</SelectItem>
+                <SelectItem value="Nueva Esparta">Nueva Esparta</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <Separator className="bg-stone-200" />
+          {/* Bedrooms */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-stone-700">Bedrooms</Label>
+            <Select value={bedrooms} onValueChange={setBedrooms}>
+              <SelectTrigger className="border-stone-300">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="1">1+</SelectItem>
+                <SelectItem value="2">2+</SelectItem>
+                <SelectItem value="3">3+</SelectItem>
+                <SelectItem value="4">4+</SelectItem>
+                <SelectItem value="5">5+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Price Range */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium text-stone-700">Price (USD)</Label>
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            type="number"
-            placeholder="Min"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            className="border-stone-300"
-          />
-          <Input
-            type="number"
-            placeholder="Max"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            className="border-stone-300"
-          />
+          {/* Bathrooms */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-stone-700">Bathrooms</Label>
+            <Select value={bathrooms} onValueChange={setBathrooms}>
+              <SelectTrigger className="border-stone-300">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="1">1+</SelectItem>
+                <SelectItem value="2">2+</SelectItem>
+                <SelectItem value="3">3+</SelectItem>
+                <SelectItem value="4">4+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Price Range */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-stone-700">Price (USD)</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="number"
+                placeholder="Min"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="border-stone-300"
+              />
+              <Input
+                type="number"
+                placeholder="Max"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="border-stone-300"
+              />
+            </div>
+          </div>
+
+          {/* Parking */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-stone-700">Parking Spaces</Label>
+            <Select value={parking} onValueChange={setParking}>
+              <SelectTrigger className="border-stone-300">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="1">1+</SelectItem>
+                <SelectItem value="2">2+</SelectItem>
+                <SelectItem value="3">3+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Area Range */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-stone-700">Area (m²)</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="number"
+                placeholder="Min"
+                value={minArea}
+                onChange={(e) => setMinArea(e.target.value)}
+                className="border-stone-300"
+              />
+              <Input
+                type="number"
+                placeholder="Max"
+                value={maxArea}
+                onChange={(e) => setMaxArea(e.target.value)}
+                className="border-stone-300"
+              />
+            </div>
+          </div>
+
+          {/* Furnished */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-stone-700">Furnished</Label>
+            <Select value={furnished} onValueChange={setFurnished}>
+              <SelectTrigger className="border-stone-300">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="true">Furnished</SelectItem>
+                <SelectItem value="false">Unfurnished</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* Bedrooms */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-700">Bedrooms</Label>
-        <Select value={bedrooms} onValueChange={setBedrooms}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder="Any" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">Any</SelectItem>
-            <SelectItem value="1">1+</SelectItem>
-            <SelectItem value="2">2+</SelectItem>
-            <SelectItem value="3">3+</SelectItem>
-            <SelectItem value="4">4+</SelectItem>
-            <SelectItem value="5">5+</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Bathrooms */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-700">Bathrooms</Label>
-        <Select value={bathrooms} onValueChange={setBathrooms}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder="Any" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">Any</SelectItem>
-            <SelectItem value="1">1+</SelectItem>
-            <SelectItem value="2">2+</SelectItem>
-            <SelectItem value="3">3+</SelectItem>
-            <SelectItem value="4">4+</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Parking */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-700">Parking Spaces</Label>
-        <Select value={parking} onValueChange={setParking}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder="Any" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">Any</SelectItem>
-            <SelectItem value="1">1+</SelectItem>
-            <SelectItem value="2">2+</SelectItem>
-            <SelectItem value="3">3+</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <Separator className="bg-stone-200" />
-
-      {/* Area Range */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium text-stone-700">Area (m²)</Label>
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            type="number"
-            placeholder="Min"
-            value={minArea}
-            onChange={(e) => setMinArea(e.target.value)}
-            className="border-stone-300"
-          />
-          <Input
-            type="number"
-            placeholder="Max"
-            value={maxArea}
-            onChange={(e) => setMaxArea(e.target.value)}
-            className="border-stone-300"
-          />
-        </div>
-      </div>
-
-      {/* Furnished */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-700">Furnished</Label>
-        <Select value={furnished} onValueChange={setFurnished}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder="Any" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">Any</SelectItem>
-            <SelectItem value="true">Furnished</SelectItem>
-            <SelectItem value="false">Unfurnished</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Action Buttons */}
       <div className="space-y-3 pt-4">
