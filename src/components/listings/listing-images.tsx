@@ -79,7 +79,7 @@ export function ListingImages({ images, title }: ListingImagesProps) {
       {/* Thumbnail Grid (only show if more than 1 image) */}
       {images.length > 1 && (
         <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-          {images.slice(0, 6).map((image, index) => (
+          {images.slice(0, images.length > 6 ? 5 : 6).map((image, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
@@ -105,7 +105,7 @@ export function ListingImages({ images, title }: ListingImagesProps) {
               aria-label={`View all ${images.length} photos`}
             >
               <span className="text-sm text-white font-medium">
-                +{images.length - 6}
+                +{images.length - 5}
               </span>
             </button>
           )}
