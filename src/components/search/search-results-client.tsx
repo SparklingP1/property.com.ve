@@ -98,9 +98,12 @@ export function SearchResultsClient({
       query = query.eq('furnished', searchParams.furnished === 'true');
     }
 
-    // Apply sorting
+    // Apply sorting (nulls last for bedrooms and area)
     const [field, direction] = sortBy.split('-');
-    query = query.order(field, { ascending: direction === 'asc' });
+    query = query.order(field, {
+      ascending: direction === 'asc',
+      nullsFirst: false // Always put NULL values at the end
+    });
 
     // Fetch next batch
     const { data } = await query.range(

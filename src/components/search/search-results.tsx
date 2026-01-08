@@ -85,8 +85,11 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
     query = query.eq('furnished', searchParams.furnished === 'true');
   }
 
-  // Apply sorting
-  query = query.order(sortField, { ascending: sortDirection === 'asc' });
+  // Apply sorting (nulls last for bedrooms and area)
+  query = query.order(sortField, {
+    ascending: sortDirection === 'asc',
+    nullsFirst: false // Always put NULL values at the end
+  });
 
   // Apply pagination - get first batch + count
   const { data: listings, count } = await query.range(0, RESULTS_PER_PAGE - 1);
