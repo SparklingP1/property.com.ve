@@ -28,15 +28,10 @@ const features = [
   },
   {
     icon: Shield,
-    title: 'Verified Sources',
+    title: 'Trusted Quality',
     description:
-      'We only aggregate from reputable real estate platforms to ensure listing quality.',
+      'We aggregate from reputable real estate platforms to ensure listing quality and accuracy.',
   },
-];
-
-const sources = [
-  { name: 'Green-Acres Venezuela', url: 'https://ve.green-acres.com' },
-  { name: 'BienesOnline', url: 'https://venezuela.bienesonline.com' },
 ];
 
 export default function AboutPage() {
@@ -68,26 +63,37 @@ export default function AboutPage() {
         ))}
       </div>
 
-      {/* Our Sources */}
+      {/* How It Works */}
       <div className="max-w-3xl mx-auto mb-16">
-        <h2 className="text-2xl font-bold text-center mb-8">Our Sources</h2>
-        <p className="text-muted-foreground text-center mb-8">
-          We currently aggregate listings from the following reputable real
-          estate platforms:
-        </p>
-        <div className="grid md:grid-cols-2 gap-4">
-          {sources.map((source) => (
-            <a
-              key={source.name}
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white rounded-xl p-6 shadow-sm border border-border hover:border-primary transition-colors text-center"
-            >
-              <h3 className="font-semibold">{source.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">{source.url}</p>
-            </a>
-          ))}
+        <h2 className="text-2xl font-bold text-center mb-8">How It Works</h2>
+        <div className="grid md:grid-cols-3 gap-6 text-center">
+          <div>
+            <div className="bg-amber-100 text-amber-700 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+              1
+            </div>
+            <h3 className="font-semibold mb-2">We Aggregate</h3>
+            <p className="text-sm text-muted-foreground">
+              Our platform collects listings from multiple sources across Venezuela
+            </p>
+          </div>
+          <div>
+            <div className="bg-amber-100 text-amber-700 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+              2
+            </div>
+            <h3 className="font-semibold mb-2">You Search</h3>
+            <p className="text-sm text-muted-foreground">
+              Use our advanced filters to find properties that match your criteria
+            </p>
+          </div>
+          <div>
+            <div className="bg-amber-100 text-amber-700 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+              3
+            </div>
+            <h3 className="font-semibold mb-2">Connect Directly</h3>
+            <p className="text-sm text-muted-foreground">
+              Click through to view full details and contact the listing agent
+            </p>
+          </div>
         </div>
       </div>
 
