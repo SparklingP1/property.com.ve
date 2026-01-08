@@ -72,7 +72,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
         </header>
 
         {/* Content */}
-        <article className="prose prose-neutral max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-muted-foreground prose-p:leading-relaxed prose-ul:my-4 prose-ol:my-4 prose-li:my-2 prose-strong:text-foreground">
+        <article className="prose prose-lg prose-neutral max-w-none prose-p:text-muted-foreground">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {guide.content}
           </ReactMarkdown>
