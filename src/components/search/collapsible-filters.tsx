@@ -21,6 +21,16 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
     setFiltersOpen(!isMobile);
   }, []);
 
+  // Auto-close filters when search params change (after applying filters)
+  useEffect(() => {
+    // Close filters after user applies filters (on both mobile and desktop)
+    // This allows them to see the results immediately
+    const hasFilters = searchParams.toString().length > 0;
+    if (hasFilters) {
+      setFiltersOpen(false);
+    }
+  }, [searchParams]);
+
   // Count active filters
   const activeFilterCount = () => {
     let count = 0;
