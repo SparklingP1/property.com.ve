@@ -136,7 +136,7 @@ export function SearchResultsClient({
   }
 
   return (
-    <div>
+    <div className="relative">
       {/* Results Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
         {listings.map((listing) => (
@@ -145,7 +145,7 @@ export function SearchResultsClient({
       </div>
 
       {/* Load More / Count */}
-      <div className="text-center py-8">
+      <div className="text-center py-8 bg-stone-50 rounded-lg">
         <p className="text-stone-600 mb-4">
           Showing {listings.length} of {totalCount.toLocaleString()}{' '}
           {totalCount === 1 ? 'property' : 'properties'}

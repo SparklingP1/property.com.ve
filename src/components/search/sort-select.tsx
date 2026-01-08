@@ -35,7 +35,7 @@ export function SortSelect({ currentSort }: SortSelectProps) {
         <SelectTrigger className="w-[180px] border-stone-300">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="bg-white">
+        <SelectContent className="bg-white z-50">
           <SelectItem value="scraped_at-desc">Newest First</SelectItem>
           <SelectItem value="price-asc">Price: Low to High</SelectItem>
           <SelectItem value="price-desc">Price: High to Low</SelectItem>
