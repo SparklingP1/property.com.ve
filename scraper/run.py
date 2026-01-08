@@ -733,9 +733,9 @@ class PlaywrightExtractor:
             if 'agent_office' not in data and 'rentahouse' in url.lower():
                 data['agent_office'] = 'Rent-A-House Venezuela'
 
-            # Images - Extract HIGHEST quality (2048x1600) from srcset
+            # Images - Extract actual URLs from srcset (use existing URLs, don't reconstruct)
             images = []
-            seen_ids = set()
+            seen_urls = set()
 
             # Find all srcset attributes
             for img in soup.find_all('img'):
@@ -743,16 +743,17 @@ class PlaywrightExtractor:
                 if not srcset:
                     continue
 
-                # Extract image IDs from srcset (look for the unique timestamp ID)
-                # Pattern: https://cdn.photos.sparkplatform.com/ven/20260107012842044244000000.jpg
-                id_matches = re.findall(r'sparkplatform\.com/ven/(\d+)', srcset)
+                # Extract actual image URLs from srcset
+                # srcset format: "url1 640w, url2 800w, url3 1024w, ..."
+                # We want the LARGEST available (usually the last one)
+                url_matches = re.findall(r'(https://[^\s]+\.(?:jpg|jpeg|png))', srcset)
 
-                for img_id in id_matches:
-                    if img_id not in seen_ids:
-                        seen_ids.add(img_id)
-                        # Build highest quality URL (2048x1600)
-                        high_res_url = f"https://cdn.resize.sparkplatform.com/ven/2048x1600/true/{img_id}-o.jpg"
-                        images.append(high_res_url)
+                # Take the last (largest) URL for each image
+                if url_matches:
+                    largest_url = url_matches[-1]  # Last URL is usually highest quality
+                    if largest_url not in seen_urls:
+                        seen_urls.add(largest_url)
+                        images.append(largest_url)
 
             if images:
                 data['image_urls'] = images
