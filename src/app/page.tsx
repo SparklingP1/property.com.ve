@@ -135,7 +135,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             </div>
             <a
               href="/search"
-              className="hidden md:block text-stone-900 font-semibold hover:text-amber-700 transition-colors"
+              className="text-stone-600 md:text-stone-900 text-sm md:font-semibold hover:text-amber-700 transition-colors whitespace-nowrap"
             >
               View All →
             </a>
