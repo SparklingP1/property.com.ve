@@ -38,7 +38,7 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
       <div className="grid lg:grid-cols-[320px,1fr] gap-8">
         {/* Filters Sidebar - Collapsible */}
         {filtersOpen && (
-          <aside className="lg:sticky lg:top-8 h-fit">
+          <aside className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
               <h2 className="text-lg font-semibold mb-6 text-stone-900">
                 Refine Your Search

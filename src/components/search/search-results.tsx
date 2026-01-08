@@ -23,15 +23,12 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
 
   // If there's a query string and no explicit filters are set, try smart parsing
   // Note: bedroom/bathroom parsing disabled - use manual filters for precision
-  if (searchParams.q && !searchParams.type && !searchParams.transaction) {
+  if (searchParams.q && !searchParams.type) {
     const parsed = parseSearchQuery(searchParams.q);
 
     // Apply parsed filters only if they were detected
     if (parsed.propertyType) {
       effectiveParams.type = parsed.propertyType;
-    }
-    if (parsed.transactionType) {
-      effectiveParams.transaction = parsed.transactionType;
     }
     if (parsed.furnished !== undefined) {
       effectiveParams.furnished = parsed.furnished.toString();
@@ -52,11 +49,6 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
     query = query.or(
       `title.ilike.%${parsedQuery}%,location.ilike.%${parsedQuery}%,city.ilike.%${parsedQuery}%,neighborhood.ilike.%${parsedQuery}%`
     );
-  }
-
-  // Transaction type
-  if (effectiveParams.transaction && effectiveParams.transaction !== 'all') {
-    query = query.eq('transaction_type', effectiveParams.transaction);
   }
 
   // Property type

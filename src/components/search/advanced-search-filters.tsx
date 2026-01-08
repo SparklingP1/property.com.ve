@@ -24,9 +24,6 @@ export function AdvancedSearchFilters() {
 
   // State for all filters
   const [keyword, setKeyword] = useState(searchParams.get('q') || '');
-  const [transactionType, setTransactionType] = useState(
-    searchParams.get('transaction') || 'all'
-  );
   const [propertyType, setPropertyType] = useState(
     searchParams.get('type') || 'all'
   );
@@ -48,7 +45,6 @@ export function AdvancedSearchFilters() {
 
     // Parse the keyword for smart search
     let finalKeyword = keyword;
-    let finalTransactionType = transactionType;
     let finalPropertyType = propertyType;
     let finalBedrooms = bedrooms;
     let finalBathrooms = bathrooms;
@@ -59,10 +55,6 @@ export function AdvancedSearchFilters() {
 
       // Apply parsed filters (only if not already set by manual filters)
       // Note: bedrooms/bathrooms parsing disabled - use manual dropdowns for those
-      if (parsed.transactionType && transactionType === 'all') {
-        finalTransactionType = parsed.transactionType;
-        detected.push(`${parsed.transactionType === 'rent' ? 'For Rent' : 'For Sale'}`);
-      }
       if (parsed.propertyType && propertyType === 'all') {
         finalPropertyType = parsed.propertyType;
         detected.push(`${parsed.propertyType.charAt(0).toUpperCase() + parsed.propertyType.slice(1)}`);
@@ -81,8 +73,6 @@ export function AdvancedSearchFilters() {
     }
 
     if (finalKeyword) params.set('q', finalKeyword);
-    if (finalTransactionType && finalTransactionType !== 'all')
-      params.set('transaction', finalTransactionType);
     if (finalPropertyType && finalPropertyType !== 'all')
       params.set('type', finalPropertyType);
     if (city && city !== 'all') params.set('city', city);
@@ -103,7 +93,6 @@ export function AdvancedSearchFilters() {
 
   const handleReset = () => {
     setKeyword('');
-    setTransactionType('all');
     setPropertyType('all');
     setCity('all');
     setState('all');
@@ -134,14 +123,14 @@ export function AdvancedSearchFilters() {
         </Label>
         <Input
           id="keyword"
-          placeholder="Try: 'apartment Caracas' or 'casa en venta Valencia'"
+          placeholder="Try: 'apartment Caracas' or 'casa Valencia'"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           className="border-stone-300"
         />
         <p className="text-xs text-stone-500">
-          Type naturally - we&apos;ll detect property type, location, and transaction type
+          Type naturally - we&apos;ll detect property type and location
         </p>
         {detectedFilters.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
@@ -156,23 +145,6 @@ export function AdvancedSearchFilters() {
       </div>
 
       <Separator className="bg-stone-200" />
-
-      {/* Transaction Type */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-stone-700">
-          Transaction Type
-        </Label>
-        <Select value={transactionType} onValueChange={setTransactionType}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder="Any" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">Any</SelectItem>
-            <SelectItem value="sale">For Sale</SelectItem>
-            <SelectItem value="rent">For Rent</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Property Type */}
       <div className="space-y-2">
