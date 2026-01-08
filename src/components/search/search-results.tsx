@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { SearchResultsClient } from './search-results-client';
 import { SortSelect } from './sort-select';
+import { parseSearchQuery } from '@/lib/search-parser';
 import type { Listing } from '@/types/listing';
 
 interface SearchResultsProps {
@@ -16,6 +17,35 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   const sortBy = searchParams.sort || 'scraped_at-desc';
   const [sortField, sortDirection] = sortBy.split('-');
 
+  // Parse smart search from query string if present
+  let parsedQuery = searchParams.q || '';
+  let effectiveParams = { ...searchParams };
+
+  // If there's a query string and no explicit filters are set, try smart parsing
+  if (searchParams.q && !searchParams.bedrooms && !searchParams.type && !searchParams.transaction) {
+    const parsed = parseSearchQuery(searchParams.q);
+
+    // Apply parsed filters only if they were detected
+    if (parsed.bedrooms) {
+      effectiveParams.bedrooms = parsed.bedrooms.toString();
+    }
+    if (parsed.bathrooms) {
+      effectiveParams.bathrooms = parsed.bathrooms.toString();
+    }
+    if (parsed.propertyType) {
+      effectiveParams.type = parsed.propertyType;
+    }
+    if (parsed.transactionType) {
+      effectiveParams.transaction = parsed.transactionType;
+    }
+    if (parsed.furnished !== undefined) {
+      effectiveParams.furnished = parsed.furnished.toString();
+    }
+
+    // Use remaining keywords for text search
+    parsedQuery = parsed.remainingKeywords || searchParams.q;
+  }
+
   // Build query
   let query = supabase
     .from('listings')
@@ -23,20 +53,20 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
     .eq('active', true);
 
   // Keyword search (title, location, city, neighborhood)
-  if (searchParams.q) {
+  if (parsedQuery) {
     query = query.or(
-      `title.ilike.%${searchParams.q}%,location.ilike.%${searchParams.q}%,city.ilike.%${searchParams.q}%,neighborhood.ilike.%${searchParams.q}%`
+      `title.ilike.%${parsedQuery}%,location.ilike.%${parsedQuery}%,city.ilike.%${parsedQuery}%,neighborhood.ilike.%${parsedQuery}%`
     );
   }
 
   // Transaction type
-  if (searchParams.transaction && searchParams.transaction !== 'all') {
-    query = query.eq('transaction_type', searchParams.transaction);
+  if (effectiveParams.transaction && effectiveParams.transaction !== 'all') {
+    query = query.eq('transaction_type', effectiveParams.transaction);
   }
 
   // Property type
-  if (searchParams.type && searchParams.type !== 'all') {
-    query = query.eq('property_type', searchParams.type);
+  if (effectiveParams.type && effectiveParams.type !== 'all') {
+    query = query.eq('property_type', effectiveParams.type);
   }
 
   // State
@@ -58,13 +88,13 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   }
 
   // Bedrooms (minimum)
-  if (searchParams.bedrooms && searchParams.bedrooms !== 'all') {
-    query = query.gte('bedrooms', Number(searchParams.bedrooms));
+  if (effectiveParams.bedrooms && effectiveParams.bedrooms !== 'all') {
+    query = query.gte('bedrooms', Number(effectiveParams.bedrooms));
   }
 
   // Bathrooms (minimum)
-  if (searchParams.bathrooms && searchParams.bathrooms !== 'all') {
-    query = query.gte('bathrooms', Number(searchParams.bathrooms));
+  if (effectiveParams.bathrooms && effectiveParams.bathrooms !== 'all') {
+    query = query.gte('bathrooms', Number(effectiveParams.bathrooms));
   }
 
   // Parking (minimum)
@@ -81,8 +111,8 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   }
 
   // Furnished
-  if (searchParams.furnished && searchParams.furnished !== 'all') {
-    query = query.eq('furnished', searchParams.furnished === 'true');
+  if (effectiveParams.furnished && effectiveParams.furnished !== 'all') {
+    query = query.eq('furnished', effectiveParams.furnished === 'true');
   }
 
   // Apply sorting (nulls last for bedrooms and area)
