@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { guides, getGuideBySlug } from '@/lib/guides';
+import React from 'react';
 
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
@@ -40,7 +41,7 @@ export async function generateMetadata({
 
 function parseMarkdownContent(content: string) {
   const lines = content.split('\n');
-  const elements = [];
+  const elements: React.JSX.Element[] = [];
   let currentList: { type: 'ul' | 'ol'; items: string[] } | null = null;
   let listKey = 0;
 
