@@ -5,8 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { guides, getGuideBySlug } from '@/lib/guides';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
@@ -38,6 +36,118 @@ export async function generateMetadata({
       publishedTime: guide.publishedAt,
     },
   };
+}
+
+function parseMarkdownContent(content: string) {
+  const lines = content.split('\n');
+  const elements: JSX.Element[] = [];
+  let currentList: { type: 'ul' | 'ol'; items: string[] } | null = null;
+  let listKey = 0;
+
+  const flushList = () => {
+    if (currentList) {
+      if (currentList.type === 'ul') {
+        elements.push(
+          <ul key={`list-${listKey++}`} className="ml-6 my-4 list-disc space-y-2">
+            {currentList.items.map((item, i) => (
+              <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
+            ))}
+          </ul>
+        );
+      } else {
+        elements.push(
+          <ol key={`list-${listKey++}`} className="ml-6 my-4 list-decimal space-y-2">
+            {currentList.items.map((item, i) => (
+              <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
+            ))}
+          </ol>
+        );
+      }
+      currentList = null;
+    }
+  };
+
+  const formatInlineMarkdown = (text: string) => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushList();
+      return;
+    }
+
+    // Handle headings
+    if (trimmed.startsWith('## ')) {
+      flushList();
+      elements.push(
+        <h2 key={index} className="text-2xl font-bold mt-8 mb-4">
+          {trimmed.replace('## ', '')}
+        </h2>
+      );
+      return;
+    }
+
+    if (trimmed.startsWith('### ')) {
+      flushList();
+      elements.push(
+        <h3 key={index} className="text-xl font-semibold mt-6 mb-3">
+          {trimmed.replace('### ', '')}
+        </h3>
+      );
+      return;
+    }
+
+    // Handle bullet lists
+    if (trimmed.startsWith('- ')) {
+      const item = formatInlineMarkdown(trimmed.replace('- ', ''));
+      if (!currentList || currentList.type !== 'ul') {
+        flushList();
+        currentList = { type: 'ul', items: [] };
+      }
+      currentList.items.push(item);
+      return;
+    }
+
+    // Handle numbered lists
+    if (/^\d+\.\s/.test(trimmed)) {
+      const item = formatInlineMarkdown(trimmed.replace(/^\d+\.\s*/, ''));
+      if (!currentList || currentList.type !== 'ol') {
+        flushList();
+        currentList = { type: 'ol', items: [] };
+      }
+      currentList.items.push(item);
+      return;
+    }
+
+    // Handle standalone bold text
+    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+      flushList();
+      elements.push(
+        <p key={index} className="font-semibold mt-4">
+          {trimmed.replace(/\*\*/g, '')}
+        </p>
+      );
+      return;
+    }
+
+    // Handle regular paragraphs
+    flushList();
+    elements.push(
+      <p
+        key={index}
+        className="my-4 text-muted-foreground leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(trimmed) }}
+      />
+    );
+  });
+
+  flushList();
+  return elements;
 }
 
 export default async function GuidePage({ params }: GuidePageProps) {
@@ -72,10 +182,8 @@ export default async function GuidePage({ params }: GuidePageProps) {
         </header>
 
         {/* Content */}
-        <article className="prose prose-lg prose-neutral max-w-none prose-p:text-muted-foreground">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {guide.content}
-          </ReactMarkdown>
+        <article className="prose prose-neutral max-w-none">
+          {parseMarkdownContent(guide.content)}
         </article>
 
         {/* CTA */}
