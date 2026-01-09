@@ -18,18 +18,49 @@ export async function GET() {
   try {
     const supabase = createServiceClient();
 
-    // Fetch all active listings (up to 50,000 - sitemap limit)
-    // Prioritize recently updated listings
-    // Need minimal fields for SEO URL generation
-    const { data: listings } = await supabase
+    // First, get total count of active listings
+    const { count } = await supabase
       .from('listings')
-      .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, scraped_at, last_seen_at')
-      .eq('active', true)
-      .order('last_seen_at', { ascending: false })
-      .limit(50000); // Sitemap max limit
+      .select('*', { count: 'exact', head: true })
+      .eq('active', true);
 
-    if (listings) {
-      listingPages = listings.map((listing) => ({
+    if (!count || count === 0) {
+      return new Response(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+</urlset>`, {
+        headers: {
+          'Content-Type': 'application/xml',
+          'Cache-Control': 'public, max-age=3600, stale-while-revalidate=1800',
+        },
+      });
+    }
+
+    // Supabase has a 1000 row limit per query, so we need to paginate
+    // Fetch in batches of 1000 up to sitemap limit of 50,000
+    const batchSize = 1000;
+    const maxListings = Math.min(count, 50000); // Sitemap limit
+    const allListings = [];
+
+    for (let offset = 0; offset < maxListings; offset += batchSize) {
+      const { data: batch } = await supabase
+        .from('listings')
+        .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, scraped_at, last_seen_at')
+        .eq('active', true)
+        .order('last_seen_at', { ascending: false })
+        .range(offset, offset + batchSize - 1);
+
+      if (batch && batch.length > 0) {
+        allListings.push(...batch);
+      }
+
+      // If we got fewer than batchSize, we've reached the end
+      if (!batch || batch.length < batchSize) {
+        break;
+      }
+    }
+
+    if (allListings.length > 0) {
+      listingPages = allListings.map((listing) => ({
         url: `${baseUrl}${getListingUrl(listing as Listing)}`,
         // Use last_seen_at for more accurate "when was this last confirmed"
         lastModified: new Date(listing.last_seen_at || listing.scraped_at),
