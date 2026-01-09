@@ -49,26 +49,26 @@ jobs:
         id: calculate
         run: |
           echo "🔍 Calculating page ranges..."
-          # Full scrape with fixed image extraction
-          TOTAL=1282
-          START=1
+          # TEST RUN: Just 2 pages to test timing instrumentation
+          TOTAL=2
+          START=144
 
-          # Calculate ranges for ALL pages (1-1282 across 9 jobs, ~143 pages each)
-          RANGES='[{"start":1,"end":143,"name":"Job 1/9"},{"start":144,"end":286,"name":"Job 2/9"},{"start":287,"end":429,"name":"Job 3/9"},{"start":430,"end":572,"name":"Job 4/9"},{"start":573,"end":714,"name":"Job 5/9"},{"start":715,"end":856,"name":"Job 6/9"},{"start":857,"end":998,"name":"Job 7/9"},{"start":999,"end":1140,"name":"Job 8/9"},{"start":1141,"end":1282,"name":"Job 9/9"}]'
+          # Calculate ranges for TEST (just 2 pages: 144-145)
+          RANGES='[{"start":144,"end":145,"name":"Test Job (Pages 144-145)"}]'
 
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
           echo "ranges=$RANGES" >> $GITHUB_OUTPUT
           echo "jobs=9" >> $GITHUB_OUTPUT
 
-          echo "✅ Full scrape pages $START-$TOTAL (1282 pages)"
-          echo "📊 Split into 9 parallel jobs (~143 pages each)"
-          echo "🔧 Image extraction bug fixed - using actual URLs"
+          echo "✅ TEST RUN: Pages 144-145 (2 pages)"
+          echo "📊 Single test job with timing instrumentation"
+          echo "🔧 Testing performance bottleneck identification"
 
   scrape:
     name: ${{ matrix.page_range.name }} (Pages ${{ matrix.page_range.start }}-${{ matrix.page_range.end }})
     needs: detect
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hours per job
+    timeout-minutes: 30  # 30 min for test run (2 pages)
     environment: Production  # Re-enabled - billing issue resolved
 
     strategy:
