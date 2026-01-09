@@ -399,16 +399,21 @@ class PlaywrightExtractor:
 
         for page_num in range(start_page, actual_end_page + 1):
             try:
+                page_start_time = time.time()
+
                 # Append page parameter (handle existing query params)
                 separator = '&' if '?' in url else '?'
                 page_url = f"{url}{separator}page={page_num}"
                 logger.info(f"Scraping page {page_num}: {page_url}")
 
                 # Load page
+                load_start = time.time()
                 page = self.browser.new_page()
                 page.goto(page_url, wait_until="networkidle")
                 html = page.content()
                 page.close()
+                load_time = time.time() - load_start
+                logger.info(f"⏱️  Page load: {load_time:.2f}s")
 
                 # Parse with BeautifulSoup
                 soup = BeautifulSoup(html, 'lxml')
@@ -438,8 +443,13 @@ class PlaywrightExtractor:
 
                     # Visit individual listing page to get all details
                     try:
+                        parse_start = time.time()
                         raw_data = self._parse_rentahouse_listing(source_url, base_url)
+                        parse_time = time.time() - parse_start
+
                         if raw_data and raw_data.get('title'):
+                            logger.info(f"⏱️  Property parse: {parse_time:.2f}s")
+
                             # Filter: Only residential properties (apartment, house)
                             property_type = raw_data.get('property_type', '').lower()
                             if property_type in ['commercial', 'office', 'building']:
@@ -459,16 +469,20 @@ class PlaywrightExtractor:
                                     title = raw_data.get('title', '')
                                     desc_full = raw_data.get('description_full', '')
 
+                                    trans_check_start = time.time()
                                     needs_trans, existing_trans = self.needs_translation(source_url, title, desc_full)
+                                    trans_check_time = time.time() - trans_check_start
 
                                     if needs_trans:
                                         # Translate the listing
+                                        trans_start = time.time()
                                         raw_data = self.translator.translate_listing(raw_data)
-                                        logger.info(f"✅ Translated: {title[:60]}...")
+                                        trans_time = time.time() - trans_start
+                                        logger.info(f"✅ Translated: {title[:60]}... (check: {trans_check_time:.2f}s, translate: {trans_time:.2f}s)")
                                     else:
                                         # Use existing translations from database
                                         raw_data.update(existing_trans)
-                                        logger.debug(f"⏭️  Skipped translation (unchanged): {title[:60]}...")
+                                        logger.debug(f"⏭️  Skipped translation (unchanged): {title[:60]}... (check: {trans_check_time:.2f}s)")
                                 except Exception as e:
                                     logger.warning(f"Translation failed for {source_url}: {e}")
 
@@ -485,10 +499,16 @@ class PlaywrightExtractor:
                 # Batch upload every 10 pages
                 if storage and source_id and page_num % batch_size == 0 and all_listings:
                     logger.info(f"📦 Uploading batch of {len(all_listings)} listings after page {page_num}...")
+                    upload_start = time.time()
                     result = storage.upsert_listings(all_listings, source_id)
+                    upload_time = time.time() - upload_start
                     total_uploaded += result.get('upserted', 0)
-                    logger.info(f"✅ Batch uploaded: {result.get('upserted', 0)} upserted, {result.get('errors', 0)} errors. Total uploaded so far: {total_uploaded}")
+                    logger.info(f"✅ Batch uploaded: {result.get('upserted', 0)} upserted, {result.get('errors', 0)} errors. Total uploaded so far: {total_uploaded} (upload time: {upload_time:.2f}s)")
                     all_listings = []  # Clear batch
+
+                # Page timing summary
+                page_total_time = time.time() - page_start_time
+                logger.info(f"⏱️  Page {page_num} total: {page_total_time:.2f}s")
 
                 # Rate limiting between pages
                 if page_num < max_pages:
@@ -894,10 +914,14 @@ class SupabaseStorage:
                 original_image_urls = getattr(listing, 'image_urls', None) or []
                 hosted_image_urls = []
 
+                images_start = time.time()
                 for idx, img_url in enumerate(original_image_urls):
                     hosted_url = self.download_and_upload_image(img_url, property_id, idx)
                     if hosted_url:
                         hosted_image_urls.append(hosted_url)
+                images_time = time.time() - images_start
+                if original_image_urls:
+                    logger.debug(f"⏱️  Images ({len(original_image_urls)}): {images_time:.2f}s ({images_time/len(original_image_urls):.2f}s/image)")
 
                 # Use first hosted image as thumbnail
                 thumbnail = hosted_image_urls[0] if hosted_image_urls else None
