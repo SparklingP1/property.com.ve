@@ -49,30 +49,30 @@ jobs:
         id: calculate
         run: |
           echo "🔍 Calculating page ranges..."
-          # TEST RUN: Just 2 pages to test timing instrumentation
-          TOTAL=2
-          START=144
+          # Full scrape with optimized settings (18 jobs for faster completion)
+          TOTAL=1282
+          START=1
 
-          # Calculate ranges for TEST (just 2 pages: 144-145)
-          RANGES='[{"start":144,"end":145,"name":"Test Job (Pages 144-145)"}]'
+          # Calculate ranges for ALL pages (1-1282 across 18 jobs, ~71 pages each)
+          RANGES='[{"start":1,"end":71,"name":"Job 1/18"},{"start":72,"end":142,"name":"Job 2/18"},{"start":143,"end":213,"name":"Job 3/18"},{"start":214,"end":284,"name":"Job 4/18"},{"start":285,"end":355,"name":"Job 5/18"},{"start":356,"end":426,"name":"Job 6/18"},{"start":427,"end":497,"name":"Job 7/18"},{"start":498,"end":568,"name":"Job 8/18"},{"start":569,"end":639,"name":"Job 9/18"},{"start":640,"end":710,"name":"Job 10/18"},{"start":711,"end":781,"name":"Job 11/18"},{"start":782,"end":852,"name":"Job 12/18"},{"start":853,"end":923,"name":"Job 13/18"},{"start":924,"end":994,"name":"Job 14/18"},{"start":995,"end":1065,"name":"Job 15/18"},{"start":1066,"end":1136,"name":"Job 16/18"},{"start":1137,"end":1207,"name":"Job 17/18"},{"start":1208,"end":1282,"name":"Job 18/18"}]'
 
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
           echo "ranges=$RANGES" >> $GITHUB_OUTPUT
-          echo "jobs=9" >> $GITHUB_OUTPUT
+          echo "jobs=18" >> $GITHUB_OUTPUT
 
-          echo "✅ TEST RUN: Pages 144-145 (2 pages)"
-          echo "📊 Single test job with timing instrumentation"
-          echo "🔧 Testing performance bottleneck identification"
+          echo "✅ Full scrape pages $START-$TOTAL (1282 pages)"
+          echo "📊 Split into 18 parallel jobs (~71 pages each)"
+          echo "🚀 Optimized: domcontentloaded wait strategy for 2-3x faster page loads"
 
   scrape:
     name: ${{ matrix.page_range.name }} (Pages ${{ matrix.page_range.start }}-${{ matrix.page_range.end }})
     needs: detect
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # 30 min for test run (2 pages)
+    timeout-minutes: 360  # 6 hours per job (increased safety margin)
     environment: Production  # Re-enabled - billing issue resolved
 
     strategy:
-      max-parallel: 10  # Run up to 10 jobs concurrently
+      max-parallel: 20  # Run up to 20 jobs concurrently (GitHub free tier limit)
       fail-fast: false  # Continue other jobs if one fails
       matrix:
         page_range: ${{ fromJson(needs.detect.outputs.page_ranges) }}

@@ -217,7 +217,7 @@ class PlaywrightExtractor:
         try:
             # Load page with Playwright
             page = self.browser.new_page()
-            page.goto(url, wait_until="networkidle")
+            page.goto(url, wait_until="domcontentloaded")
             html = page.content()
             page.close()
 
@@ -409,7 +409,7 @@ class PlaywrightExtractor:
                 # Load page
                 load_start = time.time()
                 page = self.browser.new_page()
-                page.goto(page_url, wait_until="networkidle")
+                page.goto(page_url, wait_until="domcontentloaded")
                 html = page.content()
                 page.close()
                 load_time = time.time() - load_start
@@ -526,7 +526,7 @@ class PlaywrightExtractor:
         try:
             # Load listing page
             page = self.browser.new_page()
-            page.goto(url, wait_until="networkidle", timeout=30000)
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
             html = page.content()
             page.close()
 
