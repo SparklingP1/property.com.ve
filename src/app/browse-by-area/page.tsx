@@ -41,16 +41,28 @@ export default async function BrowseByAreaPage() {
   }
 
   // Calculate unique listings accessible via SEO pages
-  // Fetch all active listings
-  const { data: allListings } = await supabase
-    .from('listings')
-    .select('id, city, state, property_type, bedrooms')
-    .eq('active', true);
+  // Fetch all active listings (with pagination to get all 8000+)
+  let allListings: any[] = [];
+  let from = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('listings')
+      .select('id, city, state, property_type, bedrooms')
+      .eq('active', true)
+      .range(from, from + pageSize - 1);
+
+    if (error || !data || data.length === 0) break;
+    allListings = allListings.concat(data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
 
   // Find unique listings that match at least one SEO page
   const uniqueListingIds = new Set<string>();
 
-  allListings?.forEach((listing) => {
+  allListings.forEach((listing) => {
     const matchesAnyPage = pages.some((page) => {
       const filters = page.filters;
 
