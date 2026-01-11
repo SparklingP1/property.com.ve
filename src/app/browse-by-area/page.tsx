@@ -40,6 +40,36 @@ export default async function BrowseByAreaPage() {
     );
   }
 
+  // Calculate unique listings accessible via SEO pages
+  // Fetch all active listings
+  const { data: allListings } = await supabase
+    .from('listings')
+    .select('id, city, state, property_type, bedrooms')
+    .eq('active', true);
+
+  // Find unique listings that match at least one SEO page
+  const uniqueListingIds = new Set<string>();
+
+  allListings?.forEach((listing) => {
+    const matchesAnyPage = pages.some((page) => {
+      const filters = page.filters;
+
+      // Check if listing matches this page's filters
+      if (filters.city && listing.city?.toLowerCase() !== filters.city.toLowerCase()) return false;
+      if (filters.state && listing.state?.toLowerCase() !== filters.state.toLowerCase()) return false;
+      if (filters.property_type && listing.property_type !== filters.property_type) return false;
+      if (filters.bedrooms && listing.bedrooms !== filters.bedrooms) return false;
+
+      return true;
+    });
+
+    if (matchesAnyPage) {
+      uniqueListingIds.add(listing.id);
+    }
+  });
+
+  const uniqueCount = uniqueListingIds.size;
+
   // Group pages by state and city
   const groupedByState = pages.reduce((acc, page: SEOPage) => {
     const state = page.filters.state || page.filters.city || 'Other';
@@ -100,9 +130,9 @@ export default async function BrowseByAreaPage() {
               <h3 className="font-semibold text-stone-900">Total Properties</h3>
             </div>
             <p className="text-3xl font-bold text-primary">
-              {pages.reduce((sum, page) => sum + page.listing_count, 0).toLocaleString()}
+              {uniqueCount.toLocaleString()}
             </p>
-            <p className="text-sm text-stone-600 mt-1">Active listings</p>
+            <p className="text-sm text-stone-600 mt-1">Unique listings</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
