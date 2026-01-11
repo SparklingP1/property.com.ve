@@ -1,0 +1,1203 @@
+{
+  "generated_at": "2026-01-10T17:54:51.714Z",
+  "total_pages": 149,
+  "breakdown": {
+    "city_type": 55,
+    "city_type_bedrooms": 56,
+    "state_type": 38
+  },
+  "pages": [
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 252,
+      "suggested_url": "/apartments-caracas"
+    },
+    {
+      "city": "",
+      "state": "Distrito Metropolitano",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 252,
+      "suggested_url": "/apartments-distrito-metropolitano-state"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 197,
+      "suggested_url": "/houses-caracas"
+    },
+    {
+      "city": "",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 197,
+      "suggested_url": "/houses-distrito-metropolitano-state"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "apartment",
+      "bedrooms": 3,
+      "listing_count": 172,
+      "suggested_url": "/3-bedroom-apartments-caracas"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 71,
+      "suggested_url": "/4-bedroom-houses-caracas"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "apartment",
+      "bedrooms": 4,
+      "listing_count": 62,
+      "suggested_url": "/4-bedroom-apartments-caracas"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 5,
+      "listing_count": 61,
+      "suggested_url": "/5-bedroom-houses-caracas"
+    },
+    {
+      "city": "",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 59,
+      "suggested_url": "/houses-lara-state"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "apartment",
+      "bedrooms": 2,
+      "listing_count": 52,
+      "suggested_url": "/2-bedroom-apartments-caracas"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 48,
+      "suggested_url": "/houses-barquisimeto"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 44,
+      "suggested_url": "/land-caracas"
+    },
+    {
+      "city": "",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 44,
+      "suggested_url": "/houses-aragua-state"
+    },
+    {
+      "city": "",
+      "state": "Distrito Metropolitano",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 44,
+      "suggested_url": "/land-distrito-metropolitano-state"
+    },
+    {
+      "city": "",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 35,
+      "suggested_url": "/houses-miranda-state"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 33,
+      "suggested_url": "/3-bedroom-houses-caracas"
+    },
+    {
+      "city": "",
+      "state": "Lara",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 31,
+      "suggested_url": "/land-lara-state"
+    },
+    {
+      "city": "",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 30,
+      "suggested_url": "/apartments-miranda-state"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 26,
+      "suggested_url": "/houses-maracay"
+    },
+    {
+      "city": "",
+      "state": "Falcon",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 25,
+      "suggested_url": "/land-falcon-state"
+    },
+    {
+      "city": "",
+      "state": "Aragua",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 25,
+      "suggested_url": "/apartments-aragua-state"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 20,
+      "suggested_url": "/apartments-maracay"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 6,
+      "listing_count": 20,
+      "suggested_url": "/6-bedroom-houses-caracas"
+    },
+    {
+      "city": "",
+      "state": "Carabobo",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 20,
+      "suggested_url": "/houses-carabobo-state"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "apartment",
+      "bedrooms": 5,
+      "listing_count": 19,
+      "suggested_url": "/5-bedroom-apartments-caracas"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 19,
+      "suggested_url": "/4-bedroom-houses-barquisimeto"
+    },
+    {
+      "city": "",
+      "state": "Falcon",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 19,
+      "suggested_url": "/houses-falcon-state"
+    },
+    {
+      "city": "",
+      "state": "Aragua",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 18,
+      "suggested_url": "/land-aragua-state"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 5,
+      "listing_count": 17,
+      "suggested_url": "/5-bedroom-houses-barquisimeto"
+    },
+    {
+      "city": "Higuerote",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 16,
+      "suggested_url": "/apartments-higuerote"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 16,
+      "suggested_url": "/4-bedroom-houses-maracay"
+    },
+    {
+      "city": "Margarita",
+      "state": "Nueva Esparta",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 15,
+      "suggested_url": "/houses-margarita"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "apartment",
+      "bedrooms": 1,
+      "listing_count": 15,
+      "suggested_url": "/1-bedroom-apartments-caracas"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 8,
+      "listing_count": 15,
+      "suggested_url": "/8-bedroom-houses-caracas"
+    },
+    {
+      "city": "",
+      "state": "Lara",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 15,
+      "suggested_url": "/apartments-lara-state"
+    },
+    {
+      "city": "",
+      "state": "Nueva Esparta",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 15,
+      "suggested_url": "/houses-nueva-esparta-state"
+    },
+    {
+      "city": "",
+      "state": "Miranda",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 15,
+      "suggested_url": "/land-miranda-state"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 14,
+      "suggested_url": "/apartments-barquisimeto"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 14,
+      "suggested_url": "/land-barquisimeto"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "apartment",
+      "bedrooms": 3,
+      "listing_count": 14,
+      "suggested_url": "/3-bedroom-apartments-maracay"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 13,
+      "suggested_url": "/houses-valencia"
+    },
+    {
+      "city": "Punto Fijo",
+      "state": "Falcon",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 12,
+      "suggested_url": "/land-punto-fijo"
+    },
+    {
+      "city": "Higuerote",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": 2,
+      "listing_count": 12,
+      "suggested_url": "/2-bedroom-apartments-higuerote"
+    },
+    {
+      "city": "",
+      "state": "Zulia",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 12,
+      "suggested_url": "/houses-zulia-state"
+    },
+    {
+      "city": "",
+      "state": "Vargas",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 12,
+      "suggested_url": "/apartments-vargas-state"
+    },
+    {
+      "city": "",
+      "state": "Carabobo",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 12,
+      "suggested_url": "/land-carabobo-state"
+    },
+    {
+      "city": "Margarita",
+      "state": "Nueva Esparta",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 10,
+      "suggested_url": "/land-margarita"
+    },
+    {
+      "city": "Cabudare",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 10,
+      "suggested_url": "/houses-cabudare"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "apartment",
+      "bedrooms": 3,
+      "listing_count": 10,
+      "suggested_url": "/3-bedroom-apartments-barquisimeto"
+    },
+    {
+      "city": "",
+      "state": "Carabobo",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 10,
+      "suggested_url": "/apartments-carabobo-state"
+    },
+    {
+      "city": "",
+      "state": "Nueva Esparta",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 10,
+      "suggested_url": "/land-nueva-esparta-state"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 9,
+      "suggested_url": "/apartments-valencia"
+    },
+    {
+      "city": "Guatire",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 9,
+      "suggested_url": "/houses-guatire"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 7,
+      "listing_count": 9,
+      "suggested_url": "/7-bedroom-houses-caracas"
+    },
+    {
+      "city": "Coro",
+      "state": "Falcon",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 8,
+      "suggested_url": "/houses-coro"
+    },
+    {
+      "city": "Margarita",
+      "state": "Nueva Esparta",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 8,
+      "suggested_url": "/apartments-margarita"
+    },
+    {
+      "city": "",
+      "state": "Merida",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 8,
+      "suggested_url": "/houses-merida-state"
+    },
+    {
+      "city": "",
+      "state": "Zulia",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 8,
+      "suggested_url": "/apartments-zulia-state"
+    },
+    {
+      "city": "",
+      "state": "Nueva Esparta",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 8,
+      "suggested_url": "/apartments-nueva-esparta-state"
+    },
+    {
+      "city": "Coro",
+      "state": "Falcon",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 7,
+      "suggested_url": "/land-coro"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 7,
+      "suggested_url": "/land-maracay"
+    },
+    {
+      "city": "Parroquia Caraballeda",
+      "state": "Vargas",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 7,
+      "suggested_url": "/apartments-parroquia-caraballeda"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 6,
+      "listing_count": 7,
+      "suggested_url": "/6-bedroom-houses-barquisimeto"
+    },
+    {
+      "city": "",
+      "state": "Falcon",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 7,
+      "suggested_url": "/apartments-falcon-state"
+    },
+    {
+      "city": "",
+      "state": "Zulia",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 7,
+      "suggested_url": "/land-zulia-state"
+    },
+    {
+      "city": "Maracaibo",
+      "state": "Zulia",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 6,
+      "suggested_url": "/houses-maracaibo"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 6,
+      "suggested_url": "/4-bedroom-houses-valencia"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 6,
+      "suggested_url": "/3-bedroom-houses-barquisimeto"
+    },
+    {
+      "city": "Guatire",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 6,
+      "suggested_url": "/4-bedroom-houses-guatire"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": 6,
+      "listing_count": 6,
+      "suggested_url": "/6-bedroom-houses-maracay"
+    },
+    {
+      "city": "Coro",
+      "state": "Falcon",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 6,
+      "suggested_url": "/3-bedroom-houses-coro"
+    },
+    {
+      "city": "",
+      "state": "Portuguesa",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 6,
+      "suggested_url": "/land-portuguesa-state"
+    },
+    {
+      "city": "",
+      "state": "Guarico",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 6,
+      "suggested_url": "/houses-guarico-state"
+    },
+    {
+      "city": "",
+      "state": "Vargas",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 6,
+      "suggested_url": "/houses-vargas-state"
+    },
+    {
+      "city": "Merida",
+      "state": "Merida",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 5,
+      "suggested_url": "/houses-merida"
+    },
+    {
+      "city": "Maracaibo",
+      "state": "Zulia",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 5,
+      "suggested_url": "/apartments-maracaibo"
+    },
+    {
+      "city": "Carrizal",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 5,
+      "suggested_url": "/houses-carrizal"
+    },
+    {
+      "city": "Municipio San Diego",
+      "state": "Carabobo",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 5,
+      "suggested_url": "/land-municipio-san-diego"
+    },
+    {
+      "city": "Turmero",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 5,
+      "suggested_url": "/houses-turmero"
+    },
+    {
+      "city": "Cabudare",
+      "state": "Lara",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 5,
+      "suggested_url": "/land-cabudare"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "apartment",
+      "bedrooms": 4,
+      "listing_count": 5,
+      "suggested_url": "/4-bedroom-apartments-barquisimeto"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "apartment",
+      "bedrooms": 5,
+      "listing_count": 5,
+      "suggested_url": "/5-bedroom-apartments-valencia"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 9,
+      "listing_count": 5,
+      "suggested_url": "/9-bedroom-houses-caracas"
+    },
+    {
+      "city": "Punto Fijo",
+      "state": "Falcon",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 5,
+      "suggested_url": "/3-bedroom-houses-punto-fijo"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 2,
+      "listing_count": 5,
+      "suggested_url": "/2-bedroom-houses-caracas"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": 5,
+      "listing_count": 5,
+      "suggested_url": "/5-bedroom-houses-maracay"
+    },
+    {
+      "city": "Caracas",
+      "state": "Distrito Metropolitano",
+      "property_type": "house",
+      "bedrooms": 10,
+      "listing_count": 5,
+      "suggested_url": "/10-bedroom-houses-caracas"
+    },
+    {
+      "city": "Margarita",
+      "state": "Nueva Esparta",
+      "property_type": "apartment",
+      "bedrooms": 3,
+      "listing_count": 5,
+      "suggested_url": "/3-bedroom-apartments-margarita"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "apartment",
+      "bedrooms": 4,
+      "listing_count": 5,
+      "suggested_url": "/4-bedroom-apartments-valencia"
+    },
+    {
+      "city": "",
+      "state": "Yaracuy",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 5,
+      "suggested_url": "/houses-yaracuy-state"
+    },
+    {
+      "city": "Punto Fijo",
+      "state": "Falcon",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-punto-fijo"
+    },
+    {
+      "city": "Quibor",
+      "state": "Lara",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/land-quibor"
+    },
+    {
+      "city": "Cabimas",
+      "state": "Zulia",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-cabimas"
+    },
+    {
+      "city": "Municipio Libertador",
+      "state": "Carabobo",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-municipio-libertador"
+    },
+    {
+      "city": "Cagua",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-cagua"
+    },
+    {
+      "city": "Ciudad Ojeda",
+      "state": "Zulia",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/land-ciudad-ojeda"
+    },
+    {
+      "city": "Guatire",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/apartments-guatire"
+    },
+    {
+      "city": "San Antonio de los Altos",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-san-antonio-de-los-altos"
+    },
+    {
+      "city": "Villa de Cura",
+      "state": "Aragua",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/land-villa-de-cura"
+    },
+    {
+      "city": "Caucagua",
+      "state": "Miranda",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/land-caucagua"
+    },
+    {
+      "city": "Duaca",
+      "state": "Lara",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/land-duaca"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "apartment",
+      "bedrooms": 3,
+      "listing_count": 4,
+      "suggested_url": "/3-bedroom-apartments-valencia"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "apartment",
+      "bedrooms": 2,
+      "listing_count": 4,
+      "suggested_url": "/2-bedroom-apartments-maracay"
+    },
+    {
+      "city": "Parroquia Caraballeda",
+      "state": "Vargas",
+      "property_type": "apartment",
+      "bedrooms": 2,
+      "listing_count": 4,
+      "suggested_url": "/2-bedroom-apartments-parroquia-caraballeda"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "apartment",
+      "bedrooms": 4,
+      "listing_count": 4,
+      "suggested_url": "/4-bedroom-apartments-maracay"
+    },
+    {
+      "city": "Margarita",
+      "state": "Nueva Esparta",
+      "property_type": "apartment",
+      "bedrooms": 2,
+      "listing_count": 4,
+      "suggested_url": "/2-bedroom-apartments-margarita"
+    },
+    {
+      "city": "Cabudare",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 4,
+      "suggested_url": "/3-bedroom-houses-cabudare"
+    },
+    {
+      "city": "Margarita",
+      "state": "Nueva Esparta",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 4,
+      "suggested_url": "/4-bedroom-houses-margarita"
+    },
+    {
+      "city": "San Antonio de los Altos",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": 3,
+      "listing_count": 4,
+      "suggested_url": "/3-bedroom-apartments-san-antonio-de-los-altos"
+    },
+    {
+      "city": "",
+      "state": "Merida",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/land-merida-state"
+    },
+    {
+      "city": "",
+      "state": "Portuguesa",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-portuguesa-state"
+    },
+    {
+      "city": "",
+      "state": "Guarico",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/land-guarico-state"
+    },
+    {
+      "city": "",
+      "state": "Trujillo",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-trujillo-state"
+    },
+    {
+      "city": "",
+      "state": "Anzoategui",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 4,
+      "suggested_url": "/houses-anzoategui-state"
+    },
+    {
+      "city": "Araure",
+      "state": "Portuguesa",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/houses-araure"
+    },
+    {
+      "city": "La Guaira",
+      "state": "Vargas",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/apartments-la-guaira"
+    },
+    {
+      "city": "Araure",
+      "state": "Portuguesa",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-araure"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-valencia"
+    },
+    {
+      "city": "San Juan de los Morros",
+      "state": "Guarico",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/houses-san-juan-de-los-morros"
+    },
+    {
+      "city": "Parroquia Caraballeda",
+      "state": "Vargas",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/houses-parroquia-caraballeda"
+    },
+    {
+      "city": "Cubiro",
+      "state": "Lara",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-cubiro"
+    },
+    {
+      "city": "Lecheria",
+      "state": "Anzoategui",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/houses-lecheria"
+    },
+    {
+      "city": "Chivacoa",
+      "state": "Yaracuy",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/houses-chivacoa"
+    },
+    {
+      "city": "La Vela de Coro",
+      "state": "Falcon",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-la-vela-de-coro"
+    },
+    {
+      "city": "Coro",
+      "state": "Falcon",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/apartments-coro"
+    },
+    {
+      "city": "Higuerote",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/houses-higuerote"
+    },
+    {
+      "city": "Municipio Los Salias",
+      "state": "Miranda",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-municipio-los-salias"
+    },
+    {
+      "city": "Valle La Pascua",
+      "state": "Guarico",
+      "property_type": "house",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/houses-valle-la-pascua"
+    },
+    {
+      "city": "San Antonio de los Altos",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/apartments-san-antonio-de-los-altos"
+    },
+    {
+      "city": "Acarigua",
+      "state": "Portuguesa",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-acarigua"
+    },
+    {
+      "city": "Maracaibo",
+      "state": "Zulia",
+      "property_type": "apartment",
+      "bedrooms": 4,
+      "listing_count": 3,
+      "suggested_url": "/4-bedroom-apartments-maracaibo"
+    },
+    {
+      "city": "Maracay",
+      "state": "Aragua",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 3,
+      "suggested_url": "/3-bedroom-houses-maracay"
+    },
+    {
+      "city": "Margarita",
+      "state": "Nueva Esparta",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 3,
+      "suggested_url": "/3-bedroom-houses-margarita"
+    },
+    {
+      "city": "Higuerote",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": 1,
+      "listing_count": 3,
+      "suggested_url": "/1-bedroom-apartments-higuerote"
+    },
+    {
+      "city": "Guatire",
+      "state": "Miranda",
+      "property_type": "apartment",
+      "bedrooms": 2,
+      "listing_count": 3,
+      "suggested_url": "/2-bedroom-apartments-guatire"
+    },
+    {
+      "city": "Parroquia Caraballeda",
+      "state": "Vargas",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 3,
+      "suggested_url": "/4-bedroom-houses-parroquia-caraballeda"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "house",
+      "bedrooms": 5,
+      "listing_count": 3,
+      "suggested_url": "/5-bedroom-houses-valencia"
+    },
+    {
+      "city": "Cabimas",
+      "state": "Zulia",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 3,
+      "suggested_url": "/4-bedroom-houses-cabimas"
+    },
+    {
+      "city": "Cabudare",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 5,
+      "listing_count": 3,
+      "suggested_url": "/5-bedroom-houses-cabudare"
+    },
+    {
+      "city": "Cabudare",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 4,
+      "listing_count": 3,
+      "suggested_url": "/4-bedroom-houses-cabudare"
+    },
+    {
+      "city": "San Antonio de los Altos",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": 6,
+      "listing_count": 3,
+      "suggested_url": "/6-bedroom-houses-san-antonio-de-los-altos"
+    },
+    {
+      "city": "Punto Fijo",
+      "state": "Falcon",
+      "property_type": "house",
+      "bedrooms": 5,
+      "listing_count": 3,
+      "suggested_url": "/5-bedroom-houses-punto-fijo"
+    },
+    {
+      "city": "Coro",
+      "state": "Falcon",
+      "property_type": "apartment",
+      "bedrooms": 2,
+      "listing_count": 3,
+      "suggested_url": "/2-bedroom-apartments-coro"
+    },
+    {
+      "city": "Valencia",
+      "state": "Carabobo",
+      "property_type": "house",
+      "bedrooms": 6,
+      "listing_count": 3,
+      "suggested_url": "/6-bedroom-houses-valencia"
+    },
+    {
+      "city": "Guatire",
+      "state": "Miranda",
+      "property_type": "house",
+      "bedrooms": 3,
+      "listing_count": 3,
+      "suggested_url": "/3-bedroom-houses-guatire"
+    },
+    {
+      "city": "Barquisimeto",
+      "state": "Lara",
+      "property_type": "house",
+      "bedrooms": 7,
+      "listing_count": 3,
+      "suggested_url": "/7-bedroom-houses-barquisimeto"
+    },
+    {
+      "city": "",
+      "state": "Tachira",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-tachira-state"
+    },
+    {
+      "city": "",
+      "state": "Vargas",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-vargas-state"
+    },
+    {
+      "city": "",
+      "state": "Yaracuy",
+      "property_type": "land",
+      "bedrooms": null,
+      "listing_count": 3,
+      "suggested_url": "/land-yaracuy-state"
+    }
+  ]
+}

@@ -24,5 +24,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/sitemap-locations.xml`,
       lastModified: new Date(),
     },
+    {
+      url: `${baseUrl}/sitemap-seo-pages.xml`,
+      lastModified: new Date(),
+    },
   ];
 }
