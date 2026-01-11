@@ -3,6 +3,7 @@ import Link from 'next/link';
 const footerLinks = {
   explore: [
     { href: '/', label: 'All Properties' },
+    { href: '/browse-by-area', label: 'Browse by Area' },
     { href: '/guides', label: 'Property Guides' },
     { href: '/find-property', label: 'Find Property' },
   ],
