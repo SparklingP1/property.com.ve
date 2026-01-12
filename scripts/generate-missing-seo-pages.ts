@@ -24,13 +24,13 @@ if (!anthropicApiKey) {
 interface PageOpportunity {
   city?: string;
   state?: string;
-  property_type: string;
+  property_type: 'apartment' | 'house' | 'land' | 'commercial' | 'office';
   bedrooms?: number;
   listing_count: number;
   slug: string;
 }
 
-function generateSlug(city: string | undefined, state: string | undefined, type: string, bedrooms: number | undefined): string {
+function generateSlug(city: string | undefined, state: string | undefined, type: 'apartment' | 'house' | 'land' | 'commercial' | 'office', bedrooms: number | undefined): string {
   const typeSlug = type === 'apartment' ? 'apartments' :
                    type === 'house' ? 'houses' :
                    type === 'land' ? 'land' : type;
