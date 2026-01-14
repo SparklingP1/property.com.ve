@@ -95,6 +95,8 @@ export function ListingImages({ images, title }: ListingImagesProps) {
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 25vw, 16vw"
+                loading="lazy"
+                quality={50}
               />
             </button>
           ))}

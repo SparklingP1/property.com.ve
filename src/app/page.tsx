@@ -1,10 +1,12 @@
 import { Suspense } from 'react';
-import { createClient } from '@/lib/supabase/server';
 import { SearchBar } from '@/components/search/search-bar';
 import { ListingGrid } from '@/components/listings/listing-grid';
 import { ListingSkeleton } from '@/components/listings/listing-skeleton';
 import { EmailSignupForm } from '@/components/forms/email-signup-form';
-import type { Listing } from '@/types/listing';
+import { getFeaturedListings } from '@/lib/supabase/cached-queries';
+
+// Enable ISR - revalidate every 30 minutes (1800 seconds)
+export const revalidate = 1800;
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -15,38 +17,17 @@ async function FeaturedListings({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('listings')
-    .select('*', { count: 'exact' })
-    .eq('active', true)
-    .order('scraped_at', { ascending: false })
-    .limit(12);
-
-  if (searchParams.region) {
-    query = query.ilike('region', `%${searchParams.region}%`);
-  }
-  if (searchParams.type) {
-    query = query.eq('property_type', searchParams.type);
-  }
-  if (searchParams.search) {
-    query = query.or(
-      `title.ilike.%${searchParams.search}%,location.ilike.%${searchParams.search}%`
-    );
-  }
-  if (searchParams.price) {
-    const [min, max] = searchParams.price.split('-');
-    if (min) query = query.gte('price', Number(min));
-    if (max) query = query.lte('price', Number(max));
-  }
-
-  const { data: listings, count } = await query;
+  const { listings, count } = await getFeaturedListings({
+    region: searchParams.region,
+    type: searchParams.type,
+    search: searchParams.search,
+    price: searchParams.price,
+  });
 
   return (
     <ListingGrid
-      listings={(listings as Listing[]) || []}
-      totalCount={count || 0}
+      listings={listings}
+      totalCount={count}
     />
   );
 }

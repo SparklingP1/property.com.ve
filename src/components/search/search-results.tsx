@@ -38,10 +38,10 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
     parsedQuery = parsed.remainingKeywords || searchParams.q;
   }
 
-  // Build query
+  // Build query - only select fields used in ListingCard
   let query = supabase
     .from('listings')
-    .select('*', { count: 'exact' })
+    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces', { count: 'exact' })
     .eq('active', true);
 
   // Keyword search (title, location, city, neighborhood)

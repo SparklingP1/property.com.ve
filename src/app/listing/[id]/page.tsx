@@ -1,11 +1,14 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { ListingDetail } from '@/components/listings/listing-detail';
 import { ListingSchema } from '@/components/seo/listing-schema';
 import { ListingGrid } from '@/components/listings/listing-grid';
 import type { Listing } from '@/types/listing';
 import { getListingUrl } from '@/lib/slug';
+import { getListingById, getRelatedListings } from '@/lib/supabase/cached-queries';
+
+// Enable ISR - revalidate every hour (3600 seconds)
+export const revalidate = 3600;
 
 interface ListingPageProps {
   params: Promise<{ id: string }>;
@@ -15,13 +18,8 @@ export async function generateMetadata({
   params,
 }: ListingPageProps): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { listing } = await getListingById(id);
 
   if (!listing) {
     return { title: 'Listing Not Found' };
@@ -55,14 +53,9 @@ export async function generateMetadata({
 
 export default async function ListingPage({ params }: ListingPageProps) {
   const { id } = await params;
-  const supabase = await createClient();
 
   // First, check if listing exists (active or inactive)
-  const { data: listing, error } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { listing, error } = await getListingById(id);
 
   if (error || !listing) {
     notFound();
@@ -75,24 +68,22 @@ export default async function ListingPage({ params }: ListingPageProps) {
   // If listing is inactive, show "no longer available" page with similar properties
   if (!listing.active) {
     // Fetch similar available properties based on location and type
-    const { data: similarListings } = await supabase
-      .from('listings')
-      .select('*')
-      .eq('active', true)
-      .eq('property_type', listing.property_type || 'apartment')
-      .limit(6)
-      .order('scraped_at', { ascending: false });
+    const similarListings = await getRelatedListings({
+      excludeId: id,
+      region: listing.region,
+      propertyType: listing.property_type,
+      limit: 6,
+    });
 
-    // Filter by city/state if available
-    const filtered =
-      similarListings?.filter(
-        (l) =>
-          l.city === listing.city ||
-          l.state === listing.state ||
-          l.region === listing.region
-      ) || [];
+    // Filter by city/state if available (since region might be broader)
+    const filtered = similarListings.filter(
+      (l) =>
+        l.city === listing.city ||
+        l.state === listing.state ||
+        l.region === listing.region
+    );
 
-    const finalSimilar = filtered.length > 0 ? filtered.slice(0, 6) : similarListings || [];
+    const finalSimilar = filtered.length > 0 ? filtered.slice(0, 6) : similarListings;
 
     return (
       <div className="container py-8">
@@ -145,13 +136,12 @@ export default async function ListingPage({ params }: ListingPageProps) {
   }
 
   // Fetch related listings for active properties
-  const { data: relatedListings } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('active', true)
-    .neq('id', id)
-    .eq('region', listing.region)
-    .limit(3);
+  const relatedListings = await getRelatedListings({
+    excludeId: id,
+    region: listing.region,
+    propertyType: listing.property_type,
+    limit: 3,
+  });
 
   return (
     <>
@@ -200,10 +190,10 @@ export default async function ListingPage({ params }: ListingPageProps) {
         </div>
 
         {/* Related Listings */}
-        {(relatedListings?.length ?? 0) > 0 && (
+        {relatedListings.length > 0 && (
           <section className="mt-16">
             <h2 className="text-2xl font-bold mb-6">Similar Properties</h2>
-            <ListingGrid listings={relatedListings as Listing[]} />
+            <ListingGrid listings={relatedListings} />
           </section>
         )}
       </div>
