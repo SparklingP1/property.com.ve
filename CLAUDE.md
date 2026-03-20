@@ -286,12 +286,16 @@ curl -X POST \
 
 ## Environment Variables
 
-**Required:**
+All env vars live in `.env.local` (gitignored). Shared keys like `ANTHROPIC_API_KEY` are also in the root `ve_sites/.env`.
+
+**Required (`.env.local`):**
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon key (for RLS)
 
-**Optional:**
+**Optional (`.env.local`):**
 - `NEXT_PUBLIC_SITE_URL` - Site URL for metadata (default: https://property.com.ve)
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` - Google Analytics measurement ID
+- `ANTHROPIC_API_KEY` - Required for SEO content generation scripts (also available from root `.env`)
 
 **Scraper (GitHub Actions secrets):**
 - `SUPABASE_URL` - Same as frontend
