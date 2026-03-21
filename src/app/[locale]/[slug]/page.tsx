@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { ListingGrid } from '@/components/listings/listing-grid';
-import { parseSEOUrl, getPageTitle, getMetaDescription } from '@/lib/seo-url-parser';
+import { parseSEOUrl, getPageTitleForLocale, getMetaDescriptionForLocale } from '@/lib/seo-url-parser';
 import type { Listing } from '@/types/listing';
 import { Link } from '@/i18n/navigation';
 import { MapPin, Home, TrendingUp, Bed, Search } from 'lucide-react';
@@ -27,21 +27,36 @@ export async function generateMetadata({
     };
   }
 
-  // Try to fetch pre-generated SEO content
-  const { data: seoContent } = await supabase
+  // Try to fetch pre-generated SEO content (try both English slug and Spanish slug)
+  let seoContent = null;
+  const { data: byEnSlug } = await supabase
     .from('seo_page_content')
     .select('*')
     .eq('page_slug', `/${slug}`)
     .single();
+  seoContent = byEnSlug;
+
+  // If not found by English slug, try Spanish slug column
+  if (!seoContent) {
+    const { data: byEsSlug } = await supabase
+      .from('seo_page_content')
+      .select('*')
+      .eq('page_slug_es', `/${slug}`)
+      .single();
+    seoContent = byEsSlug;
+  }
 
   if (seoContent) {
+    // Use locale-appropriate content if available
+    const metaTitle = (locale === 'es' && seoContent.meta_title_es) ? seoContent.meta_title_es : seoContent.meta_title;
+    const metaDesc = (locale === 'es' && seoContent.meta_description_es) ? seoContent.meta_description_es : seoContent.meta_description;
     return {
-      title: seoContent.meta_title,
-      description: seoContent.meta_description,
-      keywords: seoContent.keywords?.join(', '),
+      title: metaTitle,
+      description: metaDesc,
+      keywords: ((locale === 'es' && seoContent.keywords_es) ? seoContent.keywords_es : seoContent.keywords)?.join(', '),
       openGraph: {
-        title: seoContent.meta_title,
-        description: seoContent.meta_description,
+        title: metaTitle,
+        description: metaDesc,
         type: 'website',
         siteName: 'Property.com.ve',
       },
@@ -49,14 +64,14 @@ export async function generateMetadata({
   }
 
   // Fallback metadata if no pre-generated content
-  const title = `${getPageTitle(parsed.filters)} | Property.com.ve`;
-  const description = getMetaDescription(parsed.filters, 0);
+  const title = `${getPageTitleForLocale(parsed.filters, locale)} | Property.com.ve`;
+  const description = getMetaDescriptionForLocale(parsed.filters, 0, locale);
 
   return {
     title,
     description,
     openGraph: {
-      title: getPageTitle(parsed.filters),
+      title: getPageTitleForLocale(parsed.filters, locale),
       description,
       type: 'website',
       siteName: 'Property.com.ve',
@@ -65,13 +80,13 @@ export async function generateMetadata({
 }
 
 export default async function SEOPage({ params }: SEOPageProps) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const t = await getTranslations('seoPage');
   const tAgg = await getTranslations('aggregate');
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
-  // Parse URL to extract filters
+  // Parse URL to extract filters (handles both English and Spanish slugs)
   const parsed = parseSEOUrl(slug);
 
   if (!parsed.isValid) {
@@ -80,12 +95,23 @@ export default async function SEOPage({ params }: SEOPageProps) {
 
   const { filters } = parsed;
 
-  // Fetch pre-generated SEO content
-  const { data: seoContent } = await supabase
+  // Fetch pre-generated SEO content (try English slug, then Spanish slug)
+  let seoContent = null;
+  const { data: byEnSlug } = await supabase
     .from('seo_page_content')
     .select('*')
     .eq('page_slug', `/${slug}`)
     .single();
+  seoContent = byEnSlug;
+
+  if (!seoContent) {
+    const { data: byEsSlug } = await supabase
+      .from('seo_page_content')
+      .select('*')
+      .eq('page_slug_es', `/${slug}`)
+      .single();
+    seoContent = byEsSlug;
+  }
 
   // If no SEO content exists, this page shouldn't exist
   if (!seoContent) {
