@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { guides, getGuideBySlug } from '@/lib/guides';
+import { guides, getGuideBySlug, getGuides } from '@/lib/guides';
 import React from 'react';
 
 interface GuidePageProps {
@@ -21,8 +21,9 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: GuidePageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const guide = getGuideBySlug(slug);
+  const { locale, slug } = await params;
+  const localeGuides = getGuides(locale);
+  const guide = localeGuides.find(g => g.slug === slug) || getGuideBySlug(slug);
 
   if (!guide) {
     return { title: 'Guide Not Found' };
@@ -153,8 +154,9 @@ function parseMarkdownContent(content: string) {
 }
 
 export default async function GuidePage({ params }: GuidePageProps) {
-  const { slug } = await params;
-  const guide = getGuideBySlug(slug);
+  const { locale, slug } = await params;
+  const localeGuides = getGuides(locale);
+  const guide = localeGuides.find(g => g.slug === slug) || getGuideBySlug(slug);
   const t = await getTranslations('guides');
 
   if (!guide) {

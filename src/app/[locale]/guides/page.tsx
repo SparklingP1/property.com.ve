@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { guides } from '@/lib/guides';
+import { getGuides } from '@/lib/guides';
 
 interface GuidesPageProps {
   params: Promise<{ locale: string }>;
@@ -22,8 +22,9 @@ export async function generateMetadata({
 }
 
 export default async function GuidesPage({ params }: GuidesPageProps) {
-  await params;
+  const { locale } = await params;
   const t = await getTranslations('guides');
+  const guides = getGuides(locale);
 
   // Group guides by category
   const categories = [...new Set(guides.map((g) => g.category))];
