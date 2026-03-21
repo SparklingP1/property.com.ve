@@ -83,6 +83,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
   const { locale, slug } = await params;
   const t = await getTranslations('seoPage');
   const tAgg = await getTranslations('aggregate');
+  const tListing = await getTranslations('listing');
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
@@ -184,6 +185,14 @@ export default async function SEOPage({ params }: SEOPageProps) {
 
   const location = filters.city || filters.state || 'Venezuela';
   const propertyType = filters.property_type || 'properties';
+
+  const propertyTypeLabels: Record<string, string> = {
+    apartment: tListing('apartment'),
+    house: tListing('house'),
+    land: tListing('land'),
+    commercial: tListing('commercial'),
+    office: tListing('office'),
+  };
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -345,11 +354,11 @@ export default async function SEOPage({ params }: SEOPageProps) {
             {/* Listings Grid */}
             <section>
               <h2 className="text-2xl font-bold mb-6 text-stone-900">
-                {filters.bedrooms && `${filters.bedrooms} Bedroom `}
+                {filters.bedrooms && `${filters.bedrooms} ${Number(filters.bedrooms) > 1 ? tAgg('bedrooms') : tAgg('bedroom')} `}
                 {filters.property_type
-                  ? filters.property_type.charAt(0).toUpperCase() + filters.property_type.slice(1)
-                  : 'Properties'}{' '}
-                in {location}
+                  ? propertyTypeLabels[filters.property_type] || filters.property_type.charAt(0).toUpperCase() + filters.property_type.slice(1)
+                  : t('propertiesLabel')}{' '}
+                {t('inLocation', { location })}
               </h2>
               <ListingGrid listings={listings as Listing[]} />
 

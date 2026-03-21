@@ -41,8 +41,24 @@ export function AdvancedSearchFilters() {
   const [minArea, setMinArea] = useState(searchParams.get('minArea') || '');
   const [maxArea, setMaxArea] = useState(searchParams.get('maxArea') || '');
   const [detectedFilters, setDetectedFilters] = useState<string[]>([]);
+  const [priceError, setPriceError] = useState('');
+  const [areaError, setAreaError] = useState('');
 
   const handleSearch = () => {
+    // Validate price range
+    if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) {
+      setPriceError(t('priceRangeError'));
+      return;
+    }
+    setPriceError('');
+
+    // Validate area range
+    if (minArea && maxArea && Number(minArea) > Number(maxArea)) {
+      setAreaError(t('areaRangeError'));
+      return;
+    }
+    setAreaError('');
+
     const detected: string[] = [];
     const params = new URLSearchParams();
 
@@ -246,17 +262,18 @@ export function AdvancedSearchFilters() {
                 type="number"
                 placeholder={t('min')}
                 value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                className="border-stone-300"
+                onChange={(e) => { setMinPrice(e.target.value); setPriceError(''); }}
+                className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
               />
               <Input
                 type="number"
                 placeholder={t('max')}
                 value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="border-stone-300"
+                onChange={(e) => { setMaxPrice(e.target.value); setPriceError(''); }}
+                className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
               />
             </div>
+            {priceError && <p className="text-xs text-red-500 mt-1">{priceError}</p>}
           </div>
 
           {/* Parking */}
@@ -283,17 +300,18 @@ export function AdvancedSearchFilters() {
                 type="number"
                 placeholder={t('min')}
                 value={minArea}
-                onChange={(e) => setMinArea(e.target.value)}
-                className="border-stone-300"
+                onChange={(e) => { setMinArea(e.target.value); setAreaError(''); }}
+                className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
               />
               <Input
                 type="number"
                 placeholder={t('max')}
                 value={maxArea}
-                onChange={(e) => setMaxArea(e.target.value)}
-                className="border-stone-300"
+                onChange={(e) => { setMaxArea(e.target.value); setAreaError(''); }}
+                className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
               />
             </div>
+            {areaError && <p className="text-xs text-red-500 mt-1">{areaError}</p>}
           </div>
 
           {/* Furnished */}
@@ -305,8 +323,8 @@ export function AdvancedSearchFilters() {
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
                 <SelectItem value="all">{t('any')}</SelectItem>
-                <SelectItem value="true">{t('furnished')}</SelectItem>
-                <SelectItem value="false">{t('unfurnished')}</SelectItem>
+                <SelectItem value="true">{t('furnishedYes')}</SelectItem>
+                <SelectItem value="false">{t('furnishedNo')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

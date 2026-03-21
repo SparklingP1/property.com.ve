@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from 'next-intl';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function Header() {
@@ -13,6 +13,17 @@ export function Header() {
   const tHeader = useTranslations('header');
   const locale = useLocale();
   const pathname = usePathname();
+
+  // Close mobile menu on Escape key
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMobileMenu();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen, closeMobileMenu]);
 
   const navLinks = [
     { href: '/' as const, label: t('home') },
@@ -48,8 +59,9 @@ export function Header() {
           <Link
             href={pathname}
             locale={locale === 'es' ? 'en' : 'es'}
-            className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors"
+            className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
           >
+            <Globe className="h-3.5 w-3.5" />
             {tHeader('langSwitch')}
           </Link>
         </div>
@@ -60,6 +72,8 @@ export function Header() {
           size="icon"
           className="md:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-expanded={mobileMenuOpen}
+          aria-label={mobileMenuOpen ? t('closeMenu') : t('openMenu')}
         >
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
@@ -83,9 +97,10 @@ export function Header() {
             <Link
               href={pathname}
               locale={locale === 'es' ? 'en' : 'es'}
-              className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
               onClick={() => setMobileMenuOpen(false)}
             >
+              <Globe className="h-3.5 w-3.5" />
               {tHeader('langSwitch')}
             </Link>
           </div>

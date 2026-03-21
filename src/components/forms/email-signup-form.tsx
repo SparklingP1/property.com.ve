@@ -30,7 +30,7 @@ export function EmailSignupForm() {
 
   if (status === 'success') {
     return (
-      <div className="bg-primary-50 text-primary-700 p-4 rounded-lg text-center">
+      <div className="bg-primary-50 text-primary-700 p-4 rounded-lg text-center" role="status" aria-live="polite">
         {message}
       </div>
     );
@@ -46,6 +46,7 @@ export function EmailSignupForm() {
         required
         className="flex-1 h-11"
         disabled={status === 'loading'}
+        aria-label={t('emailSignupPlaceholder')}
       />
       <Button
         type="submit"
@@ -55,7 +56,7 @@ export function EmailSignupForm() {
         {status === 'loading' ? t('subscribing') : t('getUpdates')}
       </Button>
       {status === 'error' && (
-        <p className="text-red-500 text-sm mt-2">{message}</p>
+        <p className="text-red-500 text-sm mt-2" role="alert" aria-live="assertive">{message}</p>
       )}
     </form>
   );

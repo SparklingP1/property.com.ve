@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PhotoGalleryModal } from './photo-gallery-modal';
 
@@ -13,12 +14,13 @@ interface ListingImagesProps {
 export function ListingImages({ images, title }: ListingImagesProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const t = useTranslations('listing');
 
   if (!images || images.length === 0) {
     return (
       <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden rounded-xl bg-muted mb-6">
         <div className="w-full h-full flex items-center justify-center">
-          <span className="text-muted-foreground">No images available</span>
+          <span className="text-muted-foreground">{t('noImagesAvailable')}</span>
         </div>
       </div>
     );
@@ -55,14 +57,14 @@ export function ListingImages({ images, title }: ListingImagesProps) {
           <>
             <button
               onClick={previousImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors z-10"
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors z-10"
               aria-label="Previous image"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
             <button
               onClick={nextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors z-10"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors z-10"
               aria-label="Next image"
             >
               <ChevronRight className="h-6 w-6" />

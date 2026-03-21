@@ -5,7 +5,9 @@
     "guides": "Guides",
     "findProperty": "Find Property",
     "listProperty": "List Property",
-    "about": "About"
+    "about": "About",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "header": {
     "branding": "Property.com.ve",
@@ -90,7 +92,11 @@
     "priceLowToHigh": "Price: Low to High",
     "priceHighToLow": "Price: High to Low",
     "mostBedrooms": "Most Bedrooms",
-    "largestArea": "Largest Area"
+    "largestArea": "Largest Area",
+    "priceRangeError": "Minimum price cannot exceed maximum price",
+    "areaRangeError": "Minimum area cannot exceed maximum area",
+    "furnishedYes": "Yes — Furnished",
+    "furnishedNo": "No — Unfurnished"
   },
   "listing": {
     "priceOnRequest": "Price on request",
@@ -118,7 +124,11 @@
     "viewOnSource": "View on {source}",
     "sourceDescription": "This listing is sourced from {source}. View the original listing for complete details, more photos, and contact information.",
     "forSale": "Sale",
-    "forRent": "Rent"
+    "forRent": "Rent",
+    "noPropertiesFound": "No properties found",
+    "tryAdjusting": "Try adjusting your search filters",
+    "showingOf": "Showing {current} of {total} properties",
+    "noImagesAvailable": "No images available"
   },
   "results": {
     "propertiesFound": "{count} Properties Found",
@@ -161,7 +171,8 @@
     "takedownListingUrl": "Listing URL *",
     "takedownUrlPlaceholder": "https://property.com.ve/listing/...",
     "takedownReason": "Reason for Takedown Request",
-    "takedownReasonPlaceholder": "Please explain why you are requesting this listing be removed..."
+    "takedownReasonPlaceholder": "Please explain why you are requesting this listing be removed...",
+    "optional": "(optional)"
   },
   "about": {
     "heading": "About Property.com.ve",
@@ -291,7 +302,9 @@
     "contactAgent": "Contact Agent",
     "lookingForSomethingElse": "Looking for something else?",
     "tellUsWhatYoureLooking": "Tell us what you're looking for",
-    "viewAllType": "View all {type} {location} →"
+    "viewAllType": "View all {type} {location} →",
+    "backToSearch": "Back to search",
+    "searchSimilarIn": "Search similar properties in {location}"
   },
   "seoPage": {
     "noPropertiesAvailable": "No Properties Currently Available",
@@ -301,7 +314,9 @@
     "totalProperties": "Total Properties",
     "location": "Location",
     "propertiesAvailable": "properties available",
-    "viewAllResults": "View All Results →"
+    "viewAllResults": "View All Results →",
+    "propertiesLabel": "Properties",
+    "inLocation": "in {location}"
   },
   "metadata": {
     "defaultTitle": "Property.com.ve | Find Your Dream Property in Venezuela",

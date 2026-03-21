@@ -31,10 +31,10 @@ export function SortSelect({ currentSort }: SortSelectProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
       <span className="text-sm text-stone-600">{t('sortBy')}</span>
       <Select value={currentSort} onValueChange={handleSortChange}>
-        <SelectTrigger className="w-[180px] border-stone-300">
+        <SelectTrigger className="w-full sm:w-[180px] border-stone-300">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="bg-white z-50">

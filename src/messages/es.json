@@ -5,7 +5,9 @@
     "guides": "Guías",
     "findProperty": "Buscar Propiedad",
     "listProperty": "Publicar Propiedad",
-    "about": "Nosotros"
+    "about": "Nosotros",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú"
   },
   "header": {
     "branding": "Property.com.ve",
@@ -90,7 +92,11 @@
     "priceLowToHigh": "Precio: Menor a Mayor",
     "priceHighToLow": "Precio: Mayor a Menor",
     "mostBedrooms": "Más Habitaciones",
-    "largestArea": "Mayor Área"
+    "largestArea": "Mayor Área",
+    "priceRangeError": "El precio mínimo no puede ser mayor al máximo",
+    "areaRangeError": "El área mínima no puede ser mayor a la máxima",
+    "furnishedYes": "Sí — Amoblado",
+    "furnishedNo": "No — Sin Amoblar"
   },
   "listing": {
     "priceOnRequest": "Precio a consultar",
@@ -118,7 +124,11 @@
     "viewOnSource": "Ver en {source}",
     "sourceDescription": "Este inmueble proviene de {source}. Visita el listado original para ver detalles completos, más fotos e información de contacto.",
     "forSale": "Venta",
-    "forRent": "Alquiler"
+    "forRent": "Alquiler",
+    "noPropertiesFound": "No se encontraron inmuebles",
+    "tryAdjusting": "Intenta ajustar los filtros de búsqueda",
+    "showingOf": "Mostrando {current} de {total} inmuebles",
+    "noImagesAvailable": "No hay imágenes disponibles"
   },
   "results": {
     "propertiesFound": "{count} Inmuebles Encontrados",
@@ -161,7 +171,8 @@
     "takedownListingUrl": "URL del Inmueble *",
     "takedownUrlPlaceholder": "https://property.com.ve/listing/...",
     "takedownReason": "Razón de la Solicitud de Retiro",
-    "takedownReasonPlaceholder": "Por favor explica por qué solicitas el retiro de este inmueble..."
+    "takedownReasonPlaceholder": "Por favor explica por qué solicitas el retiro de este inmueble...",
+    "optional": "(opcional)"
   },
   "about": {
     "heading": "Acerca de Property.com.ve",
@@ -291,7 +302,9 @@
     "contactAgent": "Contactar Agente",
     "lookingForSomethingElse": "¿Buscas algo diferente?",
     "tellUsWhatYoureLooking": "Cuéntanos qué estás buscando",
-    "viewAllType": "Ver todos los {type} en {location} →"
+    "viewAllType": "Ver todos los {type} en {location} →",
+    "backToSearch": "Volver a la búsqueda",
+    "searchSimilarIn": "Buscar inmuebles similares en {location}"
   },
   "seoPage": {
     "noPropertiesAvailable": "No Hay Inmuebles Disponibles Actualmente",
@@ -301,7 +314,9 @@
     "totalProperties": "Total de Inmuebles",
     "location": "Ubicación",
     "propertiesAvailable": "inmuebles disponibles",
-    "viewAllResults": "Ver Todos los Resultados →"
+    "viewAllResults": "Ver Todos los Resultados →",
+    "propertiesLabel": "Inmuebles",
+    "inLocation": "en {location}"
   },
   "metadata": {
     "defaultTitle": "Property.com.ve | Encuentra tu Propiedad Ideal en Venezuela",

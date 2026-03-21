@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import { CollapsibleFilters } from '@/components/search/collapsible-filters';
 import { SearchResults } from '@/components/search/search-results';
 import { ListingSkeleton } from '@/components/listings/listing-skeleton';
@@ -30,12 +31,21 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   await params;
   const resolvedParams = await searchParams;
   const t = await getTranslations('search');
+  const tNav = await getTranslations('nav');
 
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <div className="bg-stone-900 text-stone-50 py-12">
         <div className="container">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-2 text-stone-400 text-sm mb-4" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-stone-200">
+              {tNav('home')}
+            </Link>
+            <span>/</span>
+            <span className="text-stone-200">{tNav('search')}</span>
+          </nav>
           <h1 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight">
             {t('pageTitle')}
           </h1>

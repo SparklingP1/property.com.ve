@@ -19,7 +19,7 @@ export function AgentSignupForm() {
 
   if (state.success) {
     return (
-      <div className="bg-primary-50 text-primary-700 p-6 rounded-lg text-center">
+      <div className="bg-primary-50 text-primary-700 p-6 rounded-lg text-center" role="status" aria-live="polite">
         <h3 className="font-semibold text-lg mb-2">{t('thankYou')}</h3>
         <p>{state.message}</p>
       </div>
@@ -37,9 +37,11 @@ export function AgentSignupForm() {
           placeholder={t('namePlaceholder')}
           required
           className="mt-1"
+          aria-invalid={!!state.errors?.name}
+          aria-describedby={state.errors?.name ? 'name-error' : undefined}
         />
         {state.errors?.name && (
-          <p className="text-sm text-red-500 mt-1">{state.errors.name[0]}</p>
+          <p id="name-error" className="text-sm text-red-500 mt-1" role="alert">{state.errors.name[0]}</p>
         )}
       </div>
 
@@ -52,14 +54,16 @@ export function AgentSignupForm() {
           placeholder={t('emailPlaceholder')}
           required
           className="mt-1"
+          aria-invalid={!!state.errors?.email}
+          aria-describedby={state.errors?.email ? 'email-error' : undefined}
         />
         {state.errors?.email && (
-          <p className="text-sm text-red-500 mt-1">{state.errors.email[0]}</p>
+          <p id="email-error" className="text-sm text-red-500 mt-1" role="alert">{state.errors.email[0]}</p>
         )}
       </div>
 
       <div>
-        <Label htmlFor="phone">{t('phoneNumber')}</Label>
+        <Label htmlFor="phone">{t('phoneNumber')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
         <Input
           id="phone"
           name="phone"
@@ -70,7 +74,7 @@ export function AgentSignupForm() {
       </div>
 
       <div>
-        <Label htmlFor="agency">{t('agency')}</Label>
+        <Label htmlFor="agency">{t('agency')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
         <Input
           id="agency"
           name="agency"
@@ -81,7 +85,7 @@ export function AgentSignupForm() {
       </div>
 
       <div>
-        <Label htmlFor="message">{t('message')}</Label>
+        <Label htmlFor="message">{t('message')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
         <Textarea
           id="message"
           name="message"
@@ -99,7 +103,7 @@ export function AgentSignupForm() {
       </Button>
 
       {state.message && !state.success && (
-        <p className="text-sm text-red-500 text-center">{state.message}</p>
+        <p className="text-sm text-red-500 text-center" role="alert" aria-live="assertive">{state.message}</p>
       )}
     </form>
   );

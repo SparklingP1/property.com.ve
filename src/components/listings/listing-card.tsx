@@ -46,7 +46,7 @@ export function ListingCard({ listing }: ListingCardProps) {
 
   return (
     <Link href={listingUrl}>
-      <Card className="group card-hover overflow-hidden h-full">
+      <Card className="group card-hover overflow-hidden h-full transition-shadow duration-200 hover:shadow-lg hover:border-primary/30">
         <div className="relative aspect-[3/2] overflow-hidden bg-muted">
           {imageUrl ? (
             <Image
@@ -86,26 +86,26 @@ export function ListingCard({ listing }: ListingCardProps) {
 
           <div className="flex flex-wrap gap-2 mt-3 text-xs text-muted-foreground">
             {listing.bedrooms !== null && (
-              <span className="flex items-center gap-1">
-                <Bed className="h-4 w-4" />
+              <span className="flex items-center gap-1" aria-label={`${listing.bedrooms} ${t('bedrooms')}`}>
+                <Bed className="h-4 w-4" aria-hidden="true" />
                 {listing.bedrooms}
               </span>
             )}
             {listing.bathrooms !== null && (
-              <span className="flex items-center gap-1">
-                <Bath className="h-4 w-4" />
+              <span className="flex items-center gap-1" aria-label={`${listing.bathrooms} ${t('bathrooms')}`}>
+                <Bath className="h-4 w-4" aria-hidden="true" />
                 {listing.bathrooms}
               </span>
             )}
             {listing.area_sqm !== null && (
-              <span className="flex items-center gap-1">
-                <Maximize className="h-4 w-4" />
+              <span className="flex items-center gap-1" aria-label={`${listing.area_sqm} m²`}>
+                <Maximize className="h-4 w-4" aria-hidden="true" />
                 {listing.area_sqm}m²
               </span>
             )}
             {listing.parking_spaces !== null && listing.parking_spaces > 0 && (
-              <span className="flex items-center gap-1">
-                <Car className="h-4 w-4" />
+              <span className="flex items-center gap-1" aria-label={`${listing.parking_spaces} ${t('parking')}`}>
+                <Car className="h-4 w-4" aria-hidden="true" />
                 {listing.parking_spaces}
               </span>
             )}

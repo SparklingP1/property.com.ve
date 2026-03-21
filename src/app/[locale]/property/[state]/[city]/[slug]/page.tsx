@@ -8,6 +8,7 @@ import { ListingGrid } from '@/components/listings/listing-grid';
 import type { Listing } from '@/types/listing';
 import { getListingUrl } from '@/lib/slug';
 import { Link } from '@/i18n/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 interface PropertyPageProps {
   params: Promise<{ locale: string; state: string; city: string; slug: string }>;
@@ -123,18 +124,20 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
                 <span className="block text-sm mt-2 italic">{listingTitle}</span>
               )}
             </p>
-            <div className="flex gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {listing.city && (
+                <Link
+                  href={`/search?city=${encodeURIComponent(listing.city)}${listing.property_type ? `&type=${listing.property_type}` : ''}`}
+                  className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-700 transition-colors text-center"
+                >
+                  {t('searchSimilarIn', { location: listing.city })}
+                </Link>
+              )}
               <Link
                 href="/search"
-                className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                className="px-6 py-3 bg-stone-200 text-stone-900 rounded-lg font-medium hover:bg-stone-300 transition-colors text-center"
               >
                 {t('browseAllProperties')}
-              </Link>
-              <Link
-                href="/find-property"
-                className="px-6 py-3 bg-stone-200 text-stone-900 rounded-lg font-medium hover:bg-stone-300 transition-colors"
-              >
-                {t('requestPropertySearch')}
               </Link>
             </div>
           </div>
@@ -176,6 +179,15 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
       <ListingSchema listing={listing as Listing} />
 
       <div className="container py-8">
+        {/* Back to search */}
+        <Link
+          href="/search"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t('backToSearch')}
+        </Link>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">

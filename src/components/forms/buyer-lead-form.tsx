@@ -49,7 +49,7 @@ export function BuyerLeadForm() {
 
   if (state.success) {
     return (
-      <div className="bg-primary-50 text-primary-700 p-6 rounded-lg text-center">
+      <div className="bg-primary-50 text-primary-700 p-6 rounded-lg text-center" role="status" aria-live="polite">
         <h3 className="font-semibold text-lg mb-2">{t('thankYou')}</h3>
         <p>{state.message}</p>
       </div>
@@ -67,15 +67,17 @@ export function BuyerLeadForm() {
           placeholder={t('emailPlaceholder')}
           required
           className="mt-1"
+          aria-invalid={!!state.errors?.email}
+          aria-describedby={state.errors?.email ? 'email-error' : undefined}
         />
         {state.errors?.email && (
-          <p className="text-sm text-red-500 mt-1">{state.errors.email[0]}</p>
+          <p id="email-error" className="text-sm text-red-500 mt-1" role="alert">{state.errors.email[0]}</p>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="budget_min">{t('buyerMinBudget')}</Label>
+          <Label htmlFor="budget_min">{t('buyerMinBudget')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
           <Input
             id="budget_min"
             name="budget_min"
@@ -85,7 +87,7 @@ export function BuyerLeadForm() {
           />
         </div>
         <div>
-          <Label htmlFor="budget_max">{t('buyerMaxBudget')}</Label>
+          <Label htmlFor="budget_max">{t('buyerMaxBudget')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
           <Input
             id="budget_max"
             name="budget_max"
@@ -97,7 +99,7 @@ export function BuyerLeadForm() {
       </div>
 
       <div>
-        <Label htmlFor="location_preference">{t('preferredLocation')}</Label>
+        <Label htmlFor="location_preference">{t('preferredLocation')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
         <Select name="location_preference">
           <SelectTrigger className="mt-1">
             <SelectValue placeholder={t('selectRegion')} />
@@ -113,7 +115,7 @@ export function BuyerLeadForm() {
       </div>
 
       <div>
-        <Label htmlFor="property_type">{t('propertyType')}</Label>
+        <Label htmlFor="property_type">{t('propertyType')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
         <Select name="property_type">
           <SelectTrigger className="mt-1">
             <SelectValue placeholder={t('selectPropertyType')} />
@@ -129,7 +131,7 @@ export function BuyerLeadForm() {
       </div>
 
       <div>
-        <Label htmlFor="notes">{t('additionalNotes')}</Label>
+        <Label htmlFor="notes">{t('additionalNotes')} <span className="text-muted-foreground font-normal">{t('optional')}</span></Label>
         <Textarea
           id="notes"
           name="notes"
@@ -147,7 +149,7 @@ export function BuyerLeadForm() {
       </Button>
 
       {state.message && !state.success && (
-        <p className="text-sm text-red-500 text-center">{state.message}</p>
+        <p className="text-sm text-red-500 text-center" role="alert" aria-live="assertive">{state.message}</p>
       )}
     </form>
   );
