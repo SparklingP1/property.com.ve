@@ -1,24 +1,27 @@
-import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 
-const footerLinks = {
-  explore: [
-    { href: '/', label: 'All Properties' },
-    { href: '/browse-by-area', label: 'Browse by Area' },
-    { href: '/guides', label: 'Property Guides' },
-    { href: '/find-property', label: 'Find Property' },
-  ],
-  company: [
-    { href: '/about', label: 'About Us' },
-    { href: '/list-your-property', label: 'List Your Property' },
-    { href: '/disclaimer', label: 'Disclaimer' },
-  ],
-  legal: [
-    { href: '/disclaimer', label: 'Terms of Use' },
-    { href: '/takedown', label: 'Takedown Request' },
-  ],
-};
+export async function Footer() {
+  const t = await getTranslations('footer');
 
-export function Footer() {
+  const footerLinks = {
+    explore: [
+      { href: '/' as const, label: t('allProperties') },
+      { href: '/browse-by-area' as const, label: t('browseByArea') },
+      { href: '/guides' as const, label: t('propertyGuides') },
+      { href: '/find-property' as const, label: t('findProperty') },
+    ],
+    company: [
+      { href: '/about' as const, label: t('aboutUs') },
+      { href: '/list-your-property' as const, label: t('listYourProperty') },
+      { href: '/disclaimer' as const, label: t('disclaimer') },
+    ],
+    legal: [
+      { href: '/disclaimer' as const, label: t('termsOfUse') },
+      { href: '/takedown' as const, label: t('takedownRequest') },
+    ],
+  };
+
   return (
     <footer className="bg-white border-t border-border mt-auto">
       <div className="container py-12">
@@ -29,16 +32,16 @@ export function Footer() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">P</span>
               </div>
-              <span className="font-bold text-lg text-foreground">Property.com.ve</span>
+              <span className="font-bold text-lg text-foreground">{t('branding')}</span>
             </Link>
             <p className="text-sm text-muted-foreground">
-              Your trusted source for Venezuelan real estate listings from multiple sources.
+              {t('tagline')}
             </p>
           </div>
 
           {/* Explore */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Explore</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t('explore')}</h3>
             <ul className="space-y-2">
               {footerLinks.explore.map((link) => (
                 <li key={link.href}>
@@ -55,7 +58,7 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Company</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t('company')}</h3>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
@@ -72,7 +75,7 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Legal</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t('legal')}</h3>
             <ul className="space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
@@ -90,9 +93,9 @@ export function Footer() {
 
         <div className="border-t border-border mt-8 pt-8">
           <p className="text-sm text-muted-foreground text-center">
-            &copy; {new Date().getFullYear()} Property.com.ve. All rights reserved.
+            {t('copyright', { year: new Date().getFullYear() })}
             <span className="block mt-1">
-              We aggregate listings from third-party sources. Always verify with the original listing.
+              {t('aggregatorNotice')}
             </span>
           </p>
         </div>

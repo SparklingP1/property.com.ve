@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,8 @@ export function AdvancedSearchFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations('search');
+  const tListing = useTranslations('listing');
 
   // State for all filters
   const [keyword, setKeyword] = useState(searchParams.get('q') || '');
@@ -61,7 +64,7 @@ export function AdvancedSearchFilters() {
       }
       if (parsed.furnished !== undefined && furnished === 'all') {
         finalFurnished = parsed.furnished.toString();
-        detected.push(parsed.furnished ? 'Furnished' : 'Unfurnished');
+        detected.push(parsed.furnished ? t('furnished') : t('unfurnished'));
       }
 
       // Use remaining keywords for text search
@@ -115,26 +118,26 @@ export function AdvancedSearchFilters() {
       {/* Keyword Search - Full Width */}
       <div className="space-y-2">
         <Label htmlFor="keyword" className="text-sm font-medium text-stone-700 flex items-center gap-2">
-          Search Keywords
+          {t('keywords')}
           <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 border-amber-200">
             <Sparkles className="h-3 w-3 mr-1" />
-            Smart
+            {t('smart')}
           </Badge>
         </Label>
         <Input
           id="keyword"
-          placeholder="Try: 'apartment Caracas' or 'casa Valencia'"
+          placeholder={t('placeholder')}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           className="border-stone-300"
         />
         <p className="text-xs text-stone-500">
-          Type naturally - we&apos;ll detect property type and location
+          {t('keywordsHint')}
         </p>
         {detectedFilters.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
-            <span className="text-xs text-stone-600">Detected:</span>
+            <span className="text-xs text-stone-600">{t('detected')}</span>
             {detectedFilters.map((filter, idx) => (
               <Badge key={idx} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                 {filter}
@@ -153,32 +156,32 @@ export function AdvancedSearchFilters() {
           {/* Property Type */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-stone-700">
-              Property Type
+              {t('propertyType')}
             </Label>
             <Select value={propertyType} onValueChange={setPropertyType}>
               <SelectTrigger className="border-stone-300">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder={t('any')} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="all">Any Type</SelectItem>
-                <SelectItem value="apartment">Apartment</SelectItem>
-                <SelectItem value="house">House</SelectItem>
-                <SelectItem value="land">Land</SelectItem>
-                <SelectItem value="commercial">Commercial</SelectItem>
-                <SelectItem value="office">Office</SelectItem>
+                <SelectItem value="all">{t('anyType')}</SelectItem>
+                <SelectItem value="apartment">{tListing('apartment')}</SelectItem>
+                <SelectItem value="house">{tListing('house')}</SelectItem>
+                <SelectItem value="land">{tListing('land')}</SelectItem>
+                <SelectItem value="commercial">{tListing('commercial')}</SelectItem>
+                <SelectItem value="office">{tListing('office')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* State */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-stone-700">State</Label>
+            <Label className="text-sm font-medium text-stone-700">{t('state')}</Label>
             <Select value={state} onValueChange={setState}>
               <SelectTrigger className="border-stone-300">
-                <SelectValue placeholder="Any State" />
+                <SelectValue placeholder={t('anyState')} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="all">All States</SelectItem>
+                <SelectItem value="all">{t('allStates')}</SelectItem>
                 <SelectItem value="Distrito Metropolitano">
                   Distrito Metropolitano
                 </SelectItem>
@@ -199,13 +202,13 @@ export function AdvancedSearchFilters() {
 
           {/* Bedrooms */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-stone-700">Bedrooms</Label>
+            <Label className="text-sm font-medium text-stone-700">{t('bedrooms')}</Label>
             <Select value={bedrooms} onValueChange={setBedrooms}>
               <SelectTrigger className="border-stone-300">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder={t('any')} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="all">{t('any')}</SelectItem>
                 <SelectItem value="1">1+</SelectItem>
                 <SelectItem value="2">2+</SelectItem>
                 <SelectItem value="3">3+</SelectItem>
@@ -217,13 +220,13 @@ export function AdvancedSearchFilters() {
 
           {/* Bathrooms */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-stone-700">Bathrooms</Label>
+            <Label className="text-sm font-medium text-stone-700">{t('bathrooms')}</Label>
             <Select value={bathrooms} onValueChange={setBathrooms}>
               <SelectTrigger className="border-stone-300">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder={t('any')} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="all">{t('any')}</SelectItem>
                 <SelectItem value="1">1+</SelectItem>
                 <SelectItem value="2">2+</SelectItem>
                 <SelectItem value="3">3+</SelectItem>
@@ -237,18 +240,18 @@ export function AdvancedSearchFilters() {
         <div className="space-y-6">
           {/* Price Range */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium text-stone-700">Price (USD)</Label>
+            <Label className="text-sm font-medium text-stone-700">{t('priceUSD')}</Label>
             <div className="grid grid-cols-2 gap-3">
               <Input
                 type="number"
-                placeholder="Min"
+                placeholder={t('min')}
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
                 className="border-stone-300"
               />
               <Input
                 type="number"
-                placeholder="Max"
+                placeholder={t('max')}
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 className="border-stone-300"
@@ -258,13 +261,13 @@ export function AdvancedSearchFilters() {
 
           {/* Parking */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-stone-700">Parking Spaces</Label>
+            <Label className="text-sm font-medium text-stone-700">{t('parkingSpaces')}</Label>
             <Select value={parking} onValueChange={setParking}>
               <SelectTrigger className="border-stone-300">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder={t('any')} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="all">{t('any')}</SelectItem>
                 <SelectItem value="1">1+</SelectItem>
                 <SelectItem value="2">2+</SelectItem>
                 <SelectItem value="3">3+</SelectItem>
@@ -274,18 +277,18 @@ export function AdvancedSearchFilters() {
 
           {/* Area Range */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium text-stone-700">Area (m²)</Label>
+            <Label className="text-sm font-medium text-stone-700">{t('areaM2')}</Label>
             <div className="grid grid-cols-2 gap-3">
               <Input
                 type="number"
-                placeholder="Min"
+                placeholder={t('min')}
                 value={minArea}
                 onChange={(e) => setMinArea(e.target.value)}
                 className="border-stone-300"
               />
               <Input
                 type="number"
-                placeholder="Max"
+                placeholder={t('max')}
                 value={maxArea}
                 onChange={(e) => setMaxArea(e.target.value)}
                 className="border-stone-300"
@@ -295,15 +298,15 @@ export function AdvancedSearchFilters() {
 
           {/* Furnished */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-stone-700">Furnished</Label>
+            <Label className="text-sm font-medium text-stone-700">{t('furnished')}</Label>
             <Select value={furnished} onValueChange={setFurnished}>
               <SelectTrigger className="border-stone-300">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder={t('any')} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="all">Any</SelectItem>
-                <SelectItem value="true">Furnished</SelectItem>
-                <SelectItem value="false">Unfurnished</SelectItem>
+                <SelectItem value="all">{t('any')}</SelectItem>
+                <SelectItem value="true">{t('furnished')}</SelectItem>
+                <SelectItem value="false">{t('unfurnished')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -320,7 +323,7 @@ export function AdvancedSearchFilters() {
           className="w-full bg-stone-900 hover:bg-stone-800 text-white"
         >
           <Search className="h-4 w-4 mr-2" />
-          {isPending ? 'Searching...' : 'Apply Filters'}
+          {isPending ? t('searching') : t('applyFilters')}
         </Button>
         <Button
           onClick={handleReset}
@@ -328,7 +331,7 @@ export function AdvancedSearchFilters() {
           className="w-full border-stone-300 text-stone-700 hover:bg-stone-50"
         >
           <X className="h-4 w-4 mr-2" />
-          Reset
+          {t('reset')}
         </Button>
       </div>
     </div>

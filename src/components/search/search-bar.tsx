@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
@@ -10,6 +11,7 @@ import { parseSearchQuery } from '@/lib/search-parser';
 export function SearchBar() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations('search');
 
   const [location, setLocation] = useState('');
 
@@ -44,7 +46,7 @@ export function SearchBar() {
     <div className="flex flex-col md:flex-row gap-3">
       <div className="flex-1">
         <Input
-          placeholder="Try: 'apartment Caracas' or 'casa Valencia'"
+          placeholder={t('placeholder')}
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -59,7 +61,7 @@ export function SearchBar() {
         className="h-14 px-8 bg-amber-600 hover:bg-amber-700 text-base font-semibold"
       >
         <Search className="h-5 w-5 mr-2" />
-        {isPending ? 'Searching...' : 'Search'}
+        {isPending ? t('searching') : t('searchButton')}
       </Button>
     </div>
   );

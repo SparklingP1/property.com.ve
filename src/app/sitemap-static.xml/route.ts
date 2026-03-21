@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 /**
- * Static pages sitemap
+ * Static pages sitemap with hreflang for bilingual support
  * Cached longer since these rarely change
  */
 export const revalidate = 86400; // 24 hours
@@ -10,73 +10,46 @@ export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
 
   const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/search`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/guides`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/find-property`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/list-your-property`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/disclaimer`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/takedown`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
+    { url: '', changeFrequency: 'daily' as const, priority: 1.0 },
+    { url: '/search', changeFrequency: 'daily' as const, priority: 0.9 },
+    { url: '/guides', changeFrequency: 'weekly' as const, priority: 0.9 },
+    { url: '/browse-by-area', changeFrequency: 'weekly' as const, priority: 0.8 },
+    { url: '/find-property', changeFrequency: 'monthly' as const, priority: 0.7 },
+    { url: '/list-your-property', changeFrequency: 'monthly' as const, priority: 0.7 },
+    { url: '/about', changeFrequency: 'monthly' as const, priority: 0.5 },
+    { url: '/disclaimer', changeFrequency: 'yearly' as const, priority: 0.3 },
+    { url: '/takedown', changeFrequency: 'yearly' as const, priority: 0.3 },
   ];
 
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${staticPages
-  .map(
-    (page) => {
-      const lastMod = page.lastModified instanceof Date
-        ? page.lastModified.toISOString()
-        : page.lastModified;
-      return `  <url>
-    <loc>${page.url}</loc>
-    <lastmod>${lastMod}</lastmod>
+  const now = new Date().toISOString();
+
+  const urls = staticPages.flatMap((page) => {
+    const esUrl = `${baseUrl}${page.url}`;
+    const enUrl = `${baseUrl}/en${page.url}`;
+    const hreflang = `
+    <xhtml:link rel="alternate" hreflang="es" href="${esUrl}" />
+    <xhtml:link rel="alternate" hreflang="en" href="${enUrl}" />`;
+
+    return [
+      `  <url>
+    <loc>${esUrl || baseUrl}</loc>
+    <lastmod>${now}</lastmod>
     <changefreq>${page.changeFrequency}</changefreq>
-    <priority>${page.priority}</priority>
-  </url>`;
-    }
-  )
-  .join('\n')}
+    <priority>${page.priority}</priority>${hreflang}
+  </url>`,
+      `  <url>
+    <loc>${enUrl || `${baseUrl}/en`}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${page.changeFrequency}</changefreq>
+    <priority>${page.priority}</priority>${hreflang}
+  </url>`,
+    ];
+  });
+
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urls.join('\n')}
 </urlset>`;
 
   return new Response(sitemap, {

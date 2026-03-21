@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { useTranslations } from 'next-intl';
 import { submitTakedownRequest, type FormState } from '@/actions/leads';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,11 +15,12 @@ const initialState: FormState = {
 
 export function TakedownForm() {
   const [state, formAction, isPending] = useActionState(submitTakedownRequest, initialState);
+  const t = useTranslations('forms');
 
   if (state.success) {
     return (
       <div className="bg-primary-50 text-primary-700 p-6 rounded-lg text-center">
-        <h3 className="font-semibold text-lg mb-2">Request Received</h3>
+        <h3 className="font-semibold text-lg mb-2">{t('requestReceived')}</h3>
         <p>{state.message}</p>
       </div>
     );
@@ -27,12 +29,12 @@ export function TakedownForm() {
   return (
     <form action={formAction} className="space-y-6">
       <div>
-        <Label htmlFor="email">Your Email Address *</Label>
+        <Label htmlFor="email">{t('emailAddress')}</Label>
         <Input
           id="email"
           name="email"
           type="email"
-          placeholder="your@email.com"
+          placeholder={t('emailPlaceholder')}
           required
           className="mt-1"
         />
@@ -42,12 +44,12 @@ export function TakedownForm() {
       </div>
 
       <div>
-        <Label htmlFor="listing_url">Listing URL *</Label>
+        <Label htmlFor="listing_url">{t('takedownListingUrl')}</Label>
         <Input
           id="listing_url"
           name="listing_url"
           type="url"
-          placeholder="https://property.com.ve/listing/..."
+          placeholder={t('takedownUrlPlaceholder')}
           required
           className="mt-1"
         />
@@ -57,11 +59,11 @@ export function TakedownForm() {
       </div>
 
       <div>
-        <Label htmlFor="reason">Reason for Takedown Request</Label>
+        <Label htmlFor="reason">{t('takedownReason')}</Label>
         <Textarea
           id="reason"
           name="reason"
-          placeholder="Please explain why you are requesting this listing be removed..."
+          placeholder={t('takedownReasonPlaceholder')}
           className="mt-1 min-h-[100px]"
         />
       </div>
@@ -71,7 +73,7 @@ export function TakedownForm() {
         disabled={isPending}
         className="w-full bg-primary hover:bg-primary-700"
       >
-        {isPending ? 'Submitting...' : 'Submit Request'}
+        {isPending ? t('submitting') : t('submitRequest')}
       </Button>
 
       {state.message && !state.success && (

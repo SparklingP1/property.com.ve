@@ -17,10 +17,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
     },
     {
-      url: `${baseUrl}/sitemap-listings.xml`,
-      lastModified: new Date(),
-    },
-    {
       url: `${baseUrl}/sitemap-locations.xml`,
       lastModified: new Date(),
     },

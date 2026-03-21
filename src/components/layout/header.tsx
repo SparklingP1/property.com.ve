@@ -1,21 +1,27 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
+import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/navigation';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/search', label: 'Search' },
-  { href: '/guides', label: 'Guides' },
-  { href: '/find-property', label: 'Find Property' },
-  { href: '/list-your-property', label: 'List Property' },
-  { href: '/about', label: 'About' },
-];
-
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const t = useTranslations('nav');
+  const tHeader = useTranslations('header');
+  const locale = useLocale();
+  const pathname = usePathname();
+
+  const navLinks = [
+    { href: '/' as const, label: t('home') },
+    { href: '/search' as const, label: t('search') },
+    { href: '/guides' as const, label: t('guides') },
+    { href: '/find-property' as const, label: t('findProperty') },
+    { href: '/list-your-property' as const, label: t('listProperty') },
+    { href: '/about' as const, label: t('about') },
+  ];
 
   return (
     <header className="bg-white border-b border-border sticky top-0 z-50">
@@ -24,7 +30,7 @@ export function Header() {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">P</span>
           </div>
-          <span className="font-bold text-xl text-foreground">Property.com.ve</span>
+          <span className="font-bold text-xl text-foreground">{tHeader('branding')}</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -38,6 +44,14 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {/* Language Switcher */}
+          <Link
+            href={pathname}
+            locale={locale === 'es' ? 'en' : 'es'}
+            className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors"
+          >
+            {tHeader('langSwitch')}
+          </Link>
         </div>
 
         {/* Mobile Menu Button */}
@@ -65,6 +79,15 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            {/* Mobile Language Switcher */}
+            <Link
+              href={pathname}
+              locale={locale === 'es' ? 'en' : 'es'}
+              className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {tHeader('langSwitch')}
+            </Link>
           </div>
         </div>
       )}

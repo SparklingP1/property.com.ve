@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { useTranslations } from 'next-intl';
 import { submitBuyerLead, type FormState } from '@/actions/leads';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,15 +20,6 @@ const initialState: FormState = {
   message: '',
 };
 
-const propertyTypes = [
-  { value: 'apartment', label: 'Apartment' },
-  { value: 'house', label: 'House' },
-  { value: 'land', label: 'Land' },
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'office', label: 'Office' },
-  { value: 'any', label: 'Any Type' },
-];
-
 const regions = [
   'Caracas',
   'Miranda',
@@ -43,11 +35,22 @@ const regions = [
 
 export function BuyerLeadForm() {
   const [state, formAction, isPending] = useActionState(submitBuyerLead, initialState);
+  const t = useTranslations('forms');
+  const tListing = useTranslations('listing');
+
+  const propertyTypes = [
+    { value: 'apartment', label: tListing('apartment') },
+    { value: 'house', label: tListing('house') },
+    { value: 'land', label: tListing('land') },
+    { value: 'commercial', label: tListing('commercial') },
+    { value: 'office', label: tListing('office') },
+    { value: 'any', label: t('selectPropertyType') },
+  ];
 
   if (state.success) {
     return (
       <div className="bg-primary-50 text-primary-700 p-6 rounded-lg text-center">
-        <h3 className="font-semibold text-lg mb-2">Thank You!</h3>
+        <h3 className="font-semibold text-lg mb-2">{t('thankYou')}</h3>
         <p>{state.message}</p>
       </div>
     );
@@ -56,12 +59,12 @@ export function BuyerLeadForm() {
   return (
     <form action={formAction} className="space-y-6">
       <div>
-        <Label htmlFor="email">Email Address *</Label>
+        <Label htmlFor="email">{t('emailAddress')}</Label>
         <Input
           id="email"
           name="email"
           type="email"
-          placeholder="your@email.com"
+          placeholder={t('emailPlaceholder')}
           required
           className="mt-1"
         />
@@ -72,32 +75,32 @@ export function BuyerLeadForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="budget_min">Minimum Budget (USD)</Label>
+          <Label htmlFor="budget_min">{t('buyerMinBudget')}</Label>
           <Input
             id="budget_min"
             name="budget_min"
             type="number"
-            placeholder="50000"
+            placeholder={t('buyerMinPlaceholder')}
             className="mt-1"
           />
         </div>
         <div>
-          <Label htmlFor="budget_max">Maximum Budget (USD)</Label>
+          <Label htmlFor="budget_max">{t('buyerMaxBudget')}</Label>
           <Input
             id="budget_max"
             name="budget_max"
             type="number"
-            placeholder="200000"
+            placeholder={t('buyerMaxPlaceholder')}
             className="mt-1"
           />
         </div>
       </div>
 
       <div>
-        <Label htmlFor="location_preference">Preferred Location</Label>
+        <Label htmlFor="location_preference">{t('preferredLocation')}</Label>
         <Select name="location_preference">
           <SelectTrigger className="mt-1">
-            <SelectValue placeholder="Select a region" />
+            <SelectValue placeholder={t('selectRegion')} />
           </SelectTrigger>
           <SelectContent>
             {regions.map((region) => (
@@ -110,10 +113,10 @@ export function BuyerLeadForm() {
       </div>
 
       <div>
-        <Label htmlFor="property_type">Property Type</Label>
+        <Label htmlFor="property_type">{t('propertyType')}</Label>
         <Select name="property_type">
           <SelectTrigger className="mt-1">
-            <SelectValue placeholder="Select property type" />
+            <SelectValue placeholder={t('selectPropertyType')} />
           </SelectTrigger>
           <SelectContent>
             {propertyTypes.map((type) => (
@@ -126,11 +129,11 @@ export function BuyerLeadForm() {
       </div>
 
       <div>
-        <Label htmlFor="notes">Additional Notes</Label>
+        <Label htmlFor="notes">{t('additionalNotes')}</Label>
         <Textarea
           id="notes"
           name="notes"
-          placeholder="Tell us more about what you're looking for..."
+          placeholder={t('notesPlaceholder')}
           className="mt-1 min-h-[100px]"
         />
       </div>
@@ -140,7 +143,7 @@ export function BuyerLeadForm() {
         disabled={isPending}
         className="w-full bg-primary hover:bg-primary-700"
       >
-        {isPending ? 'Submitting...' : 'Submit Request'}
+        {isPending ? t('submitting') : t('submitRequest')}
       </Button>
 
       {state.message && !state.success && (

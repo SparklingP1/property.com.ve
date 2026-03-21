@@ -1,9 +1,10 @@
 import { MetadataRoute } from 'next';
 import { createServiceClient } from '@/lib/supabase/server';
+import { slugify } from '@/lib/slug';
 
 /**
- * Location-based search pages sitemap
- * These pages rank well for "apartments in [city]" queries
+ * Location-based aggregate pages sitemap with hreflang
+ * Points to /property/[state] and /property/[state]/[city] pages
  * Regenerated every 6 hours
  */
 export const revalidate = 21600; // 6 hours
@@ -11,7 +12,7 @@ export const revalidate = 21600; // 6 hours
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
 
-  const locationPages: MetadataRoute.Sitemap = [];
+  const paths: string[] = [];
 
   try {
     const supabase = createServiceClient();
@@ -25,15 +26,9 @@ export async function GET() {
 
     const uniqueStates = [...new Set(statesData?.map((s) => s.state) || [])];
 
-    // Add state-level search pages
     uniqueStates.forEach((state) => {
       if (state) {
-        locationPages.push({
-          url: `${baseUrl}/search?state=${encodeURIComponent(state)}`,
-          lastModified: new Date(),
-          changeFrequency: 'daily' as const,
-          priority: 0.8,
-        });
+        paths.push(`/property/${slugify(state)}`);
       }
     });
 
@@ -50,56 +45,46 @@ export async function GET() {
       ),
     ];
 
-    // Add city-level search pages (top cities only to avoid bloat)
     uniqueCities.slice(0, 100).forEach((cityState) => {
       const [city, state] = cityState.split('|');
       if (city && state) {
-        locationPages.push({
-          url: `${baseUrl}/search?state=${encodeURIComponent(state)}&city=${encodeURIComponent(city)}`,
-          lastModified: new Date(),
-          changeFrequency: 'daily' as const,
-          priority: 0.7,
-        });
+        paths.push(`/property/${slugify(state)}/${slugify(city)}`);
       }
-    });
-
-    // Add property type combinations for major states
-    const propertyTypes = ['apartment', 'house', 'land'];
-    const majorStates = uniqueStates.slice(0, 10); // Top 10 states
-
-    majorStates.forEach((state) => {
-      propertyTypes.forEach((type) => {
-        if (state) {
-          locationPages.push({
-            url: `${baseUrl}/search?state=${encodeURIComponent(state)}&property_type=${type}`,
-            lastModified: new Date(),
-            changeFrequency: 'daily' as const,
-            priority: 0.7,
-          });
-        }
-      });
     });
   } catch (error) {
     console.error('Sitemap: Unable to fetch locations from Supabase', error);
   }
 
+  const now = new Date().toISOString();
+
+  const urls = paths.flatMap((path) => {
+    const esUrl = `${baseUrl}${path}`;
+    const enUrl = `${baseUrl}/en${path}`;
+    const priority = path.split('/').length > 3 ? 0.7 : 0.8; // city = 0.7, state = 0.8
+    const hreflang = `
+    <xhtml:link rel="alternate" hreflang="es" href="${esUrl}" />
+    <xhtml:link rel="alternate" hreflang="en" href="${enUrl}" />`;
+
+    return [
+      `  <url>
+    <loc>${esUrl}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>${priority}</priority>${hreflang}
+  </url>`,
+      `  <url>
+    <loc>${enUrl}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>${priority}</priority>${hreflang}
+  </url>`,
+    ];
+  });
+
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${locationPages
-  .map(
-    (page) => {
-      const lastMod = page.lastModified instanceof Date
-        ? page.lastModified.toISOString()
-        : page.lastModified;
-      return `  <url>
-    <loc>${page.url}</loc>
-    <lastmod>${lastMod}</lastmod>
-    <changefreq>${page.changeFrequency}</changefreq>
-    <priority>${page.priority}</priority>
-  </url>`;
-    }
-  )
-  .join('\n')}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urls.join('\n')}
 </urlset>`;
 
   return new Response(sitemap, {

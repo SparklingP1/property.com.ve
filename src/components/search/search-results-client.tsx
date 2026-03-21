@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { ListingCard } from '@/components/listings/listing-card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ export function SearchResultsClient({
   const [listings, setListings] = useState<Listing[]>(initialListings);
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslations('results');
 
   // Reset listings when search params or sort changes
   useEffect(() => {
@@ -125,10 +127,10 @@ export function SearchResultsClient({
       <div className="text-center py-16">
         <div className="bg-stone-100 rounded-2xl p-12 max-w-lg mx-auto">
           <h3 className="text-2xl font-bold text-stone-900 mb-3">
-            No properties found
+            {t('noPropertiesFound')}
           </h3>
           <p className="text-stone-600 mb-6">
-            Try adjusting your filters to see more results.
+            {t('tryAdjusting')}
           </p>
         </div>
       </div>
@@ -147,8 +149,7 @@ export function SearchResultsClient({
       {/* Load More / Count */}
       <div className="text-center py-8 bg-stone-50 rounded-lg">
         <p className="text-stone-600 mb-4">
-          Showing {listings.length} of {totalCount.toLocaleString()}{' '}
-          {totalCount === 1 ? 'property' : 'properties'}
+          {t('showing', { current: listings.length, total: totalCount.toLocaleString() })}
         </p>
 
         {hasMore && (
@@ -160,10 +161,10 @@ export function SearchResultsClient({
             {isLoading || isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Loading...
+                {t('loading')}
               </>
             ) : (
-              'Load More Properties'
+              t('loadMore')
             )}
           </Button>
         )}

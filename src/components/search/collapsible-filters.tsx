@@ -2,6 +2,7 @@
 
 import { ReactNode, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { AdvancedSearchFilters } from './advanced-search-filters';
 import { Button } from '@/components/ui/button';
 import { SlidersHorizontal, X } from 'lucide-react';
@@ -14,6 +15,7 @@ interface CollapsibleFiltersProps {
 export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
   const [filtersOpen, setFiltersOpen] = useState(true); // Open by default
   const searchParams = useSearchParams();
+  const t = useTranslations('search');
 
   // Close filters on mobile by default
   useEffect(() => {
@@ -60,12 +62,12 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
           {filtersOpen ? (
             <>
               <X className="h-4 w-4 mr-2" />
-              Hide Filters
+              {t('hideFilters')}
             </>
           ) : (
             <>
               <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Show Filters
+              {t('showFilters')}
               {filterCount > 0 && (
                 <Badge className="ml-2 bg-amber-600 hover:bg-amber-600 text-white">
                   {filterCount}
@@ -76,7 +78,7 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
         </Button>
         {filterCount > 0 && !filtersOpen && (
           <span className="text-sm text-stone-600">
-            {filterCount} {filterCount === 1 ? 'filter' : 'filters'} active
+            {t('filtersActive', { count: filterCount })}
           </span>
         )}
       </div>
@@ -88,11 +90,11 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-stone-900">
-                  Refine Your Search
+                  {t('refineSearch')}
                 </h2>
                 {filterCount > 0 && (
                   <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                    {filterCount} active
+                    {t('filtersActive', { count: filterCount })}
                   </Badge>
                 )}
               </div>

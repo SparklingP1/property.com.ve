@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { subscribeToNewsletter } from '@/actions/newsletter';
@@ -9,6 +10,7 @@ export function EmailSignupForm() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const t = useTranslations('forms');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +40,7 @@ export function EmailSignupForm() {
     <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
       <Input
         type="email"
-        placeholder="Enter your email"
+        placeholder={t('emailSignupPlaceholder')}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -50,7 +52,7 @@ export function EmailSignupForm() {
         disabled={status === 'loading'}
         className="h-11 bg-primary hover:bg-primary-700"
       >
-        {status === 'loading' ? 'Subscribing...' : 'Get Updates'}
+        {status === 'loading' ? t('subscribing') : t('getUpdates')}
       </Button>
       {status === 'error' && (
         <p className="text-red-500 text-sm mt-2">{message}</p>

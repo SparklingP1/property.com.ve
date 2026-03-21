@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { SearchResultsClient } from './search-results-client';
 import { SortSelect } from './sort-select';
@@ -12,6 +13,7 @@ const RESULTS_PER_PAGE = 24;
 
 export async function SearchResults({ searchParams }: SearchResultsProps) {
   const supabase = await createClient();
+  const t = await getTranslations('results');
 
   // Get sort parameter (default: newest first)
   const sortBy = searchParams.sort || 'scraped_at-desc';
@@ -113,13 +115,17 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
 
   const typedListings = (listings as Listing[]) || [];
 
+  const resultCount = count || 0;
+  const headerText = resultCount === 1
+    ? t('onePropertyFound')
+    : t('propertiesFound', { count: resultCount.toLocaleString() });
+
   return (
     <div>
       {/* Results Header */}
       <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-bold text-stone-900">
-          {count?.toLocaleString() || 0} {count === 1 ? 'Property' : 'Properties'}{' '}
-          Found
+          {headerText}
         </h2>
         <SortSelect currentSort={sortBy} />
       </div>

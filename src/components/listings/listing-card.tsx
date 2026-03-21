@@ -1,8 +1,12 @@
+'use client';
+
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bed, Bath, Maximize, Car, MapPin } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import type { Listing } from '@/types/listing';
 import { getListingUrl } from '@/lib/slug';
 
@@ -11,8 +15,11 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
+  const t = useTranslations('listing');
+  const locale = useLocale();
+
   const formatPrice = (price: number | null, currency: string) => {
-    if (!price) return 'Price on request';
+    if (!price) return t('priceOnRequest');
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
@@ -21,18 +28,18 @@ export function ListingCard({ listing }: ListingCardProps) {
   };
 
   const propertyTypeLabels: Record<string, string> = {
-    apartment: 'Apartment',
-    house: 'House',
-    land: 'Land',
-    commercial: 'Commercial',
-    office: 'Office',
+    apartment: t('apartment'),
+    house: t('house'),
+    land: t('land'),
+    commercial: t('commercial'),
+    office: t('office'),
   };
 
   // Use thumbnail_url if available, otherwise use first image from image_urls array
   const imageUrl = listing.thumbnail_url || (listing.image_urls && listing.image_urls.length > 0 ? listing.image_urls[0] : null);
 
-  // Use English translations with fallback to Spanish/original
-  const displayTitle = listing.title_en || listing.title;
+  // Use locale-appropriate title
+  const displayTitle = locale === 'en' ? (listing.title_en || listing.title) : listing.title;
 
   // Get SEO-friendly URL
   const listingUrl = getListingUrl(listing);
@@ -55,7 +62,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-muted-foreground text-sm">No image</span>
+              <span className="text-muted-foreground text-sm">{t('noImage')}</span>
             </div>
           )}
           {listing.property_type && (

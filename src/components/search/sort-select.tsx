@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ export function SortSelect({ currentSort }: SortSelectProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
+  const t = useTranslations('search');
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -30,17 +32,17 @@ export function SortSelect({ currentSort }: SortSelectProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-stone-600">Sort by:</span>
+      <span className="text-sm text-stone-600">{t('sortBy')}</span>
       <Select value={currentSort} onValueChange={handleSortChange}>
         <SelectTrigger className="w-[180px] border-stone-300">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="bg-white z-50">
-          <SelectItem value="scraped_at-desc">Newest First</SelectItem>
-          <SelectItem value="price-asc">Price: Low to High</SelectItem>
-          <SelectItem value="price-desc">Price: High to Low</SelectItem>
-          <SelectItem value="bedrooms-desc">Most Bedrooms</SelectItem>
-          <SelectItem value="area_sqm-desc">Largest Area</SelectItem>
+          <SelectItem value="scraped_at-desc">{t('newestFirst')}</SelectItem>
+          <SelectItem value="price-asc">{t('priceLowToHigh')}</SelectItem>
+          <SelectItem value="price-desc">{t('priceHighToLow')}</SelectItem>
+          <SelectItem value="bedrooms-desc">{t('mostBedrooms')}</SelectItem>
+          <SelectItem value="area_sqm-desc">{t('largestArea')}</SelectItem>
         </SelectContent>
       </Select>
     </div>

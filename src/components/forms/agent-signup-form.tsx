@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { useTranslations } from 'next-intl';
 import { submitAgentSignup, type FormState } from '@/actions/leads';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,11 +15,12 @@ const initialState: FormState = {
 
 export function AgentSignupForm() {
   const [state, formAction, isPending] = useActionState(submitAgentSignup, initialState);
+  const t = useTranslations('forms');
 
   if (state.success) {
     return (
       <div className="bg-primary-50 text-primary-700 p-6 rounded-lg text-center">
-        <h3 className="font-semibold text-lg mb-2">Thank You!</h3>
+        <h3 className="font-semibold text-lg mb-2">{t('thankYou')}</h3>
         <p>{state.message}</p>
       </div>
     );
@@ -27,12 +29,12 @@ export function AgentSignupForm() {
   return (
     <form action={formAction} className="space-y-6">
       <div>
-        <Label htmlFor="name">Full Name *</Label>
+        <Label htmlFor="name">{t('fullName')}</Label>
         <Input
           id="name"
           name="name"
           type="text"
-          placeholder="Juan Garcia"
+          placeholder={t('namePlaceholder')}
           required
           className="mt-1"
         />
@@ -42,12 +44,12 @@ export function AgentSignupForm() {
       </div>
 
       <div>
-        <Label htmlFor="email">Email Address *</Label>
+        <Label htmlFor="email">{t('emailAddress')}</Label>
         <Input
           id="email"
           name="email"
           type="email"
-          placeholder="your@email.com"
+          placeholder={t('emailPlaceholder')}
           required
           className="mt-1"
         />
@@ -57,33 +59,33 @@ export function AgentSignupForm() {
       </div>
 
       <div>
-        <Label htmlFor="phone">Phone Number</Label>
+        <Label htmlFor="phone">{t('phoneNumber')}</Label>
         <Input
           id="phone"
           name="phone"
           type="tel"
-          placeholder="+58 412 123 4567"
+          placeholder={t('phonePlaceholder')}
           className="mt-1"
         />
       </div>
 
       <div>
-        <Label htmlFor="agency">Agency / Company Name</Label>
+        <Label htmlFor="agency">{t('agency')}</Label>
         <Input
           id="agency"
           name="agency"
           type="text"
-          placeholder="Your Real Estate Agency"
+          placeholder={t('agencyPlaceholder')}
           className="mt-1"
         />
       </div>
 
       <div>
-        <Label htmlFor="message">Message</Label>
+        <Label htmlFor="message">{t('message')}</Label>
         <Textarea
           id="message"
           name="message"
-          placeholder="Tell us about your listings and how we can work together..."
+          placeholder={t('messagePlaceholder')}
           className="mt-1 min-h-[100px]"
         />
       </div>
@@ -93,7 +95,7 @@ export function AgentSignupForm() {
         disabled={isPending}
         className="w-full bg-primary hover:bg-primary-700"
       >
-        {isPending ? 'Submitting...' : 'Submit Application'}
+        {isPending ? t('submitting') : t('submitApplication')}
       </Button>
 
       {state.message && !state.success && (
