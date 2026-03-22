@@ -62,7 +62,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+              className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:rounded-sm"
             >
               {link.label}
             </Link>
@@ -73,7 +73,7 @@ export function Header() {
             locale={locale === 'es' ? 'en' : 'es'}
             className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
           >
-            <Globe className="h-3.5 w-3.5" />
+            <Globe className="h-3.5 w-3.5" aria-hidden="true" />
             {tHeader('langSwitch')}
           </Link>
         </div>
@@ -87,7 +87,7 @@ export function Header() {
           aria-expanded={mobileMenuOpen}
           aria-label={mobileMenuOpen ? t('closeMenu') : t('openMenu')}
         >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </Button>
       </nav>
 
@@ -112,7 +112,7 @@ export function Header() {
               className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
               onClick={() => setMobileMenuOpen(false)}
             >
-              <Globe className="h-3.5 w-3.5" />
+              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
               {tHeader('langSwitch')}
             </Link>
           </div>

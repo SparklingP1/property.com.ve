@@ -67,7 +67,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
                   {t('heroTagline')}
                 </div>
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-balance">
                 {t('heroHeadline').split(' ').slice(0, 2).join(' ')}<br />
                 {t('heroHeadline').split(' ').slice(2, 3).join(' ')}<br />
                 <span className="text-amber-100">{t('heroHeadline').split(' ').slice(3).join(' ') || 'Property'}</span>
