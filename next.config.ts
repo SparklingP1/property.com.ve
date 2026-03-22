@@ -48,6 +48,9 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 86400, // Cache images for 24 hours
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   compress: true,
   poweredByHeader: false,
 };

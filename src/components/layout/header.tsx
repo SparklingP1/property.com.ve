@@ -14,28 +14,19 @@ export function Header() {
   const locale = useLocale();
   const pathname = usePathname();
 
-  // Close mobile menu on Escape key
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
   useEffect(() => {
-    if (!mobileMenuOpen) return;
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    if (!mobileMenuOpen) return () => { document.body.style.overflow = ''; };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeMobileMenu();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mobileMenuOpen, closeMobileMenu]);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
     return () => {
       document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, closeMobileMenu]);
 
   const navLinks = [
     { href: '/' as const, label: t('home') },

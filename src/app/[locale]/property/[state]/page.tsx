@@ -46,26 +46,26 @@ export default async function StatePage({ params }: StatePageProps) {
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
-  // Get all active listings in this state
-  const { data: listings } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('active', true)
-    .ilike('state', stateSlug.replace(/-/g, ' '))
-    .order('last_seen_at', { ascending: false })
-    .limit(50);
+  // Get all active listings and unique cities in this state in parallel
+  const [{ data: listings }, { data: citiesData }] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('*')
+      .eq('active', true)
+      .ilike('state', stateSlug.replace(/-/g, ' '))
+      .order('last_seen_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('listings')
+      .select('city, state')
+      .eq('active', true)
+      .ilike('state', stateSlug.replace(/-/g, ' '))
+      .not('city', 'is', null),
+  ]);
 
   if (!listings || listings.length === 0) {
     notFound();
   }
-
-  // Get unique cities in this state
-  const { data: citiesData } = await supabase
-    .from('listings')
-    .select('city, state')
-    .eq('active', true)
-    .ilike('state', stateSlug.replace(/-/g, ' '))
-    .not('city', 'is', null);
 
   const cities = [...new Set(citiesData?.map(c => c.city).filter(Boolean) || [])];
 

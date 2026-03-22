@@ -27,24 +27,20 @@ export async function generateMetadata({
     };
   }
 
-  // Try to fetch pre-generated SEO content (try both English slug and Spanish slug)
-  let seoContent = null;
-  const { data: byEnSlug } = await supabase
-    .from('seo_page_content')
-    .select('*')
-    .eq('page_slug', `/${slug}`)
-    .single();
-  seoContent = byEnSlug;
-
-  // If not found by English slug, try Spanish slug column
-  if (!seoContent) {
-    const { data: byEsSlug } = await supabase
+  // Try to fetch pre-generated SEO content (try both English slug and Spanish slug in parallel)
+  const [{ data: byEnSlug }, { data: byEsSlug }] = await Promise.all([
+    supabase
+      .from('seo_page_content')
+      .select('*')
+      .eq('page_slug', `/${slug}`)
+      .single(),
+    supabase
       .from('seo_page_content')
       .select('*')
       .eq('page_slug_es', `/${slug}`)
-      .single();
-    seoContent = byEsSlug;
-  }
+      .single(),
+  ]);
+  const seoContent = byEnSlug || byEsSlug;
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
   // Use the English slug for canonical (consistent canonical across locales)
@@ -109,23 +105,20 @@ export default async function SEOPage({ params }: SEOPageProps) {
 
   const { filters } = parsed;
 
-  // Fetch pre-generated SEO content (try English slug, then Spanish slug)
-  let seoContent = null;
-  const { data: byEnSlug } = await supabase
-    .from('seo_page_content')
-    .select('*')
-    .eq('page_slug', `/${slug}`)
-    .single();
-  seoContent = byEnSlug;
-
-  if (!seoContent) {
-    const { data: byEsSlug } = await supabase
+  // Fetch pre-generated SEO content (try English slug and Spanish slug in parallel)
+  const [{ data: byEnSlug2 }, { data: byEsSlug2 }] = await Promise.all([
+    supabase
+      .from('seo_page_content')
+      .select('*')
+      .eq('page_slug', `/${slug}`)
+      .single(),
+    supabase
       .from('seo_page_content')
       .select('*')
       .eq('page_slug_es', `/${slug}`)
-      .single();
-    seoContent = byEsSlug;
-  }
+      .single(),
+  ]);
+  const seoContent = byEnSlug2 || byEsSlug2;
 
   // If no SEO content exists, this page shouldn't exist
   if (!seoContent) {

@@ -68,20 +68,19 @@ export default async function CityPage({ params }: CityPageProps) {
   const stateName = listings[0].state || stateSlug.replace(/-/g, ' ');
   const totalListings = listings.length;
 
-  const avgPrice = listings
-    .filter(l => l.price)
-    .reduce((sum, l) => sum + (l.price || 0), 0) / listings.filter(l => l.price).length;
-
-  const propertyTypes = listings.reduce((acc, l) => {
-    if (l.property_type) {
-      acc[l.property_type] = (acc[l.property_type] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  const bedroomOptions = [...new Set(listings.map(l => l.bedrooms).filter(Boolean))].sort((a, b) => (a || 0) - (b || 0));
-
-  const neighborhoods = [...new Set(listings.map(l => l.neighborhood).filter(Boolean))];
+  let priceSum = 0, priceCount = 0;
+  const propertyTypes: Record<string, number> = {};
+  const bedroomSet = new Set<number>();
+  const neighborhoodSet = new Set<string>();
+  for (const l of listings) {
+    if (l.price) { priceSum += l.price; priceCount++; }
+    if (l.property_type) { propertyTypes[l.property_type] = (propertyTypes[l.property_type] || 0) + 1; }
+    if (l.bedrooms) bedroomSet.add(l.bedrooms);
+    if (l.neighborhood) neighborhoodSet.add(l.neighborhood);
+  }
+  const avgPrice = priceCount > 0 ? priceSum / priceCount : 0;
+  const bedroomOptions = [...bedroomSet].sort((a, b) => a - b);
+  const neighborhoods = [...neighborhoodSet];
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
