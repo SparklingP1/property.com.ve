@@ -3510,6 +3510,7 @@ With proper guidance and compliance, Venezuelan real estate taxation presents mi
 
 // ─── New Guides (March 2026 — GSC-driven content expansion) ────────────────
 import { newGuides } from "./new-guides";
+import { guidesEs } from './guides-es';
 
 const allGuides: Guide[] = [...guides, ...newGuides];
 
@@ -3520,8 +3521,6 @@ export function getGuideBySlug(slug: string): Guide | undefined {
 export function getAllGuides(): Guide[] {
   return allGuides;
 }
-
-import { guidesEs } from './guides-es';
 
 export function getGuides(locale: string): Guide[] {
   return locale === 'es' ? guidesEs : guides;

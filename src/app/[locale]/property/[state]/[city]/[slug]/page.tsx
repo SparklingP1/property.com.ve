@@ -39,17 +39,24 @@ export async function generateMetadata({
     : (listing.description_short_en || listing.description_short || `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.city || listing.location || 'Venezuela'}`);
 
   // Generate canonical URL
-  const canonicalUrl = `${process.env.NEXT_PUBLIC_SITE_URL}${getListingUrl(listing)}`;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+  const listingPath = getListingUrl(listing);
+  const canonicalUrl = `${baseUrl}${listingPath}`;
 
   return {
     title,
     description,
     robots: {
-      index: false,
+      // Index active listings; noindex inactive ones (sold/removed = soft 404 risk)
+      index: listing.active !== false,
       follow: true,
     },
     alternates: {
       canonical: canonicalUrl,
+      languages: {
+        es: `${baseUrl}${listingPath}`,
+        en: `${baseUrl}/en${listingPath}`,
+      },
     },
     openGraph: {
       title,

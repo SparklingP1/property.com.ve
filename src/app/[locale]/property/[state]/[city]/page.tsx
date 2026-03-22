@@ -19,12 +19,21 @@ export async function generateMetadata({
   const cityName = city.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const stateName = state.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const t = await getTranslations({ locale, namespace: 'aggregate' });
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+  const path = `/property/${state}/${city}`;
 
   const location = `${cityName}, ${stateName}`;
 
   return {
     title: `${t('realEstateIn', { location })} | Property.com.ve`,
     description: `Find apartments, houses, and properties for sale in ${location}. Browse detailed listings with photos, prices, and amenities.`,
+    alternates: {
+      canonical: `${baseUrl}${path}`,
+      languages: {
+        es: `${baseUrl}${path}`,
+        en: `${baseUrl}/en${path}`,
+      },
+    },
     openGraph: {
       title: t('realEstateIn', { location }),
       description: `Find apartments, houses, and properties for sale in ${cityName}.`,

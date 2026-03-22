@@ -18,10 +18,19 @@ export async function generateMetadata({
   const { locale, state } = await params;
   const stateName = state.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const t = await getTranslations({ locale, namespace: 'aggregate' });
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+  const path = `/property/${state}`;
 
   return {
     title: `${t('realEstateIn', { location: stateName })}, Venezuela | Property.com.ve`,
     description: `Browse apartments, houses, and properties for sale in ${stateName}. Find your perfect property with detailed listings, photos, and pricing.`,
+    alternates: {
+      canonical: `${baseUrl}${path}`,
+      languages: {
+        es: `${baseUrl}${path}`,
+        en: `${baseUrl}/en${path}`,
+      },
+    },
     openGraph: {
       title: `${t('realEstateIn', { location: stateName })}, Venezuela`,
       description: `Browse apartments, houses, and properties for sale in ${stateName}.`,

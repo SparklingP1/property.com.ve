@@ -45,7 +45,7 @@ export async function GET() {
       ),
     ];
 
-    uniqueCities.slice(0, 100).forEach((cityState) => {
+    uniqueCities.forEach((cityState) => {
       const [city, state] = cityState.split('|');
       if (city && state) {
         paths.push(`/property/${slugify(state)}/${slugify(city)}`);

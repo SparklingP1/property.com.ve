@@ -46,6 +46,17 @@ export async function generateMetadata({
     seoContent = byEsSlug;
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+  // Use the English slug for canonical (consistent canonical across locales)
+  const canonicalSlug = seoContent?.page_slug || `/${slug}`;
+  const alternates = {
+    canonical: `${baseUrl}${canonicalSlug}`,
+    languages: {
+      es: `${baseUrl}${canonicalSlug}`,
+      en: `${baseUrl}/en${canonicalSlug}`,
+    },
+  };
+
   if (seoContent) {
     // Use locale-appropriate content if available
     const metaTitle = (locale === 'es' && seoContent.meta_title_es) ? seoContent.meta_title_es : seoContent.meta_title;
@@ -54,6 +65,7 @@ export async function generateMetadata({
       title: metaTitle,
       description: metaDesc,
       keywords: ((locale === 'es' && seoContent.keywords_es) ? seoContent.keywords_es : seoContent.keywords)?.join(', '),
+      alternates,
       openGraph: {
         title: metaTitle,
         description: metaDesc,
@@ -70,6 +82,7 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates,
     openGraph: {
       title: getPageTitleForLocale(parsed.filters, locale),
       description,

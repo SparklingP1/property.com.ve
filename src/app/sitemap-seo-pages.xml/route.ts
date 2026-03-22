@@ -16,9 +16,11 @@ export async function GET() {
   try {
     const supabase = createServiceClient();
 
+    // Only include pages with actual listings (avoids soft 404s for empty pages)
     const { data: pages, error } = await supabase
       .from('seo_page_content')
       .select('page_slug, updated_at, listing_count')
+      .gt('listing_count', 0)
       .order('listing_count', { ascending: false });
 
     if (error) {
