@@ -39,6 +39,19 @@ const LISTING_EN_TO_ES: Record<string, string> = {
 };
 
 /**
+ * Spanish keywords that identify a Spanish SEO slug at /en/ paths.
+ */
+const SPANISH_SEO_KEYWORDS = [
+  'apartamentos', 'casas', 'terrenos', 'comercial', 'oficinas', 'habitaciones',
+];
+const SPANISH_STATE_SUFFIX = '-estado';
+
+/**
+ * Spanish listing slug markers
+ */
+const SPANISH_LISTING_MARKERS = ['-hab-', 'en-venta', 'en-alquiler'];
+
+/**
  * Guide slug mapping (English → Spanish)
  */
 const GUIDE_EN_TO_ES: Record<string, string> = {
@@ -59,6 +72,13 @@ const GUIDE_EN_TO_ES: Record<string, string> = {
 };
 
 /**
+ * Reverse guide slug mapping (Spanish → English)
+ */
+const GUIDE_ES_TO_EN: Record<string, string> = Object.fromEntries(
+  Object.entries(GUIDE_EN_TO_ES).map(([en, es]) => [es, en])
+);
+
+/**
  * Check if a root path contains English SEO keywords
  */
 function isEnglishSEOSlug(pathname: string): boolean {
@@ -66,6 +86,23 @@ function isEnglishSEOSlug(pathname: string): boolean {
   const parts = slug.split('-');
   return parts.some(part => ENGLISH_SEO_KEYWORDS.includes(part)) ||
     pathname.endsWith(ENGLISH_STATE_SUFFIX);
+}
+
+/**
+ * Check if a path contains Spanish SEO keywords (wrong locale at /en/)
+ */
+function isSpanishSEOSlug(pathname: string): boolean {
+  const slug = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+  const parts = slug.split('-');
+  return parts.some(part => SPANISH_SEO_KEYWORDS.includes(part)) ||
+    pathname.endsWith(SPANISH_STATE_SUFFIX);
+}
+
+/**
+ * Check if a listing slug contains Spanish markers
+ */
+function isSpanishListingSlug(slug: string): boolean {
+  return SPANISH_LISTING_MARKERS.some(marker => slug.includes(marker));
 }
 
 /**
@@ -109,8 +146,41 @@ const intlMiddleware = createMiddleware(routing);
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip /en/ paths — English paths keep English slugs
-  if (pathname.startsWith('/en/') || pathname === '/en') {
+  // For /en/ paths: redirect Spanish slugs back to root (Spanish locale)
+  if (pathname.startsWith('/en/')) {
+    const enPath = pathname.slice(3); // strip /en
+
+    // Spanish SEO slug at /en/ → redirect to root
+    if (isSpanishSEOSlug(enPath)) {
+      const url = request.nextUrl.clone();
+      url.pathname = enPath;
+      return NextResponse.redirect(url, 301);
+    }
+
+    // Spanish listing slug at /en/ → redirect to root
+    if (enPath.startsWith('/property/')) {
+      const parts = enPath.split('/');
+      if (parts.length >= 5 && isSpanishListingSlug(parts[4])) {
+        const url = request.nextUrl.clone();
+        url.pathname = enPath;
+        return NextResponse.redirect(url, 301);
+      }
+    }
+
+    // Spanish guide slug at /en/ → redirect to root
+    if (enPath.startsWith('/guides/')) {
+      const guideSlug = enPath.replace('/guides/', '');
+      if (GUIDE_ES_TO_EN[guideSlug]) {
+        const url = request.nextUrl.clone();
+        url.pathname = enPath;
+        return NextResponse.redirect(url, 301);
+      }
+    }
+
+    return intlMiddleware(request);
+  }
+
+  if (pathname === '/en') {
     return intlMiddleware(request);
   }
 

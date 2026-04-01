@@ -174,12 +174,12 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
     );
   }
 
-  // Fetch related listings for active properties
+  // Fetch related listings for active properties (exclude current by ID, not slug)
   const { data: relatedListings } = await supabase
     .from('listings')
     .select('*')
     .eq('active', true)
-    .neq('url_slug', slug)
+    .neq('id', listing.id)
     .eq('region', listing.region)
     .limit(3);
 

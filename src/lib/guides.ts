@@ -3524,6 +3524,7 @@ import { newGuides } from "./new-guides";
 import { guidesEs } from './guides-es';
 
 const allGuides: Guide[] = [...guides, ...newGuides];
+const allGuidesEs: Guide[] = [...guidesEs, ...newGuides];
 
 export function getGuideBySlug(slug: string): Guide | undefined {
   return allGuides.find((guide) => guide.slug === slug || guide.slug_es === slug);
@@ -3534,7 +3535,9 @@ export function getAllGuides(): Guide[] {
 }
 
 export function getGuides(locale: string): Guide[] {
-  return locale === 'es' ? guidesEs : guides;
+  // Note: newGuides only have English content — they fall back to English
+  // for the Spanish locale until Spanish translations are added
+  return locale === 'es' ? allGuidesEs : allGuides;
 }
 
 /**
