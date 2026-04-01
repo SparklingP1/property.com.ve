@@ -1,21 +1,40 @@
 'use client';
 
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { AdvancedSearchFilters } from './advanced-search-filters';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { SlidersHorizontal, X } from 'lucide-react';
+
+// Human-readable labels for active filter chips
+const FILTER_LABELS: Record<string, Record<string, string>> = {
+  type: {
+    apartment: 'Apartment',
+    house: 'House',
+    land: 'Land',
+    commercial: 'Commercial',
+    office: 'Office',
+  },
+  furnished: {
+    true: 'Furnished',
+    false: 'Unfurnished',
+  },
+};
 
 interface CollapsibleFiltersProps {
   children: ReactNode;
 }
 
 export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
-  const [filtersOpen, setFiltersOpen] = useState(true); // Open by default
+  const [filtersOpen, setFiltersOpen] = useState(true);
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
   const t = useTranslations('search');
+  const tListing = useTranslations('listing');
 
   // Close filters on mobile by default
   useEffect(() => {
@@ -23,37 +42,52 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
     setFiltersOpen(!isMobile);
   }, []);
 
-  // Auto-close filters when search params change (after applying filters)
-  useEffect(() => {
-    // Close filters after user applies filters (on both mobile and desktop)
-    // This allows them to see the results immediately
-    const hasFilters = searchParams.toString().length > 0;
-    if (hasFilters) {
-      setFiltersOpen(false);
+  // Build active filters list
+  const activeFilters: { key: string; label: string; value: string }[] = [];
+  const paramConfig: { key: string; labelFn: (v: string) => string }[] = [
+    { key: 'q', labelFn: (v) => `"${v}"` },
+    { key: 'type', labelFn: (v) => tListing(v as 'apartment' | 'house' | 'land' | 'commercial' | 'office') || FILTER_LABELS.type[v] || v },
+    { key: 'state', labelFn: (v) => v },
+    { key: 'city', labelFn: (v) => v },
+    { key: 'bedrooms', labelFn: (v) => `${v}+ ${t('bedrooms')}` },
+    { key: 'bathrooms', labelFn: (v) => `${v}+ ${t('bathrooms')}` },
+    { key: 'minPrice', labelFn: (v) => `$${Number(v).toLocaleString()}+` },
+    { key: 'maxPrice', labelFn: (v) => `≤ $${Number(v).toLocaleString()}` },
+    { key: 'parking', labelFn: (v) => `${v}+ ${t('parkingSpaces')}` },
+    { key: 'minArea', labelFn: (v) => `${v}+ m²` },
+    { key: 'maxArea', labelFn: (v) => `≤ ${v} m²` },
+    { key: 'furnished', labelFn: (v) => v === 'true' ? t('furnished') : t('unfurnished') },
+  ];
+
+  for (const { key, labelFn } of paramConfig) {
+    const value = searchParams.get(key);
+    if (value && value !== 'all') {
+      activeFilters.push({ key, label: labelFn(value), value });
     }
-  }, [searchParams]);
+  }
 
-  // Count active filters
-  const activeFilterCount = () => {
-    let count = 0;
-    const params = ['q', 'type', 'city', 'state', 'minPrice', 'maxPrice', 'bedrooms', 'bathrooms', 'parking', 'furnished', 'minArea', 'maxArea'];
-
-    params.forEach(param => {
-      const value = searchParams.get(param);
-      if (value && value !== 'all' && value !== '') {
-        count++;
-      }
+  const removeFilter = (key: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(key);
+    // If removing state, also remove city
+    if (key === 'state') {
+      params.delete('city');
+    }
+    startTransition(() => {
+      router.push(`/search?${params.toString()}`);
     });
-
-    return count;
   };
 
-  const filterCount = activeFilterCount();
+  const clearAllFilters = () => {
+    startTransition(() => {
+      router.push('/search');
+    });
+  };
 
   return (
     <>
-      {/* Filter Toggle Button - Mobile & Desktop */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Filter Toggle Button */}
+      <div className="mb-4 flex items-center justify-between">
         <Button
           onClick={() => setFiltersOpen(!filtersOpen)}
           variant="outline"
@@ -68,35 +102,55 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
             <>
               <SlidersHorizontal className="h-4 w-4 mr-2" />
               {t('showFilters')}
-              {filterCount > 0 && (
+              {activeFilters.length > 0 && (
                 <Badge className="ml-2 bg-amber-600 hover:bg-amber-600 text-white">
-                  {filterCount}
+                  {activeFilters.length}
                 </Badge>
               )}
             </>
           )}
         </Button>
-        {filterCount > 0 && !filtersOpen && (
-          <span className="text-sm text-stone-600">
-            {t('filtersActive', { count: filterCount })}
-          </span>
-        )}
       </div>
 
-      <div className="grid lg:grid-cols-[480px,1fr] gap-8">
-        {/* Filters Sidebar - Collapsible */}
+      {/* Active Filter Chips */}
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {activeFilters.map(({ key, label }) => (
+            <Badge
+              key={key}
+              variant="secondary"
+              className="bg-stone-100 text-stone-700 border border-stone-200 pl-2.5 pr-1 py-1 text-sm flex items-center gap-1"
+            >
+              {label}
+              <button
+                onClick={() => removeFilter(key)}
+                className="ml-1 p-0.5 rounded-full hover:bg-stone-300 transition-colors"
+                aria-label={`Remove ${label} filter`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          {activeFilters.length > 1 && (
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-stone-500 hover:text-stone-700 underline underline-offset-2"
+            >
+              {t('clearAll')}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-[320px,1fr] gap-8">
+        {/* Filters Sidebar */}
         {filtersOpen && (
           <aside className="lg:sticky lg:top-8 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto z-10">
-            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-5">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-stone-900">
                   {t('refineSearch')}
                 </h2>
-                {filterCount > 0 && (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                    {t('filtersActive', { count: filterCount })}
-                  </Badge>
-                )}
               </div>
               <AdvancedSearchFilters />
             </div>
