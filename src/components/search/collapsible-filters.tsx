@@ -29,18 +29,12 @@ interface CollapsibleFiltersProps {
 }
 
 export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const [, startTransition] = useTransition();
   const t = useTranslations('search');
   const tListing = useTranslations('listing');
-
-  // Close filters on mobile by default
-  useEffect(() => {
-    const isMobile = window.innerWidth < 1024;
-    setFiltersOpen(!isMobile);
-  }, []);
 
   // Build active filters list
   const activeFilters: { key: string; label: string; value: string }[] = [];
