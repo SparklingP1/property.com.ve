@@ -10,7 +10,9 @@ interface BrowseByAreaPageProps {
 
 interface SEOPage {
   page_slug: string;
+  page_slug_es: string;
   h1: string;
+  h1_es: string;
   listing_count: number;
   filters: {
     city?: string;
@@ -34,15 +36,15 @@ export async function generateMetadata({
 }
 
 export default async function BrowseByAreaPage({ params }: BrowseByAreaPageProps) {
-  await params;
+  const { locale } = await params;
   const t = await getTranslations('browseByArea');
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
-  // Fetch all SEO pages
+  // Fetch all SEO pages with both locale slugs
   const { data: pages } = await supabase
     .from('seo_page_content')
-    .select('page_slug, h1, listing_count, filters')
+    .select('page_slug, page_slug_es, h1, h1_es, listing_count, filters')
     .order('listing_count', { ascending: false });
 
   if (!pages || pages.length === 0) {
@@ -188,14 +190,17 @@ export default async function BrowseByAreaPage({ params }: BrowseByAreaPageProps
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {statePages.map((page: SEOPage) => (
+                {statePages.map((page: SEOPage) => {
+                  const slug = (locale === 'es' && page.page_slug_es) ? page.page_slug_es : page.page_slug;
+                  const heading = (locale === 'es' && page.h1_es) ? page.h1_es : page.h1;
+                  return (
                   <Link
                     key={page.page_slug}
-                    href={page.page_slug}
+                    href={slug}
                     className="bg-white rounded-lg shadow-sm border border-stone-200 p-5 hover:shadow-md hover:border-primary transition-all group"
                   >
                     <h3 className="font-semibold text-stone-900 group-hover:text-primary transition-colors mb-2">
-                      {page.h1}
+                      {heading}
                     </h3>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-stone-600">
@@ -206,7 +211,8 @@ export default async function BrowseByAreaPage({ params }: BrowseByAreaPageProps
                       </span>
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             </section>
           );

@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { guides, getGuideBySlug, getGuides } from '@/lib/guides';
+import { guides, getGuideBySlug, getGuides, getAllGuides } from '@/lib/guides';
 import React from 'react';
 
 interface GuidePageProps {
@@ -13,9 +13,16 @@ interface GuidePageProps {
 }
 
 export async function generateStaticParams() {
-  return guides.map((guide) => ({
-    slug: guide.slug,
-  }));
+  const all = getAllGuides();
+  // Generate params for both English and Spanish slugs
+  const params: { slug: string }[] = [];
+  for (const guide of all) {
+    params.push({ slug: guide.slug });
+    if (guide.slug_es) {
+      params.push({ slug: guide.slug_es });
+    }
+  }
+  return params;
 }
 
 export async function generateMetadata({
@@ -23,7 +30,7 @@ export async function generateMetadata({
 }: GuidePageProps): Promise<Metadata> {
   const { locale, slug } = await params;
   const localeGuides = getGuides(locale);
-  const guide = localeGuides.find(g => g.slug === slug) || getGuideBySlug(slug);
+  const guide = localeGuides.find(g => g.slug === slug || g.slug_es === slug) || getGuideBySlug(slug);
 
   if (!guide) {
     return { title: 'Guide Not Found' };
@@ -156,7 +163,7 @@ function parseMarkdownContent(content: string) {
 export default async function GuidePage({ params }: GuidePageProps) {
   const { locale, slug } = await params;
   const localeGuides = getGuides(locale);
-  const guide = localeGuides.find(g => g.slug === slug) || getGuideBySlug(slug);
+  const guide = localeGuides.find(g => g.slug === slug || g.slug_es === slug) || getGuideBySlug(slug);
   const t = await getTranslations('guides');
 
   if (!guide) {

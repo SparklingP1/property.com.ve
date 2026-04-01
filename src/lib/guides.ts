@@ -1,5 +1,6 @@
 export interface Guide {
   slug: string;
+  slug_es?: string;
   title: string;
   description: string;
   category: string;
@@ -10,6 +11,7 @@ export interface Guide {
 export const guides: Guide[] = [
   {
     slug: 'how-to-buy-property-in-venezuela-as-a-foreigner',
+    slug_es: 'como-comprar-propiedad-en-venezuela-siendo-extranjero',
     title: 'Complete Guide to Buying Property in Venezuela as a Foreigner',
     description:
       'Everything you need to know about purchasing real estate in Venezuela as a foreign national.',
@@ -266,6 +268,7 @@ The key is approaching the transaction with the same caution you'd apply in any 
   },
   {
     slug: 'caracas-neighborhoods-guide-expats',
+    slug_es: 'guia-barrios-caracas-expatriados',
     title: 'Caracas Neighborhoods Guide for Expats',
     description:
       'Discover the best neighborhoods in Caracas for expats, from upscale Altamira to trendy Las Mercedes.',
@@ -622,6 +625,7 @@ Caracas offers diverse neighborhood options for expats, from bustling urban cent
   },
   {
     slug: 'margarita-island-real-estate-guide',
+    slug_es: 'guia-inmobiliaria-isla-margarita',
     title: 'Margarita Island Real Estate Investment Guide',
     description:
       'Everything you need to know about buying property on Margarita Island, Venezuela\'s Caribbean paradise.',
@@ -969,6 +973,7 @@ For the right buyer, Margarita offers accessible Caribbean beach living with gen
   },
   {
     slug: 'venezuela-property-laws-foreign-buyers',
+    slug_es: 'leyes-propiedad-venezuela-compradores-extranjeros',
     title: 'Venezuela Property Laws for Foreign Buyers',
     description:
       'Understanding Venezuelan property law, ownership rights, and legal requirements for foreign investors.',
@@ -1377,6 +1382,7 @@ With proper guidance and adherence to legal requirements, foreign buyers can suc
   },
   {
     slug: 'is-it-safe-to-buy-property-in-venezuela',
+    slug_es: 'es-seguro-comprar-propiedad-en-venezuela',
     title: 'Is It Safe to Buy Property in Venezuela in 2026?',
     description:
       'An honest assessment of the risks and opportunities of Venezuelan real estate investment today.',
@@ -1785,6 +1791,7 @@ For the right buyer, with the right approach, Venezuelan property offers compell
   },
   {
     slug: 'caracas-vs-valencia-where-to-buy',
+    slug_es: 'caracas-vs-valencia-donde-comprar',
     title: 'Caracas vs Valencia: Where to Buy Property in Venezuela',
     description:
       'Comparing Venezuela\'s two largest cities for property investment and quality of life.',
@@ -2129,6 +2136,7 @@ Many buyers visit both cities before deciding. Spend time in each, experience da
   },
   {
     slug: 'beachfront-property-venezuela-guide',
+    slug_es: 'guia-propiedades-playa-venezuela',
     title: 'Guide to Beachfront Property in Venezuela',
     description:
       'Where to find the best beachfront properties in Venezuela, from Margarita to Morrocoy.',
@@ -2468,6 +2476,7 @@ Venezuelan beachfront delivers exceptional value for the right buyer with the ri
   },
   {
     slug: 'venezuela-property-prices-2026',
+    slug_es: 'precios-propiedades-venezuela-2026',
     title: 'Venezuela Property Prices in 2026: Market Analysis',
     description:
       'Current property prices across Venezuela and market trends for 2026.',
@@ -2803,6 +2812,7 @@ For those willing to navigate Venezuela's unique market dynamics, current prices
   },
   {
     slug: 'renting-vs-buying-in-venezuela',
+    slug_es: 'alquilar-vs-comprar-en-venezuela',
     title: 'Renting vs Buying Property in Venezuela',
     description:
       'Should you rent or buy in Venezuela? A comprehensive comparison for expats and investors.',
@@ -3136,6 +3146,7 @@ The key is honest assessment of your timeline, risk tolerance, and priorities. V
   },
   {
     slug: 'venezuela-real-estate-taxes-foreigners',
+    slug_es: 'impuestos-inmobiliarios-venezuela-extranjeros',
     title: 'Venezuela Real Estate Taxes for Foreign Buyers',
     description:
       'Understanding property taxes, transfer fees, and tax obligations for foreign property owners in Venezuela.',
@@ -3515,7 +3526,7 @@ import { guidesEs } from './guides-es';
 const allGuides: Guide[] = [...guides, ...newGuides];
 
 export function getGuideBySlug(slug: string): Guide | undefined {
-  return allGuides.find((guide) => guide.slug === slug);
+  return allGuides.find((guide) => guide.slug === slug || guide.slug_es === slug);
 }
 
 export function getAllGuides(): Guide[] {
@@ -3524,4 +3535,11 @@ export function getAllGuides(): Guide[] {
 
 export function getGuides(locale: string): Guide[] {
   return locale === 'es' ? guidesEs : guides;
+}
+
+/**
+ * Get the locale-appropriate slug for a guide
+ */
+export function getGuideSlugForLocale(guide: Guide | { slug: string; slug_es?: string }, locale: string): string {
+  return (locale === 'es' && guide.slug_es) ? guide.slug_es : guide.slug;
 }

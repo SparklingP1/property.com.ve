@@ -867,6 +867,39 @@ class SupabaseStorage:
 
         return '-'.join(parts)
 
+    def _generate_url_slug_es(self, listing: PropertyListing, property_id: str) -> str:
+        """Generate Spanish SEO-friendly URL slug.
+
+        Format: {bedrooms}-hab-{property_type_es}-{neighborhood}-en-venta-{short_id}
+        Example: 3-hab-apartamento-cumbres-de-curumo-en-venta-abc123
+        """
+        type_map = {
+            'apartment': 'apartamento',
+            'house': 'casa',
+            'land': 'terreno',
+            'commercial': 'comercial',
+            'office': 'oficina',
+        }
+        parts = []
+
+        if listing.bedrooms:
+            parts.append(f"{listing.bedrooms}-hab")
+
+        if listing.property_type:
+            es_type = type_map.get(listing.property_type, self._slugify(listing.property_type))
+            parts.append(es_type)
+
+        location = getattr(listing, 'neighborhood', None) or getattr(listing, 'city', None)
+        if location:
+            parts.append(self._slugify(location))
+
+        transaction = getattr(listing, 'transaction_type', 'sale') or 'sale'
+        parts.append('en-alquiler' if transaction == 'rent' else 'en-venta')
+
+        parts.append(property_id[-8:])
+
+        return '-'.join(parts)
+
     def download_and_upload_image(self, image_url: str, property_id: str, index: int = 0) -> Optional[str]:
         """Download image and upload to Supabase Storage. Returns public URL or None."""
         try:
@@ -926,14 +959,16 @@ class SupabaseStorage:
                 # Use first hosted image as thumbnail
                 thumbnail = hosted_image_urls[0] if hosted_image_urls else None
 
-                # Generate SEO-friendly URL slug
+                # Generate SEO-friendly URL slugs (both English and Spanish)
                 url_slug = self._generate_url_slug(listing, property_id)
+                url_slug_es = self._generate_url_slug_es(listing, property_id)
 
                 data = {
                     "source": source,
                     "source_url": listing.source_url,
                     "title": listing.title,
                     "url_slug": url_slug,
+                    "url_slug_es": url_slug_es,
                     "price": listing.price,
                     "currency": listing.currency,
                     "location": listing.location,

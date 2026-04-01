@@ -108,6 +108,90 @@ export function getListingUrl(listing: Listing | {
 }
 
 /**
+ * Generate Spanish SEO-friendly URL slug for a listing
+ *
+ * Format: {bedrooms}-hab-{property_type_es}-{neighborhood}-en-venta-{short_id}
+ *
+ * Examples:
+ * - 3-hab-apartamento-cumbres-de-curumo-en-venta-abc12345
+ * - 4-hab-casa-valencia-en-venta-def67890
+ * - apartamento-caracas-en-venta-ghi11223 (when bedrooms is null)
+ */
+export function generateListingSlugEs(listing: Listing | {
+  id: string;
+  bedrooms: number | null;
+  property_type: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  transaction_type?: string | null;
+}): string {
+  const parts: string[] = [];
+
+  // Add bedrooms if available
+  if (listing.bedrooms) {
+    parts.push(`${listing.bedrooms}-hab`);
+  }
+
+  // Add property type in Spanish
+  if (listing.property_type) {
+    const typeEs =
+      listing.property_type === 'apartment' ? 'apartamento' :
+      listing.property_type === 'house' ? 'casa' :
+      listing.property_type === 'land' ? 'terreno' :
+      listing.property_type === 'commercial' ? 'comercial' :
+      listing.property_type === 'office' ? 'oficina' :
+      slugify(listing.property_type);
+    parts.push(typeEs);
+  }
+
+  // Add neighborhood, fallback to city
+  const location = listing.neighborhood || listing.city;
+  if (location) {
+    parts.push(slugify(location));
+  }
+
+  // Add transaction type in Spanish (en-venta or en-alquiler)
+  const transactionType = listing.transaction_type || 'sale';
+  parts.push(transactionType === 'rent' ? 'en-alquiler' : 'en-venta');
+
+  // Add short ID for uniqueness
+  parts.push(getShortId(listing.id));
+
+  return parts.join('-');
+}
+
+/**
+ * Generate the full URL path for a listing, locale-aware
+ *
+ * For 'es' locale: uses url_slug_es (Spanish slug)
+ * For 'en' locale: uses url_slug (English slug)
+ */
+export function getListingUrlForLocale(listing: Listing | {
+  id: string;
+  state: string | null;
+  city: string | null;
+  bedrooms: number | null;
+  property_type: string | null;
+  neighborhood: string | null;
+  transaction_type?: string | null;
+  url_slug?: string | null;
+  url_slug_es?: string | null;
+}, locale: string): string {
+  let slug: string;
+
+  if (locale === 'es') {
+    slug = listing.url_slug_es || generateListingSlugEs(listing);
+  } else {
+    slug = listing.url_slug || generateListingSlug(listing);
+  }
+
+  const state = listing.state ? slugify(listing.state) : 'venezuela';
+  const city = listing.city ? slugify(listing.city) : 'property';
+
+  return `/property/${state}/${city}/${slug}`;
+}
+
+/**
  * Parse a listing slug to extract the ID
  * Used for reverse lookups when we have a URL slug
  */

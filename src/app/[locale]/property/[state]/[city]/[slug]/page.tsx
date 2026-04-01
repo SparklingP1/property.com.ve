@@ -6,7 +6,7 @@ import { ListingDetail } from '@/components/listings/listing-detail';
 import { ListingSchema } from '@/components/seo/listing-schema';
 import { ListingGrid } from '@/components/listings/listing-grid';
 import type { Listing } from '@/types/listing';
-import { getListingUrl } from '@/lib/slug';
+import { getListingUrl, getListingUrlForLocale } from '@/lib/slug';
 import { Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
 
@@ -20,11 +20,12 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const supabase = await createClient();
 
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('url_slug', slug)
-    .single();
+  // Try both English and Spanish slug columns
+  const [{ data: byEnSlug }, { data: byEsSlug }] = await Promise.all([
+    supabase.from('listings').select('*').eq('url_slug', slug).single(),
+    supabase.from('listings').select('*').eq('url_slug_es', slug).single(),
+  ]);
+  const listing = byEnSlug || byEsSlug;
 
   if (!listing) {
     return { title: 'Property Not Found' };
@@ -38,10 +39,11 @@ export async function generateMetadata({
     ? (listing.description_short || listing.description_short_en || `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.city || listing.location || 'Venezuela'}`)
     : (listing.description_short_en || listing.description_short || `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.city || listing.location || 'Venezuela'}`);
 
-  // Generate canonical URL
+  // Generate locale-aware canonical URLs
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
-  const listingPath = getListingUrl(listing);
-  const canonicalUrl = `${baseUrl}${listingPath}`;
+  const esPath = getListingUrlForLocale(listing, 'es');
+  const enPath = getListingUrlForLocale(listing, 'en');
+  const canonicalUrl = locale === 'es' ? `${baseUrl}${esPath}` : `${baseUrl}/en${enPath}`;
 
   return {
     title,
@@ -54,8 +56,8 @@ export async function generateMetadata({
     alternates: {
       canonical: canonicalUrl,
       languages: {
-        es: `${baseUrl}${listingPath}`,
-        en: `${baseUrl}/en${listingPath}`,
+        es: `${baseUrl}${esPath}`,
+        en: `${baseUrl}/en${enPath}`,
       },
     },
     openGraph: {
@@ -80,14 +82,14 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
   const t = await getTranslations('propertyDetail');
   const supabase = await createClient();
 
-  // First, check if listing exists (active or inactive)
-  const { data: listing, error } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('url_slug', slug)
-    .single();
+  // First, check if listing exists (active or inactive) — try both slug columns
+  const [{ data: byEn }, { data: byEs }] = await Promise.all([
+    supabase.from('listings').select('*').eq('url_slug', slug).single(),
+    supabase.from('listings').select('*').eq('url_slug_es', slug).single(),
+  ]);
+  const listing = byEn || byEs;
 
-  if (error || !listing) {
+  if (!listing) {
     notFound();
   }
 

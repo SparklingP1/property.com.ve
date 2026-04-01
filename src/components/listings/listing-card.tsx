@@ -8,7 +8,7 @@ import { Bed, Bath, Maximize, Car, MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
 import type { Listing } from '@/types/listing';
-import { getListingUrl } from '@/lib/slug';
+import { getListingUrlForLocale } from '@/lib/slug';
 
 interface ListingCardProps {
   listing: Listing;
@@ -41,8 +41,8 @@ export function ListingCard({ listing }: ListingCardProps) {
   // Use locale-appropriate title
   const displayTitle = locale === 'en' ? (listing.title_en || listing.title) : listing.title;
 
-  // Get SEO-friendly URL
-  const listingUrl = getListingUrl(listing);
+  // Get locale-aware SEO-friendly URL
+  const listingUrl = getListingUrlForLocale(listing, locale);
 
   return (
     <Link href={listingUrl}>

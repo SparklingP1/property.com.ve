@@ -6,12 +6,13 @@ interface ListingSchemaProps {
 }
 
 export function ListingSchema({ listing }: ListingSchemaProps) {
+  // JSON-LD uses English canonical URL (schema.org is language-neutral)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',
     name: listing.title_en || listing.title,
     description: listing.description_short_en || listing.description_short || undefined,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}${getListingUrl(listing)}`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/en${getListingUrl(listing)}`,
     datePosted: listing.scraped_at,
     offers: {
       '@type': 'Offer',

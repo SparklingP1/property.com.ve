@@ -3,6 +3,7 @@ import type { Guide } from './guides';
 export const guidesEs: Guide[] = [
   {
     slug: 'how-to-buy-property-in-venezuela-as-a-foreigner',
+    slug_es: 'como-comprar-propiedad-en-venezuela-siendo-extranjero',
     title: 'Guía Completa para Comprar Inmuebles en Venezuela como Extranjero',
     description: 'Todo lo que necesitas saber sobre la compra de bienes raíces en Venezuela como ciudadano extranjero.',
     category: 'Buying',
@@ -258,6 +259,7 @@ La clave es abordar la transacción con la misma precaución que aplicarías en 
   },
   {
     slug: 'caracas-neighborhoods-guide-expats',
+    slug_es: 'guia-barrios-caracas-expatriados',
     title: 'Guía de Urbanizaciones de Caracas para Expatriados',
     description: 'Descubre las mejores urbanizaciones en Caracas para expatriados, desde la exclusiva Altamira hasta la moderna Las Mercedes.',
     category: 'Location',
@@ -613,6 +615,7 @@ Caracas ofrece opciones diversas de urbanizaciones para expatriados, desde centr
   },
   {
     slug: 'margarita-island-real-estate-guide',
+    slug_es: 'guia-inmobiliaria-isla-margarita',
     title: 'Guía de Inversión Inmobiliaria en Isla de Margarita',
     description: 'Todo lo que necesitas saber sobre comprar inmuebles en Isla de Margarita, el paraíso caribeño de Venezuela.',
     category: 'Location',
@@ -959,6 +962,7 @@ Para el comprador correcto, Margarita ofrece vida de playa caribeña accesible c
   },
   {
     slug: 'venezuela-property-laws-foreign-buyers',
+    slug_es: 'leyes-propiedad-venezuela-compradores-extranjeros',
     title: 'Leyes de Propiedad en Venezuela para Compradores Extranjeros',
     description: 'Entendiendo la ley de propiedad venezolana, derechos de propiedad y requisitos legales para inversionistas extranjeros.',
     category: 'Legal',
@@ -1366,6 +1370,7 @@ Con guía apropiada y adherencia a requisitos legales, los compradores extranjer
   },
   {
     slug: 'is-it-safe-to-buy-property-in-venezuela',
+    slug_es: 'es-seguro-comprar-propiedad-en-venezuela',
     title: '¿Es Seguro Comprar Propiedades en Venezuela en 2026?',
     description: 'Una evaluación honesta de los riesgos y oportunidades de la inversión inmobiliaria venezolana hoy en día.',
     category: 'Investment',
@@ -1773,6 +1778,7 @@ Para el comprador correcto, con el enfoque correcto, la propiedad venezolana ofr
   },
   {
     slug: 'caracas-vs-valencia-where-to-buy',
+    slug_es: 'caracas-vs-valencia-donde-comprar',
     title: 'Caracas vs Valencia: Dónde Comprar Inmuebles en Venezuela',
     description: 'Comparando las dos ciudades más grandes de Venezuela para inversión inmobiliaria y calidad de vida.',
     category: 'Location',
@@ -2116,6 +2122,7 @@ Muchos compradores visitan ambas ciudades antes de decidir. Pasa tiempo en cada 
   },
   {
     slug: 'beachfront-property-venezuela-guide',
+    slug_es: 'guia-propiedades-playa-venezuela',
     title: 'Guía de Inmuebles Frente al Mar en Venezuela',
     description: 'Dónde encontrar los mejores inmuebles frente al mar en Venezuela, desde Margarita hasta Morrocoy.',
     category: 'Property Type',
@@ -2454,6 +2461,7 @@ Frente al mar venezolano entrega valor excepcional para el comprador correcto co
   },
   {
     slug: 'venezuela-property-prices-2026',
+    slug_es: 'precios-propiedades-venezuela-2026',
     title: 'Precios de Inmuebles en Venezuela en 2026: Análisis del Mercado',
     description: 'Precios actuales de inmuebles en toda Venezuela y tendencias del mercado para 2026.',
     category: 'Market',
@@ -2788,6 +2796,7 @@ Para aquellos dispuestos a navegar las dinámicas únicas del mercado venezolano
   },
   {
     slug: 'renting-vs-buying-in-venezuela',
+    slug_es: 'alquilar-vs-comprar-en-venezuela',
     title: 'Alquilar vs Comprar Inmuebles en Venezuela',
     description: '¿Deberías alquilar o comprar en Venezuela? Una comparación integral para expatriados e inversionistas.',
     category: 'Investment',
@@ -3120,6 +3129,7 @@ La clave es evaluación honesta de tu cronograma, tolerancia al riesgo, y priori
   },
   {
     slug: 'venezuela-real-estate-taxes-foreigners',
+    slug_es: 'impuestos-inmobiliarios-venezuela-extranjeros',
     title: 'Impuestos Inmobiliarios en Venezuela para Compradores Extranjeros',
     description: 'Comprendiendo los impuestos sobre inmuebles, tasas de transferencia y obligaciones tributarias para propietarios extranjeros en Venezuela.',
     category: 'Legal',

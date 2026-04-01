@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 
 /**
  * Programmatic SEO pages sitemap with hreflang
- * Includes all flat-URL landing pages like /apartments-caracas
+ * Uses locale-specific slugs: Spanish slugs for ES, English slugs for EN
  * Regenerated every 24 hours
  */
 export const revalidate = 86400; // 24 hours
@@ -16,10 +16,10 @@ export async function GET() {
   try {
     const supabase = createServiceClient();
 
-    // Only include pages with actual listings (avoids soft 404s for empty pages)
+    // Fetch both English and Spanish slugs
     const { data: pages, error } = await supabase
       .from('seo_page_content')
-      .select('page_slug, updated_at, listing_count')
+      .select('page_slug, page_slug_es, updated_at, listing_count')
       .gt('listing_count', 0)
       .order('listing_count', { ascending: false });
 
@@ -29,13 +29,18 @@ export async function GET() {
       pages.forEach((page) => {
         const lastMod = new Date(page.updated_at).toISOString();
         const priority = page.listing_count > 50 ? 0.9 : page.listing_count > 20 ? 0.8 : 0.7;
-        const esUrl = `${baseUrl}${page.page_slug}`;
-        const enUrl = `${baseUrl}/en${page.page_slug}`;
+
+        // Use Spanish slug for ES URL, English slug for EN URL
+        const esSlug = page.page_slug_es || page.page_slug;
+        const enSlug = page.page_slug;
+        const esUrl = `${baseUrl}${esSlug}`;
+        const enUrl = `${baseUrl}/en${enSlug}`;
+
         const hreflang = `
     <xhtml:link rel="alternate" hreflang="es" href="${esUrl}" />
     <xhtml:link rel="alternate" hreflang="en" href="${enUrl}" />`;
 
-        // Spanish version (default, no prefix)
+        // Spanish version (default, no prefix) — uses Spanish slug
         urls.push(`  <url>
     <loc>${esUrl}</loc>
     <lastmod>${lastMod}</lastmod>
@@ -43,7 +48,7 @@ export async function GET() {
     <priority>${priority}</priority>${hreflang}
   </url>`);
 
-        // English version (/en/ prefix)
+        // English version (/en/ prefix) — uses English slug
         urls.push(`  <url>
     <loc>${enUrl}</loc>
     <lastmod>${lastMod}</lastmod>

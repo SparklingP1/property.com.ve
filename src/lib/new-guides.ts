@@ -1,5 +1,6 @@
 export const newGuides: Array<{
   slug: string;
+  slug_es?: string;
   title: string;
   description: string;
   content: string;
@@ -8,6 +9,7 @@ export const newGuides: Array<{
 }> = [
   {
     slug: "buying-property-in-caracas-neighborhood-guide",
+    slug_es: "guia-comprar-propiedad-caracas-por-barrio",
     title: "Buying Property in Caracas: A Neighborhood-by-Neighborhood Guide (2026)",
     description: "Comprehensive guide to Caracas' best neighborhoods for property buyers. Explore Altamira, Las Mercedes, El Hatillo, and more with pricing, safety, and lifestyle insights.",
     content: `# Buying Property in Caracas: A Neighborhood-by-Neighborhood Guide (2026)
@@ -226,6 +228,7 @@ A: Property taxes are generally low compared to international standards, typical
   },
   {
     slug: "best-areas-to-buy-property-in-venezuela-2026",
+    slug_es: "mejores-zonas-comprar-propiedad-venezuela-2026",
     title: "Best Areas to Buy Property in Venezuela in 2026",
     description: "Discover the best places to invest in Venezuelan real estate beyond Caracas. Explore Margarita Island, Mérida, Valencia, and emerging coastal destinations.",
     content: `# Best Areas to Buy Property in Venezuela in 2026
@@ -479,6 +482,7 @@ A: Valencia for industrial development, Mérida for tourism and education, and M
   },
   {
     slug: "foreigners-guide-to-buying-property-in-venezuela",
+    slug_es: "guia-extranjeros-comprar-propiedad-venezuela",
     title: "A Foreigner's Complete Guide to Buying Property in Venezuela (2026)",
     description: "Everything foreign nationals need to know about purchasing real estate in Venezuela. Legal requirements, ownership rights, taxes, and step-by-step buying process.",
     content: `# A Foreigner's Complete Guide to Buying Property in Venezuela (2026)
@@ -732,6 +736,7 @@ A: No restrictions exist on tenant nationality. Rental agreements can be in USD 
   },
   {
     slug: "venezuela-real-estate-market-outlook-2026",
+    slug_es: "panorama-mercado-inmobiliario-venezuela-2026",
     title: "Venezuela Real Estate Market Outlook: Prices, Trends & Opportunities in 2026",
     description: "Complete analysis of Venezuela's real estate market in 2026. Price trends, investment opportunities, economic factors, and market forecasts for property investors.",
     content: `# Venezuela Real Estate Market Outlook: Prices, Trends & Opportunities in 2026
@@ -1042,6 +1047,7 @@ A: Key indicators include oil production levels, infrastructure investment progr
   },
   {
     slug: "renting-vs-buying-in-venezuela",
+    slug_es: "alquilar-vs-comprar-en-venezuela",
     title: "Renting vs Buying Property in Venezuela: What You Need to Know",
     description: "Complete guide to renting vs buying property in Venezuela. Compare costs, legal considerations, and market conditions for tenants and potential homeowners.",
     content: `# Renting vs Buying Property in Venezuela: What You Need to Know

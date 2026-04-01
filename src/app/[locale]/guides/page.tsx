@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getGuides } from '@/lib/guides';
+import { getGuides, getGuideSlugForLocale } from '@/lib/guides';
 
 interface GuidesPageProps {
   params: Promise<{ locale: string }>;
@@ -54,7 +54,7 @@ export default async function GuidesPage({ params }: GuidesPageProps) {
       {/* Guides Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {guides.map((guide) => (
-          <Link key={guide.slug} href={`/guides/${guide.slug}`}>
+          <Link key={guide.slug} href={`/guides/${getGuideSlugForLocale(guide, locale)}`}>
             <Card className="h-full card-hover">
               <CardHeader>
                 <Badge variant="outline" className="w-fit mb-2">

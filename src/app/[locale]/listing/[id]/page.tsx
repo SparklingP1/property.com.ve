@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { Listing } from '@/types/listing';
-import { getListingUrl } from '@/lib/slug';
+import { getListingUrlForLocale } from '@/lib/slug';
 import { getListingById } from '@/lib/supabase/cached-queries';
 
 // Enable ISR - revalidate every hour (3600 seconds)
@@ -52,7 +52,7 @@ export async function generateMetadata({
 }
 
 export default async function ListingPage({ params }: ListingPageProps) {
-  const { id } = await params;
+  const { locale, id } = await params;
 
   // First, check if listing exists (active or inactive)
   const { listing, error } = await getListingById(id);
@@ -61,6 +61,6 @@ export default async function ListingPage({ params }: ListingPageProps) {
     notFound();
   }
 
-  // Redirect to new SEO-friendly URL
-  redirect(getListingUrl(listing as Listing));
+  // Redirect to locale-aware SEO-friendly URL
+  redirect(getListingUrlForLocale(listing as Listing, locale));
 }

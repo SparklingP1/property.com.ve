@@ -43,13 +43,15 @@ export async function generateMetadata({
   const seoContent = byEnSlug || byEsSlug;
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
-  // Use the English slug for canonical (consistent canonical across locales)
-  const canonicalSlug = seoContent?.page_slug || `/${slug}`;
+  // Use locale-specific slugs for canonical and hreflang
+  const esSlug = seoContent?.page_slug_es || `/${slug}`;
+  const enSlug = seoContent?.page_slug || `/${slug}`;
+  const canonicalSlug = locale === 'es' ? esSlug : enSlug;
   const alternates = {
-    canonical: `${baseUrl}${canonicalSlug}`,
+    canonical: locale === 'es' ? `${baseUrl}${esSlug}` : `${baseUrl}/en${enSlug}`,
     languages: {
-      es: `${baseUrl}${canonicalSlug}`,
-      en: `${baseUrl}/en${canonicalSlug}`,
+      es: `${baseUrl}${esSlug}`,
+      en: `${baseUrl}/en${enSlug}`,
     },
   };
 
@@ -229,10 +231,14 @@ export default async function SEOPage({ params }: SEOPageProps) {
             )}
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">{seoContent.h1}</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+            {(locale === 'es' && seoContent.h1_es) ? seoContent.h1_es : seoContent.h1}
+          </h1>
 
           {/* SEO Description */}
-          <p className="text-stone-300 text-lg max-w-3xl leading-relaxed">{seoContent.description}</p>
+          <p className="text-stone-300 text-lg max-w-3xl leading-relaxed">
+            {(locale === 'es' && seoContent.description_es) ? seoContent.description_es : seoContent.description}
+          </p>
 
           {totalListings > 0 && (
             <p className="text-stone-400 text-sm mt-4">{totalListings} {t('propertiesAvailable')}</p>
