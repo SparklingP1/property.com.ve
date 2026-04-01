@@ -65,8 +65,9 @@ export interface Listing {
   translation_model: string | null;
   translated_at: string | null;
 
-  // SEO-friendly URL slug
+  // SEO-friendly URL slugs
   url_slug: string | null;
+  url_slug_es: string | null;
 }
 
 export interface ListingFilters {
