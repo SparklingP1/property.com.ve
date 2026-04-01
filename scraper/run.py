@@ -960,6 +960,7 @@ class SupabaseStorage:
                 thumbnail = hosted_image_urls[0] if hosted_image_urls else None
 
                 # Generate SEO-friendly URL slugs (both English and Spanish)
+                # These are stored separately so upserts don't overwrite stable slugs
                 url_slug = self._generate_url_slug(listing, property_id)
                 url_slug_es = self._generate_url_slug_es(listing, property_id)
 
@@ -967,8 +968,6 @@ class SupabaseStorage:
                     "source": source,
                     "source_url": listing.source_url,
                     "title": listing.title,
-                    "url_slug": url_slug,
-                    "url_slug_es": url_slug_es,
                     "price": listing.price,
                     "currency": listing.currency,
                     "location": listing.location,
@@ -1021,6 +1020,13 @@ class SupabaseStorage:
                 self.client.table("listings").upsert(
                     data, on_conflict="source_url"
                 ).execute()
+
+                # Set url_slug only for new listings (where it's NULL)
+                # This prevents scraper runs from breaking existing URLs
+                self.client.table("listings").update(
+                    {"url_slug": url_slug, "url_slug_es": url_slug_es}
+                ).eq("source_url", listing.source_url).is_("url_slug", "null").execute()
+
                 upserted += 1
 
             except Exception as e:
