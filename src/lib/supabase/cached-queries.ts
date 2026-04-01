@@ -16,7 +16,7 @@ export const getFeaturedListings = cache(async (params: {
 
   let query = supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces', { count: 'exact' })
+    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'exact' })
     .eq('active', true)
     .order('scraped_at', { ascending: false })
     .limit(12);
@@ -71,7 +71,7 @@ export const getRelatedListings = cache(async (params: {
 
   let query = supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces')
+    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type')
     .eq('active', true)
     .neq('id', params.excludeId)
     .limit(params.limit || 6);
