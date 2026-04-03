@@ -7,12 +7,37 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { Menu, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+function useAlternateUrl() {
+  const locale = useLocale();
+  const pathname = usePathname();
+  const [alternateUrl, setAlternateUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const targetLang = locale === 'es' ? 'en' : 'es';
+    const link = document.querySelector(`link[rel="alternate"][hreflang="${targetLang}"]`) as HTMLLinkElement | null;
+    if (link?.href) {
+      // Extract pathname from absolute URL
+      try {
+        const url = new URL(link.href);
+        setAlternateUrl(url.pathname);
+      } catch {
+        setAlternateUrl(null);
+      }
+    } else {
+      setAlternateUrl(null);
+    }
+  }, [locale, pathname]);
+
+  return alternateUrl;
+}
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = useTranslations('nav');
   const tHeader = useTranslations('header');
   const locale = useLocale();
   const pathname = usePathname();
+  const alternateUrl = useAlternateUrl();
 
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
   useEffect(() => {
@@ -58,15 +83,25 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          {/* Language Switcher */}
-          <Link
-            href={pathname}
-            locale={locale === 'es' ? 'en' : 'es'}
-            className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
-          >
-            <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-            {tHeader('langSwitch')}
-          </Link>
+          {/* Language Switcher — uses hreflang alternate URL when available */}
+          {alternateUrl ? (
+            <a
+              href={alternateUrl}
+              className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
+            >
+              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+              {tHeader('langSwitch')}
+            </a>
+          ) : (
+            <Link
+              href={pathname}
+              locale={locale === 'es' ? 'en' : 'es'}
+              className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
+            >
+              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+              {tHeader('langSwitch')}
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -97,15 +132,26 @@ export function Header() {
               </Link>
             ))}
             {/* Mobile Language Switcher */}
-            <Link
-              href={pathname}
-              locale={locale === 'es' ? 'en' : 'es'}
-              className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-              {tHeader('langSwitch')}
-            </Link>
+            {alternateUrl ? (
+              <a
+                href={alternateUrl}
+                className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                {tHeader('langSwitch')}
+              </a>
+            ) : (
+              <Link
+                href={pathname}
+                locale={locale === 'es' ? 'en' : 'es'}
+                className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                {tHeader('langSwitch')}
+              </Link>
+            )}
           </div>
         </div>
       )}
