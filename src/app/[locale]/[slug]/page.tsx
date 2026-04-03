@@ -56,9 +56,22 @@ export async function generateMetadata({
   };
 
   if (seoContent) {
-    // Use locale-appropriate content if available
+    // Get live listing count for this page's filters
+    let countQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('active', true);
+    if (parsed.filters.city) countQuery = countQuery.ilike('city', parsed.filters.city);
+    if (parsed.filters.state) countQuery = countQuery.ilike('state', parsed.filters.state);
+    if (parsed.filters.property_type) countQuery = countQuery.eq('property_type', parsed.filters.property_type);
+    if (parsed.filters.bedrooms) countQuery = countQuery.eq('bedrooms', parsed.filters.bedrooms);
+    const { count: liveCount } = await countQuery;
+
+    // Use locale-appropriate content, replacing stale counts with live count
     const rawTitle = (locale === 'es' && seoContent.meta_title_es) ? seoContent.meta_title_es : seoContent.meta_title;
-    const metaTitle = rawTitle?.replace(/ \| Property\.com\.ve$/i, '') || rawTitle;
+    const titleNoSuffix = rawTitle?.replace(/ \| Property\.com\.ve$/i, '') || rawTitle;
+    // Replace stale number in title (e.g., "252 Listings" → "3432 Listings")
+    const metaTitle = liveCount
+      ? titleNoSuffix?.replace(/\d+\s*(Listings|Inmuebles|Available|Disponibles)/i,
+          `${liveCount.toLocaleString()} $1`)
+      : titleNoSuffix;
     const metaDesc = (locale === 'es' && seoContent.meta_description_es) ? seoContent.meta_description_es : seoContent.meta_description;
     return {
       title: metaTitle,
@@ -128,33 +141,21 @@ export default async function SEOPage({ params }: SEOPageProps) {
     notFound();
   }
 
-  // Build Supabase query based on filters
-  let query = supabase
-    .from('listings')
-    .select('*')
-    .eq('active', true);
+  // Build count query with same filters as listing query
+  let countQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('active', true);
+  let listQuery = supabase.from('listings').select('*').eq('active', true);
 
-  if (filters.city) {
-    query = query.ilike('city', filters.city);
-  }
+  if (filters.city) { countQuery = countQuery.ilike('city', filters.city); listQuery = listQuery.ilike('city', filters.city); }
+  if (filters.state) { countQuery = countQuery.ilike('state', filters.state); listQuery = listQuery.ilike('state', filters.state); }
+  if (filters.property_type) { countQuery = countQuery.eq('property_type', filters.property_type); listQuery = listQuery.eq('property_type', filters.property_type); }
+  if (filters.bedrooms) { countQuery = countQuery.eq('bedrooms', filters.bedrooms); listQuery = listQuery.eq('bedrooms', filters.bedrooms); }
 
-  if (filters.state) {
-    query = query.ilike('state', filters.state);
-  }
+  const [{ count: totalCount }, { data: listings }] = await Promise.all([
+    countQuery,
+    listQuery.order('last_seen_at', { ascending: false }).limit(100),
+  ]);
 
-  if (filters.property_type) {
-    query = query.eq('property_type', filters.property_type);
-  }
-
-  if (filters.bedrooms) {
-    query = query.eq('bedrooms', filters.bedrooms);
-  }
-
-  const { data: listings } = await query
-    .order('last_seen_at', { ascending: false })
-    .limit(100);
-
-  const totalListings = listings?.length || 0;
+  const totalListings = totalCount || listings?.length || 0;
 
   // Calculate stats (only if listings exist)
   const avgPrice =

@@ -52,15 +52,23 @@ export default async function CityPage({ params }: CityPageProps) {
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
-  // Get all active listings in this city
-  const { data: listings } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('active', true)
-    .ilike('state', stateSlug.replace(/-/g, ' '))
-    .ilike('city', citySlug.replace(/-/g, ' '))
-    .order('last_seen_at', { ascending: false })
-    .limit(100);
+  // Get count and active listings in this city in parallel
+  const [{ count: totalCount }, { data: listings }] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('active', true)
+      .ilike('state', stateSlug.replace(/-/g, ' '))
+      .ilike('city', citySlug.replace(/-/g, ' ')),
+    supabase
+      .from('listings')
+      .select('*')
+      .eq('active', true)
+      .ilike('state', stateSlug.replace(/-/g, ' '))
+      .ilike('city', citySlug.replace(/-/g, ' '))
+      .order('last_seen_at', { ascending: false })
+      .limit(100),
+  ]);
 
   if (!listings || listings.length === 0) {
     notFound();
@@ -69,7 +77,7 @@ export default async function CityPage({ params }: CityPageProps) {
   // Calculate stats
   const cityName = listings[0].city || citySlug.replace(/-/g, ' ');
   const stateName = listings[0].state || stateSlug.replace(/-/g, ' ');
-  const totalListings = listings.length;
+  const totalListings = totalCount || listings?.length || 0;
 
   let priceSum = 0, priceCount = 0;
   const propertyTypes: Record<string, number> = {};

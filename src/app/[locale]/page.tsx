@@ -62,6 +62,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations('homepage');
 
+
   return (
     <>
       {/* Hero Section - Compact */}

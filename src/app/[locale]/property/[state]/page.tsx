@@ -49,8 +49,13 @@ export default async function StatePage({ params }: StatePageProps) {
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
-  // Get all active listings and unique cities in this state in parallel
-  const [{ data: listings }, { data: citiesData }] = await Promise.all([
+  // Get count, active listings, and unique cities in this state in parallel
+  const [{ count: totalCount }, { data: listings }, { data: citiesData }] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('active', true)
+      .ilike('state', stateSlug.replace(/-/g, ' ')),
     supabase
       .from('listings')
       .select('*')
@@ -74,7 +79,7 @@ export default async function StatePage({ params }: StatePageProps) {
 
   // Calculate stats
   const stateName = listings[0].state || stateSlug.replace(/-/g, ' ');
-  const totalListings = listings.length;
+  const totalListings = totalCount || listings?.length || 0;
   const avgPrice = listings
     .filter(l => l.price)
     .reduce((sum, l) => sum + (l.price || 0), 0) / listings.filter(l => l.price).length;
