@@ -12,18 +12,8 @@ interface GuidePageProps {
   params: Promise<{ locale: string; slug: string }>;
 }
 
-export async function generateStaticParams() {
-  const all = getAllGuides();
-  // Generate params for both English and Spanish slugs
-  const params: { slug: string }[] = [];
-  for (const guide of all) {
-    params.push({ slug: guide.slug });
-    if (guide.slug_es) {
-      params.push({ slug: guide.slug_es });
-    }
-  }
-  return params;
-}
+// Dynamic rendering — next-intl getTranslations requires request context
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -176,7 +166,7 @@ export default async function GuidePage({ params }: GuidePageProps) {
   const { locale, slug } = await params;
   const localeGuides = getGuides(locale);
   const guide = localeGuides.find(g => g.slug === slug || g.slug_es === slug) || getGuideBySlug(slug);
-  const t = await getTranslations('guides');
+  const t = await getTranslations({ locale, namespace: 'guides' });
 
   if (!guide) {
     notFound();
