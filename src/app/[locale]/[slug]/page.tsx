@@ -57,7 +57,8 @@ export async function generateMetadata({
 
   if (seoContent) {
     // Use locale-appropriate content if available
-    const metaTitle = (locale === 'es' && seoContent.meta_title_es) ? seoContent.meta_title_es : seoContent.meta_title;
+    const rawTitle = (locale === 'es' && seoContent.meta_title_es) ? seoContent.meta_title_es : seoContent.meta_title;
+    const metaTitle = rawTitle?.replace(/ \| Property\.com\.ve$/i, '') || rawTitle;
     const metaDesc = (locale === 'es' && seoContent.meta_description_es) ? seoContent.meta_description_es : seoContent.meta_description;
     return {
       title: metaTitle,
@@ -311,8 +312,8 @@ export default async function SEOPage({ params }: SEOPageProps) {
                 </div>
                 <p className="text-2xl font-bold text-primary">{location}</p>
                 <p className="text-sm text-stone-600 mt-1">
-                  {filters.bedrooms ? `${filters.bedrooms} bedroom ` : ''}
-                  {propertyType}
+                  {filters.bedrooms ? `${filters.bedrooms} ${Number(filters.bedrooms) > 1 ? tAgg('bedrooms') : tAgg('bedroom')} ` : ''}
+                  {propertyTypeLabels[propertyType] || propertyType}
                 </p>
               </div>
             </div>

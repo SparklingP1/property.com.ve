@@ -14,54 +14,67 @@ const dmSans = DM_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://property.com.ve"),
-  title: {
-    default: "Property.com.ve | Find Your Dream Property in Venezuela",
-    template: "%s | Property.com.ve",
-  },
-  description:
-    "Search thousands of properties for sale across Venezuela. Find apartments, houses, commercial spaces, and land from multiple sources in one place.",
-  keywords: [
-    "Venezuela real estate",
-    "property Venezuela",
-    "buy house Venezuela",
-    "Caracas apartments",
-    "Venezuela property for sale",
-    "Margarita Island real estate",
-  ],
-  authors: [{ name: "Property.com.ve" }],
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: process.env.NEXT_PUBLIC_SITE_URL,
-    siteName: "Property.com.ve",
-    title: "Property.com.ve | Find Your Dream Property in Venezuela",
-    description:
-      "Search thousands of properties for sale across Venezuela. Find apartments, houses, commercial spaces, and land.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Property.com.ve - Find Your Dream Property",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Property.com.ve | Find Your Dream Property in Venezuela",
-    description:
-      "Search thousands of properties for sale across Venezuela.",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  other: {
-    "theme-color": "#fafafa",
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const isSpanish = locale === "es";
+
+  return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://property.com.ve"),
+    title: {
+      default: isSpanish
+        ? "Property.com.ve | Encuentra tu Propiedad Ideal en Venezuela"
+        : "Property.com.ve | Find Your Dream Property in Venezuela",
+      template: "%s | Property.com.ve",
+    },
+    description: isSpanish
+      ? "Miles de inmuebles en venta en toda Venezuela. Apartamentos, casas, locales comerciales y terrenos de múltiples fuentes en un solo lugar."
+      : "Search thousands of properties for sale across Venezuela. Find apartments, houses, commercial spaces, and land from multiple sources in one place.",
+    keywords: isSpanish
+      ? ["inmuebles Venezuela", "propiedad Venezuela", "comprar casa Venezuela", "apartamentos Caracas", "inmuebles en venta Venezuela", "bienes raíces Isla Margarita"]
+      : ["Venezuela real estate", "property Venezuela", "buy house Venezuela", "Caracas apartments", "Venezuela property for sale", "Margarita Island real estate"],
+    authors: [{ name: "Property.com.ve" }],
+    openGraph: {
+      type: "website",
+      locale: isSpanish ? "es_VE" : "en_US",
+      url: process.env.NEXT_PUBLIC_SITE_URL,
+      siteName: "Property.com.ve",
+      title: isSpanish
+        ? "Property.com.ve | Encuentra tu Propiedad Ideal en Venezuela"
+        : "Property.com.ve | Find Your Dream Property in Venezuela",
+      description: isSpanish
+        ? "Miles de inmuebles en venta en toda Venezuela. Apartamentos, casas, locales comerciales y terrenos."
+        : "Search thousands of properties for sale across Venezuela. Find apartments, houses, commercial spaces, and land.",
+      images: [
+        {
+          url: "/og-image.jpg",
+          width: 1200,
+          height: 630,
+          alt: "Property.com.ve - Find Your Dream Property",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: isSpanish
+        ? "Property.com.ve | Encuentra tu Propiedad Ideal en Venezuela"
+        : "Property.com.ve | Find Your Dream Property in Venezuela",
+      description: isSpanish
+        ? "Miles de inmuebles en venta en toda Venezuela. Apartamentos, casas, locales comerciales y terrenos."
+        : "Search thousands of properties for sale across Venezuela.",
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    other: {
+      "theme-color": "#fafafa",
+    },
+  };
+}
 
 interface LocaleLayoutProps {
   children: React.ReactNode;
