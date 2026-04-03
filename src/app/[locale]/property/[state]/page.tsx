@@ -22,8 +22,10 @@ export async function generateMetadata({
   const path = `/property/${state}`;
 
   return {
-    title: `${t('realEstateIn', { location: stateName })}, Venezuela | Property.com.ve`,
-    description: `Browse apartments, houses, and properties for sale in ${stateName}. Find your perfect property with detailed listings, photos, and pricing.`,
+    title: `${t('realEstateIn', { location: stateName })}, Venezuela`,
+    description: locale === 'es'
+      ? `Apartamentos, casas y propiedades en venta en ${stateName}. Encuentra tu propiedad ideal con listados detallados, fotos y precios.`
+      : `Browse apartments, houses, and properties for sale in ${stateName}. Find your perfect property with detailed listings, photos, and pricing.`,
     alternates: {
       canonical: `${baseUrl}${path}`,
       languages: {
@@ -35,6 +37,7 @@ export async function generateMetadata({
       title: `${t('realEstateIn', { location: stateName })}, Venezuela`,
       description: `Browse apartments, houses, and properties for sale in ${stateName}.`,
       type: 'website',
+      locale: locale === 'es' ? 'es_VE' : 'en_US',
       siteName: 'Property.com.ve',
     },
   };

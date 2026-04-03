@@ -65,6 +65,7 @@ export async function generateMetadata({
       description,
       type: 'website',
       url: canonicalUrl,
+      locale: locale === 'es' ? 'es_VE' : 'en_US',
       images: listing.thumbnail_url ? [listing.thumbnail_url] : [],
       siteName: 'Property.com.ve',
     },

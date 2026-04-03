@@ -25,8 +25,10 @@ export async function generateMetadata({
   const location = `${cityName}, ${stateName}`;
 
   return {
-    title: `${t('realEstateIn', { location })} | Property.com.ve`,
-    description: `Find apartments, houses, and properties for sale in ${location}. Browse detailed listings with photos, prices, and amenities.`,
+    title: t('realEstateIn', { location }),
+    description: locale === 'es'
+      ? `Apartamentos, casas y propiedades en venta en ${location}. Listados detallados con fotos, precios y servicios.`
+      : `Find apartments, houses, and properties for sale in ${location}. Browse detailed listings with photos, prices, and amenities.`,
     alternates: {
       canonical: `${baseUrl}${path}`,
       languages: {
@@ -38,6 +40,7 @@ export async function generateMetadata({
       title: t('realEstateIn', { location }),
       description: `Find apartments, houses, and properties for sale in ${cityName}.`,
       type: 'website',
+      locale: locale === 'es' ? 'es_VE' : 'en_US',
       siteName: 'Property.com.ve',
     },
   };

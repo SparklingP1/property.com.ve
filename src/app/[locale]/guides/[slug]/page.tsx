@@ -36,13 +36,25 @@ export async function generateMetadata({
     return { title: 'Guide Not Found' };
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+  const esSlug = guide.slug_es || guide.slug;
+  const enSlug = guide.slug;
+
   return {
     title: guide.title,
     description: guide.description,
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/guides/${esSlug}` : `${baseUrl}/en/guides/${enSlug}`,
+      languages: {
+        es: `${baseUrl}/guides/${esSlug}`,
+        en: `${baseUrl}/en/guides/${enSlug}`,
+      },
+    },
     openGraph: {
       title: guide.title,
       description: guide.description,
       type: 'article',
+      locale: locale === 'es' ? 'es_VE' : 'en_US',
       publishedTime: guide.publishedAt,
     },
   };
