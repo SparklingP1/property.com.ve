@@ -45,7 +45,7 @@ export interface Listing {
   total_area_sqm: number | null;
   land_area_sqm: number | null;
   amenities: string[] | null;
-  features: Record<string, any> | null;
+  features: Record<string, unknown> | null;
   agent_name: string | null;
   agent_office: string | null;
   reference_code: string | null;

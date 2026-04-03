@@ -1,35 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useLocale } from 'next-intl';
-import { useTranslations } from 'next-intl';
+import { useState, useEffect, useCallback, type MouseEvent } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Menu, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-function useAlternateUrl() {
-  const locale = useLocale();
-  const pathname = usePathname();
-  const [alternateUrl, setAlternateUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const targetLang = locale === 'es' ? 'en' : 'es';
-    const link = document.querySelector(`link[rel="alternate"][hreflang="${targetLang}"]`) as HTMLLinkElement | null;
-    if (link?.href) {
-      // Extract pathname from absolute URL
-      try {
-        const url = new URL(link.href);
-        setAlternateUrl(url.pathname);
-      } catch {
-        setAlternateUrl(null);
-      }
-    } else {
-      setAlternateUrl(null);
-    }
-  }, [locale, pathname]);
-
-  return alternateUrl;
-}
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,21 +12,55 @@ export function Header() {
   const tHeader = useTranslations('header');
   const locale = useLocale();
   const pathname = usePathname();
-  const alternateUrl = useAlternateUrl();
+  const targetLocale = locale === 'es' ? 'en' : 'es';
 
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
-    if (!mobileMenuOpen) return () => { document.body.style.overflow = ''; };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeMobileMenu();
+    if (!mobileMenuOpen) {
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMobileMenu();
+      }
     };
+
     window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [mobileMenuOpen, closeMobileMenu]);
+
+  const handleLanguageSwitch = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    const targetLang = locale === 'es' ? 'en' : 'es';
+    const alternateLink = document.querySelector(
+      `link[rel="alternate"][hreflang="${targetLang}"]`
+    ) as HTMLLinkElement | null;
+
+    if (!alternateLink?.href) {
+      return;
+    }
+
+    try {
+      const url = new URL(alternateLink.href);
+      event.preventDefault();
+      window.location.assign(`${url.pathname}${url.search}${url.hash}`);
+    } catch {
+      // Fall back to next-intl Link navigation if the alternate href is malformed.
+    }
+  }, [locale]);
+
+  const handleMobileLanguageSwitch = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    closeMobileMenu();
+    handleLanguageSwitch(event);
+  }, [closeMobileMenu, handleLanguageSwitch]);
 
   const navLinks = [
     { href: '/' as const, label: t('home') },
@@ -72,7 +81,6 @@ export function Header() {
           <span className="font-bold text-xl text-foreground">{tHeader('branding')}</span>
         </Link>
 
-        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
             <Link
@@ -83,28 +91,17 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          {/* Language Switcher — uses hreflang alternate URL when available */}
-          {alternateUrl ? (
-            <a
-              href={alternateUrl}
-              className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
-            >
-              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-              {tHeader('langSwitch')}
-            </a>
-          ) : (
-            <Link
-              href={pathname}
-              locale={locale === 'es' ? 'en' : 'es'}
-              className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
-            >
-              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-              {tHeader('langSwitch')}
-            </Link>
-          )}
+          <Link
+            href={pathname}
+            locale={targetLocale}
+            onClick={handleLanguageSwitch}
+            className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
+          >
+            <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+            {tHeader('langSwitch')}
+          </Link>
         </div>
 
-        {/* Mobile Menu Button */}
         <Button
           variant="ghost"
           size="icon"
@@ -113,11 +110,14 @@ export function Header() {
           aria-expanded={mobileMenuOpen}
           aria-label={mobileMenuOpen ? t('closeMenu') : t('openMenu')}
         >
-          {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+          {mobileMenuOpen ? (
+            <X className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          )}
         </Button>
       </nav>
 
-      {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border bg-white">
           <div className="container py-4 flex flex-col gap-2">
@@ -126,32 +126,20 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className="text-muted-foreground hover:text-foreground transition-colors py-2 text-sm font-medium"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={closeMobileMenu}
               >
                 {link.label}
               </Link>
             ))}
-            {/* Mobile Language Switcher */}
-            {alternateUrl ? (
-              <a
-                href={alternateUrl}
-                className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-                {tHeader('langSwitch')}
-              </a>
-            ) : (
-              <Link
-                href={pathname}
-                locale={locale === 'es' ? 'en' : 'es'}
-                className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-                {tHeader('langSwitch')}
-              </Link>
-            )}
+            <Link
+              href={pathname}
+              locale={targetLocale}
+              className="text-sm font-semibold py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              onClick={handleMobileLanguageSwitch}
+            >
+              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+              {tHeader('langSwitch')}
+            </Link>
           </div>
         </div>
       )}

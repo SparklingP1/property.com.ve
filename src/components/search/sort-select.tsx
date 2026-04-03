@@ -11,6 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  normalizeSearchParams,
+  serializeSearchParams,
+  type SearchParamRecord,
+} from '@/lib/search-params';
 
 interface SortSelectProps {
   currentSort: string;
@@ -23,11 +28,14 @@ export function SortSelect({ currentSort }: SortSelectProps) {
   const t = useTranslations('search');
 
   const handleSortChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('sort', value);
+    const nextSearchParams = normalizeSearchParams(
+      Object.fromEntries(searchParams.entries()) as SearchParamRecord
+    );
+    nextSearchParams.sort = value;
+    const queryString = serializeSearchParams(nextSearchParams);
 
     startTransition(() => {
-      router.push(`/search?${params.toString()}`);
+      router.push(queryString ? `/search?${queryString}` : '/search');
     });
   };
 

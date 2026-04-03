@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { ListingCard } from '@/components/listings/listing-card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { Listing } from '@/types/listing';
+import type { NormalizedSearchParams } from '@/lib/search-params';
 
 interface SearchResultsClientProps {
   initialListings: Listing[];
   totalCount: number;
-  searchParams: { [key: string]: string | undefined };
+  searchParams: NormalizedSearchParams;
   sortBy: string;
 }
 
@@ -28,11 +29,6 @@ export function SearchResultsClient({
   const [isLoading, setIsLoading] = useState(false);
   const t = useTranslations('results');
 
-  // Reset listings when search params or sort changes
-  useEffect(() => {
-    setListings(initialListings);
-  }, [initialListings, searchParams, sortBy]);
-
   const hasMore = listings.length < totalCount;
 
   const loadMore = async () => {
@@ -42,7 +38,7 @@ export function SearchResultsClient({
     // Build the same query as server-side
     let query = supabase
       .from('listings')
-      .select('*')
+      .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type')
       .eq('active', true);
 
     // Apply all the same filters
@@ -52,20 +48,24 @@ export function SearchResultsClient({
       );
     }
 
-    if (searchParams.transaction && searchParams.transaction !== 'all') {
+    if (searchParams.transaction) {
       query = query.eq('transaction_type', searchParams.transaction);
     }
 
-    if (searchParams.type && searchParams.type !== 'all') {
+    if (searchParams.type) {
       query = query.eq('property_type', searchParams.type);
     }
 
-    if (searchParams.state && searchParams.state !== 'all') {
+    if (searchParams.state) {
       query = query.eq('state', searchParams.state);
     }
 
-    if (searchParams.city && searchParams.city !== 'all') {
+    if (searchParams.city) {
       query = query.eq('city', searchParams.city);
+    }
+
+    if (searchParams.neighborhood) {
+      query = query.eq('neighborhood', searchParams.neighborhood);
     }
 
     if (searchParams.minPrice) {
@@ -76,15 +76,15 @@ export function SearchResultsClient({
       query = query.lte('price', Number(searchParams.maxPrice));
     }
 
-    if (searchParams.bedrooms && searchParams.bedrooms !== 'all') {
+    if (searchParams.bedrooms) {
       query = query.gte('bedrooms', Number(searchParams.bedrooms));
     }
 
-    if (searchParams.bathrooms && searchParams.bathrooms !== 'all') {
+    if (searchParams.bathrooms) {
       query = query.gte('bathrooms', Number(searchParams.bathrooms));
     }
 
-    if (searchParams.parking && searchParams.parking !== 'all') {
+    if (searchParams.parking) {
       query = query.gte('parking_spaces', Number(searchParams.parking));
     }
 
@@ -96,7 +96,7 @@ export function SearchResultsClient({
       query = query.lte('area_sqm', Number(searchParams.maxArea));
     }
 
-    if (searchParams.furnished && searchParams.furnished !== 'all') {
+    if (searchParams.furnished) {
       query = query.eq('furnished', searchParams.furnished === 'true');
     }
 

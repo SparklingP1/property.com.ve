@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { parseSearchQuery } from '@/lib/search-parser';
+import { serializeSearchParams } from '@/lib/search-params';
 
 export function SearchBar() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function SearchBar() {
   const [location, setLocation] = useState('');
 
   const handleSearch = () => {
-    const params = new URLSearchParams();
+    const nextSearchParams: Record<string, string> = {};
 
     if (location) {
       // Parse the query for smart search (property type, location)
@@ -24,21 +25,26 @@ export function SearchBar() {
 
       // Apply parsed filters (no bedrooms/bathrooms - use manual filters for those)
       if (parsed.propertyType) {
-        params.set('type', parsed.propertyType);
+        nextSearchParams.type = parsed.propertyType;
+      }
+      if (parsed.transactionType) {
+        nextSearchParams.transaction = parsed.transactionType;
       }
       if (parsed.furnished !== undefined) {
-        params.set('furnished', parsed.furnished.toString());
+        nextSearchParams.furnished = parsed.furnished.toString();
       }
 
       // Use remaining keywords for text search
       const finalQuery = parsed.remainingKeywords || location;
       if (finalQuery) {
-        params.set('q', finalQuery);
+        nextSearchParams.q = finalQuery;
       }
     }
 
+    const queryString = serializeSearchParams(nextSearchParams);
+
     startTransition(() => {
-      router.push(`/search?${params.toString()}`);
+      router.push(queryString ? `/search?${queryString}` : '/search');
     });
   };
 

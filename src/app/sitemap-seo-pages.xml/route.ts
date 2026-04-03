@@ -1,4 +1,3 @@
-import { MetadataRoute } from 'next';
 import { createServiceClient } from '@/lib/supabase/server';
 
 /**

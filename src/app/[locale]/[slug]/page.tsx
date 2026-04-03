@@ -46,7 +46,6 @@ export async function generateMetadata({
   // Use locale-specific slugs for canonical and hreflang
   const esSlug = seoContent?.page_slug_es || `/${slug}`;
   const enSlug = seoContent?.page_slug || `/${slug}`;
-  const canonicalSlug = locale === 'es' ? esSlug : enSlug;
   const alternates = {
     canonical: locale === 'es' ? `${baseUrl}${esSlug}` : `${baseUrl}/en${enSlug}`,
     languages: {
@@ -335,7 +334,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
                     .map(([type, count]) => (
                       <Link
                         key={type}
-                        href={`/search?${filters.city ? `city=${encodeURIComponent(filters.city)}` : `state=${encodeURIComponent(filters.state || '')}`}&property_type=${type}`}
+                        href={`/search?${filters.city ? `city=${encodeURIComponent(filters.city)}` : `state=${encodeURIComponent(filters.state || '')}`}&type=${type}`}
                         className="bg-white rounded-lg shadow-sm border border-stone-200 px-6 py-4 hover:shadow-md hover:border-primary transition-all"
                       >
                         <p className="font-semibold text-stone-900 capitalize text-lg">{type}</p>
@@ -358,7 +357,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
                     {bedroomOptions.map((bedrooms) => (
                       <Link
                         key={bedrooms}
-                        href={`/search?${filters.city ? `city=${encodeURIComponent(filters.city)}` : `state=${encodeURIComponent(filters.state || '')}`}&property_type=${filters.property_type}&bedrooms=${bedrooms}`}
+                        href={`/search?${filters.city ? `city=${encodeURIComponent(filters.city)}` : `state=${encodeURIComponent(filters.state || '')}`}&type=${filters.property_type}&bedrooms=${bedrooms}`}
                         className="bg-white rounded-lg shadow-sm border border-stone-200 px-6 py-3 hover:shadow-md hover:border-primary transition-all flex items-center gap-2"
                       >
                         <Bed className="h-5 w-5 text-primary" />
@@ -385,7 +384,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
               {totalListings >= 100 && (
                 <div className="text-center mt-8">
                   <Link
-                    href={`/search?${filters.city ? `city=${encodeURIComponent(filters.city)}` : `state=${encodeURIComponent(filters.state || '')}`}${filters.property_type ? `&property_type=${filters.property_type}` : ''}${filters.bedrooms ? `&bedrooms=${filters.bedrooms}` : ''}`}
+                    href={`/search?${filters.city ? `city=${encodeURIComponent(filters.city)}` : `state=${encodeURIComponent(filters.state || '')}`}${filters.property_type ? `&type=${filters.property_type}` : ''}${filters.bedrooms ? `&bedrooms=${filters.bedrooms}` : ''}`}
                     className="inline-block px-8 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
                   >
                     {t('viewAllResults')}

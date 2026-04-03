@@ -17,49 +17,70 @@ import {
 } from '@/components/ui/select';
 import { Search, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { parseSearchQuery } from '@/lib/search-parser';
+import {
+  normalizeSearchParams,
+  serializeSearchParams,
+  type NormalizedSearchParams,
+  type SearchParamRecord,
+} from '@/lib/search-params';
 
-export function AdvancedSearchFilters() {
+interface AvailableLocationRow {
+  state?: string | null;
+  city?: string | null;
+}
+
+interface AdvancedSearchFiltersContentProps {
+  searchParamsString: string;
+}
+
+function parseSearchParams(searchParamsString: string) {
+  return normalizeSearchParams(
+    Object.fromEntries(
+      new URLSearchParams(searchParamsString).entries()
+    ) as SearchParamRecord
+  );
+}
+
+function pushSearch(
+  router: ReturnType<typeof useRouter>,
+  startTransition: (callback: () => void) => void,
+  searchParams: NormalizedSearchParams
+) {
+  const queryString = serializeSearchParams(searchParams);
+
+  startTransition(() => {
+    router.push(queryString ? `/search?${queryString}` : '/search');
+  });
+}
+
+function AdvancedSearchFiltersContent({
+  searchParamsString,
+}: AdvancedSearchFiltersContentProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const t = useTranslations('search');
   const tListing = useTranslations('listing');
+  const normalizedSearchParams = parseSearchParams(searchParamsString);
 
-  // Dynamic options from database
   const [availableStates, setAvailableStates] = useState<string[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>([]);
 
-  // Read dropdown values directly from URL (auto-apply)
-  const currentType = searchParams.get('type') || 'all';
-  const currentState = searchParams.get('state') || 'all';
-  const currentCity = searchParams.get('city') || 'all';
-  const currentBedrooms = searchParams.get('bedrooms') || 'all';
-  const currentBathrooms = searchParams.get('bathrooms') || 'all';
-  const currentParking = searchParams.get('parking') || 'all';
-  const currentFurnished = searchParams.get('furnished') || 'all';
+  const currentType = normalizedSearchParams.type || 'all';
+  const currentState = normalizedSearchParams.state || 'all';
+  const currentCity = normalizedSearchParams.city || 'all';
+  const currentBedrooms = normalizedSearchParams.bedrooms || 'all';
+  const currentBathrooms = normalizedSearchParams.bathrooms || 'all';
+  const currentParking = normalizedSearchParams.parking || 'all';
+  const currentFurnished = normalizedSearchParams.furnished || 'all';
 
-  // Text/number inputs use local state (applied on Enter)
-  const [keyword, setKeyword] = useState(searchParams.get('q') || '');
-  const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
-  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
-  const [minArea, setMinArea] = useState(searchParams.get('minArea') || '');
-  const [maxArea, setMaxArea] = useState(searchParams.get('maxArea') || '');
+  const [keyword, setKeyword] = useState(() => normalizedSearchParams.q || '');
+  const [minPrice, setMinPrice] = useState(() => normalizedSearchParams.minPrice || '');
+  const [maxPrice, setMaxPrice] = useState(() => normalizedSearchParams.maxPrice || '');
+  const [minArea, setMinArea] = useState(() => normalizedSearchParams.minArea || '');
+  const [maxArea, setMaxArea] = useState(() => normalizedSearchParams.maxArea || '');
   const [priceError, setPriceError] = useState('');
   const [areaError, setAreaError] = useState('');
 
-  // Sync local text state when URL params change externally (e.g. filter chip removal)
-  useEffect(() => {
-    setKeyword(searchParams.get('q') || '');
-    setMinPrice(searchParams.get('minPrice') || '');
-    setMaxPrice(searchParams.get('maxPrice') || '');
-    setMinArea(searchParams.get('minArea') || '');
-    setMaxArea(searchParams.get('maxArea') || '');
-    setPriceError('');
-    setAreaError('');
-  }, [searchParams]);
-
-  // Fetch available states on mount
   useEffect(() => {
     const fetchStates = async () => {
       const supabase = createClient();
@@ -68,16 +89,24 @@ export function AdvancedSearchFilters() {
         .select('state')
         .eq('active', true)
         .not('state', 'is', null);
+
       if (data) {
-        const states = [...new Set(data.map((d: { state: string }) => d.state).filter(Boolean))] as string[];
+        const states = [
+          ...new Set(
+            data
+              .map((row: AvailableLocationRow) => row.state)
+              .filter((value): value is string => Boolean(value))
+          ),
+        ];
+
         states.sort();
         setAvailableStates(states);
       }
     };
+
     fetchStates();
   }, []);
 
-  // Fetch cities when state changes
   useEffect(() => {
     const fetchCities = async () => {
       const supabase = createClient();
@@ -86,109 +115,131 @@ export function AdvancedSearchFilters() {
         .select('city')
         .eq('active', true)
         .not('city', 'is', null);
-      if (currentState !== 'all') {
-        query = query.eq('state', currentState);
+
+      if (normalizedSearchParams.state) {
+        query = query.eq('state', normalizedSearchParams.state);
       }
+
       const { data } = await query;
+
       if (data) {
-        const cities = [...new Set(data.map((d: { city: string }) => d.city).filter(Boolean))] as string[];
+        const cities = [
+          ...new Set(
+            data
+              .map((row: AvailableLocationRow) => row.city)
+              .filter((value): value is string => Boolean(value))
+          ),
+        ];
+
         cities.sort();
         setAvailableCities(cities);
       }
     };
+
     fetchCities();
-  }, [currentState]);
+  }, [normalizedSearchParams.state]);
 
-  // Update a single URL param (instant apply for dropdowns)
-  const updateParam = useCallback((key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value && value !== 'all') {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    // If state changes, clear city (it may not exist in new state)
-    if (key === 'state') {
-      params.delete('city');
-    }
-    startTransition(() => {
-      router.push(`/search?${params.toString()}`);
-    });
-  }, [searchParams, router, startTransition]);
+  const updateSearch = useCallback(
+    (updater: (current: NormalizedSearchParams) => NormalizedSearchParams) => {
+      pushSearch(router, startTransition, updater(parseSearchParams(searchParamsString)));
+    },
+    [router, searchParamsString, startTransition]
+  );
 
-  // Apply keyword search (on Enter)
+  const updateParam = useCallback(
+    (key: keyof NormalizedSearchParams, value: string) => {
+      updateSearch((current) => {
+        const nextSearchParams: NormalizedSearchParams = { ...current };
+
+        if (value && value !== 'all') {
+          nextSearchParams[key] = value as never;
+        } else {
+          delete nextSearchParams[key];
+        }
+
+        if (key === 'state') {
+          delete nextSearchParams.city;
+          delete nextSearchParams.neighborhood;
+        }
+
+        if (key === 'city') {
+          delete nextSearchParams.neighborhood;
+        }
+
+        return nextSearchParams;
+      });
+    },
+    [updateSearch]
+  );
+
   const applyKeyword = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    updateSearch((current) => {
+      const nextSearchParams: NormalizedSearchParams = { ...current };
 
-    if (keyword.trim()) {
-      const parsed = parseSearchQuery(keyword);
-      const finalKeyword = parsed.remainingKeywords || keyword;
-      if (finalKeyword.trim()) {
-        params.set('q', finalKeyword.trim());
+      if (keyword.trim()) {
+        const parsed = normalizeSearchParams({ q: keyword.trim() });
+
+        nextSearchParams.q = parsed.q;
+
+        if (!current.type && parsed.type) {
+          nextSearchParams.type = parsed.type;
+        }
+
+        if (!current.transaction && parsed.transaction) {
+          nextSearchParams.transaction = parsed.transaction;
+        }
+
+        if (!current.furnished && parsed.furnished) {
+          nextSearchParams.furnished = parsed.furnished;
+        }
       } else {
-        params.delete('q');
+        delete nextSearchParams.q;
       }
-      // Smart detection: apply parsed filters if not already set
-      if (parsed.propertyType && !params.get('type')) {
-        params.set('type', parsed.propertyType);
-      }
-      if (parsed.furnished !== undefined && !params.get('furnished')) {
-        params.set('furnished', parsed.furnished.toString());
-      }
-    } else {
-      params.delete('q');
-    }
 
-    startTransition(() => {
-      router.push(`/search?${params.toString()}`);
+      return nextSearchParams;
     });
-  }, [keyword, searchParams, router, startTransition]);
+  }, [keyword, updateSearch]);
 
-  // Apply price range (on Enter)
   const applyPrice = useCallback(() => {
     if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) {
       setPriceError(t('priceRangeError'));
       return;
     }
+
     setPriceError('');
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (minPrice) params.set('minPrice', minPrice); else params.delete('minPrice');
-    if (maxPrice) params.set('maxPrice', maxPrice); else params.delete('maxPrice');
+    updateSearch((current) => ({
+      ...current,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
+    }));
+  }, [maxPrice, minPrice, t, updateSearch]);
 
-    startTransition(() => {
-      router.push(`/search?${params.toString()}`);
-    });
-  }, [minPrice, maxPrice, searchParams, router, startTransition, t]);
-
-  // Apply area range (on Enter)
   const applyArea = useCallback(() => {
     if (minArea && maxArea && Number(minArea) > Number(maxArea)) {
       setAreaError(t('areaRangeError'));
       return;
     }
+
     setAreaError('');
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (minArea) params.set('minArea', minArea); else params.delete('minArea');
-    if (maxArea) params.set('maxArea', maxArea); else params.delete('maxArea');
+    updateSearch((current) => ({
+      ...current,
+      minArea: minArea || undefined,
+      maxArea: maxArea || undefined,
+    }));
+  }, [maxArea, minArea, t, updateSearch]);
 
-    startTransition(() => {
-      router.push(`/search?${params.toString()}`);
-    });
-  }, [minArea, maxArea, searchParams, router, startTransition, t]);
-
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     startTransition(() => {
       router.push('/search');
     });
-  };
+  }, [router, startTransition]);
 
-  const hasAnyFilter = searchParams.toString().length > 0;
+  const hasAnyFilter = searchParamsString.length > 0;
 
   return (
     <div className="space-y-5">
-      {/* Keyword Search */}
       <div className="space-y-1.5">
         <Label htmlFor="keyword" className="text-sm font-medium text-stone-700">
           {t('keywords')}
@@ -198,8 +249,8 @@ export function AdvancedSearchFilters() {
             id="keyword"
             placeholder={t('placeholder')}
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && applyKeyword()}
+            onChange={(event) => setKeyword(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && applyKeyword()}
             className="border-stone-300"
           />
           <Button
@@ -215,12 +266,11 @@ export function AdvancedSearchFilters() {
 
       <Separator className="bg-stone-200" />
 
-      {/* Property Type */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">
           {t('propertyType')}
         </Label>
-        <Select value={currentType} onValueChange={(v) => updateParam('type', v)}>
+        <Select value={currentType} onValueChange={(value) => updateParam('type', value)}>
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder={t('any')} />
           </SelectTrigger>
@@ -235,44 +285,48 @@ export function AdvancedSearchFilters() {
         </Select>
       </div>
 
-      {/* State */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">{t('state')}</Label>
-        <Select value={currentState} onValueChange={(v) => updateParam('state', v)}>
+        <Select value={currentState} onValueChange={(value) => updateParam('state', value)}>
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder={t('anyState')} />
           </SelectTrigger>
           <SelectContent className="bg-white z-50">
             <SelectItem value="all">{t('allStates')}</SelectItem>
             {availableStates.map((state) => (
-              <SelectItem key={state} value={state}>{state}</SelectItem>
+              <SelectItem key={state} value={state}>
+                {state}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* City (depends on state) */}
       {availableCities.length > 0 && (
         <div className="space-y-1.5">
           <Label className="text-sm font-medium text-stone-700">{t('city')}</Label>
-          <Select value={currentCity} onValueChange={(v) => updateParam('city', v)}>
+          <Select value={currentCity} onValueChange={(value) => updateParam('city', value)}>
             <SelectTrigger className="border-stone-300">
               <SelectValue placeholder={t('anyCity')} />
             </SelectTrigger>
             <SelectContent className="bg-white z-50">
               <SelectItem value="all">{t('allCities')}</SelectItem>
               {availableCities.map((city) => (
-                <SelectItem key={city} value={city}>{city}</SelectItem>
+                <SelectItem key={city} value={city}>
+                  {city}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       )}
 
-      {/* Bedrooms */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">{t('bedrooms')}</Label>
-        <Select value={currentBedrooms} onValueChange={(v) => updateParam('bedrooms', v)}>
+        <Select
+          value={currentBedrooms}
+          onValueChange={(value) => updateParam('bedrooms', value)}
+        >
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder={t('any')} />
           </SelectTrigger>
@@ -287,10 +341,12 @@ export function AdvancedSearchFilters() {
         </Select>
       </div>
 
-      {/* Bathrooms */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">{t('bathrooms')}</Label>
-        <Select value={currentBathrooms} onValueChange={(v) => updateParam('bathrooms', v)}>
+        <Select
+          value={currentBathrooms}
+          onValueChange={(value) => updateParam('bathrooms', value)}
+        >
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder={t('any')} />
           </SelectTrigger>
@@ -306,7 +362,6 @@ export function AdvancedSearchFilters() {
 
       <Separator className="bg-stone-200" />
 
-      {/* Price Range */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">{t('priceUSD')}</Label>
         <div className="grid grid-cols-2 gap-2">
@@ -314,8 +369,11 @@ export function AdvancedSearchFilters() {
             type="number"
             placeholder={t('min')}
             value={minPrice}
-            onChange={(e) => { setMinPrice(e.target.value); setPriceError(''); }}
-            onKeyDown={(e) => e.key === 'Enter' && applyPrice()}
+            onChange={(event) => {
+              setMinPrice(event.target.value);
+              setPriceError('');
+            }}
+            onKeyDown={(event) => event.key === 'Enter' && applyPrice()}
             onBlur={applyPrice}
             className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
           />
@@ -323,8 +381,11 @@ export function AdvancedSearchFilters() {
             type="number"
             placeholder={t('max')}
             value={maxPrice}
-            onChange={(e) => { setMaxPrice(e.target.value); setPriceError(''); }}
-            onKeyDown={(e) => e.key === 'Enter' && applyPrice()}
+            onChange={(event) => {
+              setMaxPrice(event.target.value);
+              setPriceError('');
+            }}
+            onKeyDown={(event) => event.key === 'Enter' && applyPrice()}
             onBlur={applyPrice}
             className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
           />
@@ -332,7 +393,6 @@ export function AdvancedSearchFilters() {
         {priceError && <p className="text-xs text-red-500">{priceError}</p>}
       </div>
 
-      {/* Area Range */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">{t('areaM2')}</Label>
         <div className="grid grid-cols-2 gap-2">
@@ -340,8 +400,11 @@ export function AdvancedSearchFilters() {
             type="number"
             placeholder={t('min')}
             value={minArea}
-            onChange={(e) => { setMinArea(e.target.value); setAreaError(''); }}
-            onKeyDown={(e) => e.key === 'Enter' && applyArea()}
+            onChange={(event) => {
+              setMinArea(event.target.value);
+              setAreaError('');
+            }}
+            onKeyDown={(event) => event.key === 'Enter' && applyArea()}
             onBlur={applyArea}
             className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
           />
@@ -349,8 +412,11 @@ export function AdvancedSearchFilters() {
             type="number"
             placeholder={t('max')}
             value={maxArea}
-            onChange={(e) => { setMaxArea(e.target.value); setAreaError(''); }}
-            onKeyDown={(e) => e.key === 'Enter' && applyArea()}
+            onChange={(event) => {
+              setMaxArea(event.target.value);
+              setAreaError('');
+            }}
+            onKeyDown={(event) => event.key === 'Enter' && applyArea()}
             onBlur={applyArea}
             className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
           />
@@ -360,10 +426,11 @@ export function AdvancedSearchFilters() {
 
       <Separator className="bg-stone-200" />
 
-      {/* Parking */}
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">{t('parkingSpaces')}</Label>
-        <Select value={currentParking} onValueChange={(v) => updateParam('parking', v)}>
+        <Label className="text-sm font-medium text-stone-700">
+          {t('parkingSpaces')}
+        </Label>
+        <Select value={currentParking} onValueChange={(value) => updateParam('parking', value)}>
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder={t('any')} />
           </SelectTrigger>
@@ -376,10 +443,12 @@ export function AdvancedSearchFilters() {
         </Select>
       </div>
 
-      {/* Furnished */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">{t('furnished')}</Label>
-        <Select value={currentFurnished} onValueChange={(v) => updateParam('furnished', v)}>
+        <Select
+          value={currentFurnished}
+          onValueChange={(value) => updateParam('furnished', value)}
+        >
           <SelectTrigger className="border-stone-300">
             <SelectValue placeholder={t('any')} />
           </SelectTrigger>
@@ -391,7 +460,6 @@ export function AdvancedSearchFilters() {
         </Select>
       </div>
 
-      {/* Reset Button */}
       {hasAnyFilter && (
         <>
           <Separator className="bg-stone-200" />
@@ -406,5 +474,17 @@ export function AdvancedSearchFilters() {
         </>
       )}
     </div>
+  );
+}
+
+export function AdvancedSearchFilters() {
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+
+  return (
+    <AdvancedSearchFiltersContent
+      key={searchParamsString}
+      searchParamsString={searchParamsString}
+    />
   );
 }

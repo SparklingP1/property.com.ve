@@ -1,6 +1,39 @@
 import { cache } from 'react';
-import { createClient } from './server';
+import { createClient, createPrivilegedClient } from './server';
 import type { Listing } from '@/types/listing';
+
+type ListingClient =
+  | Awaited<ReturnType<typeof createClient>>
+  | ReturnType<typeof createPrivilegedClient>;
+
+async function fetchListingById(client: ListingClient, id: string) {
+  return client
+    .from('listings')
+    .select('*')
+    .eq('id', id)
+    .single();
+}
+
+async function fetchListingBySlug(client: ListingClient, slug: string) {
+  const [{ data: byEnSlug, error: enError }, { data: byEsSlug, error: esError }] =
+    await Promise.all([
+      client.from('listings').select('*').eq('url_slug', slug).single(),
+      client.from('listings').select('*').eq('url_slug_es', slug).single(),
+    ]);
+
+  return {
+    listing: (byEnSlug || byEsSlug) as Listing | null,
+    error: enError || esError,
+  };
+}
+
+function getOptionalPrivilegedClient() {
+  try {
+    return createPrivilegedClient();
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Cached query to get featured listings for homepage
@@ -49,13 +82,43 @@ export const getFeaturedListings = cache(async (params: {
 export const getListingById = cache(async (id: string) => {
   const supabase = await createClient();
 
-  const { data: listing, error } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { data: listing, error } = await fetchListingById(supabase, id);
 
-  return { listing: listing as Listing | null, error };
+  if (listing) {
+    return { listing: listing as Listing, error: null };
+  }
+
+  const privilegedClient = getOptionalPrivilegedClient();
+  if (!privilegedClient) {
+    return { listing: null, error };
+  }
+
+  const {
+    data: privilegedListing,
+    error: privilegedError,
+  } = await fetchListingById(privilegedClient, id);
+
+  return { listing: (privilegedListing as Listing | null) || null, error: privilegedError };
+});
+
+/**
+ * Cached query to get a single listing by slug, including inactive listings
+ * for server-rendered redirects and "no longer available" pages.
+ */
+export const getListingBySlug = cache(async (slug: string) => {
+  const supabase = await createClient();
+  const { listing, error } = await fetchListingBySlug(supabase, slug);
+
+  if (listing) {
+    return { listing, error: null };
+  }
+
+  const privilegedClient = getOptionalPrivilegedClient();
+  if (!privilegedClient) {
+    return { listing: null, error };
+  }
+
+  return fetchListingBySlug(privilegedClient, slug);
 });
 
 /**

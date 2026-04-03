@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { ListingGrid } from '@/components/listings/listing-grid';
-import { slugify } from '@/lib/slug';
 import type { Listing } from '@/types/listing';
 import { Link } from '@/i18n/navigation';
 import { MapPin, Home, TrendingUp, Bed } from 'lucide-react';
@@ -166,7 +165,7 @@ export default async function CityPage({ params }: CityPageProps) {
                 .map(([type, count]) => (
                   <Link
                     key={type}
-                    href={`/search?state=${encodeURIComponent(stateName)}&city=${encodeURIComponent(cityName)}&property_type=${type}`}
+                    href={`/search?state=${encodeURIComponent(stateName)}&city=${encodeURIComponent(cityName)}&type=${type}`}
                     className="bg-white rounded-lg shadow-sm border border-stone-200 px-6 py-4 hover:shadow-md hover:border-primary transition-all"
                   >
                     <p className="font-semibold text-stone-900 capitalize text-lg">{type}</p>

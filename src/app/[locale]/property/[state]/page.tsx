@@ -184,7 +184,7 @@ export default async function StatePage({ params }: StatePageProps) {
               {(Object.entries(propertyTypes) as [string, number][]).map(([type, count]) => (
                 <Link
                   key={type}
-                  href={`/search?state=${encodeURIComponent(stateName)}&property_type=${type}`}
+                  href={`/search?state=${encodeURIComponent(stateName)}&type=${type}`}
                   className="bg-white rounded-lg shadow-sm border border-stone-200 px-6 py-3 hover:shadow-md hover:border-primary transition-all"
                 >
                   <p className="font-medium text-stone-900 capitalize">{type}</p>

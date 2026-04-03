@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
 import type { Listing } from '@/types/listing';
 import { getListingUrlForLocale } from '@/lib/slug';
 import { getListingById } from '@/lib/supabase/cached-queries';
@@ -62,5 +61,6 @@ export default async function ListingPage({ params }: ListingPageProps) {
   }
 
   // Redirect to locale-aware SEO-friendly URL
-  redirect(getListingUrlForLocale(listing as Listing, locale));
+  const localizedPath = getListingUrlForLocale(listing as Listing, locale);
+  redirect(locale === 'en' ? `/en${localizedPath}` : localizedPath);
 }

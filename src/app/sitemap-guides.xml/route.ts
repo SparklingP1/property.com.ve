@@ -1,4 +1,3 @@
-import { MetadataRoute } from 'next';
 import { getAllGuides } from '@/lib/guides';
 import { guidesEs } from '@/lib/guides-es';
 

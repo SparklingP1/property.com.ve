@@ -2,11 +2,15 @@ import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { SearchResultsClient } from './search-results-client';
 import { SortSelect } from './sort-select';
-import { parseSearchQuery } from '@/lib/search-parser';
 import type { Listing } from '@/types/listing';
+import {
+  getSearchParamsKey,
+  normalizeSearchParams,
+  type SearchParamRecord,
+} from '@/lib/search-params';
 
 interface SearchResultsProps {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: SearchParamRecord;
 }
 
 const RESULTS_PER_PAGE = 24;
@@ -14,31 +18,11 @@ const RESULTS_PER_PAGE = 24;
 export async function SearchResults({ searchParams }: SearchResultsProps) {
   const supabase = await createClient();
   const t = await getTranslations('results');
+  const normalizedSearchParams = normalizeSearchParams(searchParams);
 
   // Get sort parameter (default: newest first)
-  const sortBy = searchParams.sort || 'scraped_at-desc';
+  const sortBy = normalizedSearchParams.sort || 'scraped_at-desc';
   const [sortField, sortDirection] = sortBy.split('-');
-
-  // Parse smart search from query string if present
-  let parsedQuery = searchParams.q || '';
-  let effectiveParams = { ...searchParams };
-
-  // If there's a query string and no explicit filters are set, try smart parsing
-  // Note: bedroom/bathroom parsing disabled - use manual filters for precision
-  if (searchParams.q && !searchParams.type) {
-    const parsed = parseSearchQuery(searchParams.q);
-
-    // Apply parsed filters only if they were detected
-    if (parsed.propertyType) {
-      effectiveParams.type = parsed.propertyType;
-    }
-    if (parsed.furnished !== undefined) {
-      effectiveParams.furnished = parsed.furnished.toString();
-    }
-
-    // Use remaining keywords for text search
-    parsedQuery = parsed.remainingKeywords || searchParams.q;
-  }
 
   // Build query - only select fields used in ListingCard
   let query = supabase
@@ -47,61 +31,69 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
     .eq('active', true);
 
   // Keyword search (title, location, city, neighborhood)
-  if (parsedQuery) {
+  if (normalizedSearchParams.q) {
     query = query.or(
-      `title.ilike.%${parsedQuery}%,location.ilike.%${parsedQuery}%,city.ilike.%${parsedQuery}%,neighborhood.ilike.%${parsedQuery}%`
+      `title.ilike.%${normalizedSearchParams.q}%,location.ilike.%${normalizedSearchParams.q}%,city.ilike.%${normalizedSearchParams.q}%,neighborhood.ilike.%${normalizedSearchParams.q}%`
     );
   }
 
   // Property type
-  if (effectiveParams.type && effectiveParams.type !== 'all') {
-    query = query.eq('property_type', effectiveParams.type);
+  if (normalizedSearchParams.type) {
+    query = query.eq('property_type', normalizedSearchParams.type);
+  }
+
+  if (normalizedSearchParams.transaction) {
+    query = query.eq('transaction_type', normalizedSearchParams.transaction);
   }
 
   // State
-  if (searchParams.state && searchParams.state !== 'all') {
-    query = query.eq('state', searchParams.state);
+  if (normalizedSearchParams.state) {
+    query = query.eq('state', normalizedSearchParams.state);
   }
 
   // City
-  if (searchParams.city && searchParams.city !== 'all') {
-    query = query.eq('city', searchParams.city);
+  if (normalizedSearchParams.city) {
+    query = query.eq('city', normalizedSearchParams.city);
+  }
+
+  if (normalizedSearchParams.neighborhood) {
+    query = query.eq('neighborhood', normalizedSearchParams.neighborhood);
   }
 
   // Price range
-  if (searchParams.minPrice) {
-    query = query.gte('price', Number(searchParams.minPrice));
+  if (normalizedSearchParams.minPrice) {
+    query = query.gte('price', Number(normalizedSearchParams.minPrice));
   }
-  if (searchParams.maxPrice) {
-    query = query.lte('price', Number(searchParams.maxPrice));
+  if (normalizedSearchParams.maxPrice) {
+    query = query.lte('price', Number(normalizedSearchParams.maxPrice));
   }
 
   // Bedrooms (minimum)
-  if (effectiveParams.bedrooms && effectiveParams.bedrooms !== 'all') {
-    query = query.gte('bedrooms', Number(effectiveParams.bedrooms));
+  if (normalizedSearchParams.bedrooms) {
+    query = query.gte('bedrooms', Number(normalizedSearchParams.bedrooms));
   }
 
   // Bathrooms (minimum)
-  if (effectiveParams.bathrooms && effectiveParams.bathrooms !== 'all') {
-    query = query.gte('bathrooms', Number(effectiveParams.bathrooms));
+  if (normalizedSearchParams.bathrooms) {
+    query = query.gte('bathrooms', Number(normalizedSearchParams.bathrooms));
   }
 
   // Parking (minimum)
-  if (searchParams.parking && searchParams.parking !== 'all') {
-    query = query.gte('parking_spaces', Number(searchParams.parking));
+  if (normalizedSearchParams.parking) {
+    query = query.gte('parking_spaces', Number(normalizedSearchParams.parking));
   }
 
   // Area range
-  if (searchParams.minArea) {
-    query = query.gte('area_sqm', Number(searchParams.minArea));
+  if (normalizedSearchParams.minArea) {
+    query = query.gte('area_sqm', Number(normalizedSearchParams.minArea));
   }
-  if (searchParams.maxArea) {
-    query = query.lte('area_sqm', Number(searchParams.maxArea));
+  if (normalizedSearchParams.maxArea) {
+    query = query.lte('area_sqm', Number(normalizedSearchParams.maxArea));
   }
 
   // Furnished
-  if (effectiveParams.furnished && effectiveParams.furnished !== 'all') {
-    query = query.eq('furnished', effectiveParams.furnished === 'true');
+  if (normalizedSearchParams.furnished) {
+    query = query.eq('furnished', normalizedSearchParams.furnished === 'true');
   }
 
   // Apply sorting (nulls last for bedrooms and area)
@@ -132,9 +124,10 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
 
       {/* Results with Load More */}
       <SearchResultsClient
+        key={`${getSearchParamsKey(normalizedSearchParams)}|${sortBy}`}
         initialListings={typedListings}
         totalCount={count || 0}
-        searchParams={searchParams}
+        searchParams={normalizedSearchParams}
         sortBy={sortBy}
       />
     </div>

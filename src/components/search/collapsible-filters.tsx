@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useEffect, useTransition } from 'react';
+import { ReactNode, useState, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
@@ -8,8 +8,13 @@ import { AdvancedSearchFilters } from './advanced-search-filters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SlidersHorizontal, X } from 'lucide-react';
+import {
+  normalizeSearchParams,
+  serializeSearchParams,
+  type NormalizedSearchParams,
+  type SearchParamRecord,
+} from '@/lib/search-params';
 
-// Human-readable labels for active filter chips
 const FILTER_LABELS: Record<string, Record<string, string>> = {
   type: {
     apartment: 'Apartment',
@@ -21,6 +26,10 @@ const FILTER_LABELS: Record<string, Record<string, string>> = {
   furnished: {
     true: 'Furnished',
     false: 'Unfurnished',
+  },
+  transaction: {
+    sale: 'Sale',
+    rent: 'Rent',
   },
 };
 
@@ -35,40 +44,77 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
   const [, startTransition] = useTransition();
   const t = useTranslations('search');
   const tListing = useTranslations('listing');
+  const normalizedSearchParams = normalizeSearchParams(
+    Object.fromEntries(searchParams.entries()) as SearchParamRecord
+  );
 
-  // Build active filters list
-  const activeFilters: { key: string; label: string; value: string }[] = [];
-  const paramConfig: { key: string; labelFn: (v: string) => string }[] = [
-    { key: 'q', labelFn: (v) => `"${v}"` },
-    { key: 'type', labelFn: (v) => tListing(v as 'apartment' | 'house' | 'land' | 'commercial' | 'office') || FILTER_LABELS.type[v] || v },
-    { key: 'state', labelFn: (v) => v },
-    { key: 'city', labelFn: (v) => v },
-    { key: 'bedrooms', labelFn: (v) => `${v}+ ${t('bedrooms')}` },
-    { key: 'bathrooms', labelFn: (v) => `${v}+ ${t('bathrooms')}` },
-    { key: 'minPrice', labelFn: (v) => `$${Number(v).toLocaleString()}+` },
-    { key: 'maxPrice', labelFn: (v) => `≤ $${Number(v).toLocaleString()}` },
-    { key: 'parking', labelFn: (v) => `${v}+ ${t('parkingSpaces')}` },
-    { key: 'minArea', labelFn: (v) => `${v}+ m²` },
-    { key: 'maxArea', labelFn: (v) => `≤ ${v} m²` },
-    { key: 'furnished', labelFn: (v) => v === 'true' ? t('furnished') : t('unfurnished') },
+  const activeFilters: { key: keyof NormalizedSearchParams; label: string }[] = [];
+  const paramConfig: Array<{
+    key: keyof NormalizedSearchParams;
+    labelFn: (value: string) => string;
+  }> = [
+    { key: 'q', labelFn: (value) => `"${value}"` },
+    {
+      key: 'type',
+      labelFn: (value) =>
+        tListing(
+          value as 'apartment' | 'house' | 'land' | 'commercial' | 'office'
+        ) ||
+        FILTER_LABELS.type[value] ||
+        value,
+    },
+    {
+      key: 'transaction',
+      labelFn: (value) =>
+        value === 'sale'
+          ? tListing('forSale')
+          : value === 'rent'
+            ? tListing('forRent')
+            : FILTER_LABELS.transaction[value] || value,
+    },
+    { key: 'state', labelFn: (value) => value },
+    { key: 'city', labelFn: (value) => value },
+    { key: 'neighborhood', labelFn: (value) => value },
+    { key: 'bedrooms', labelFn: (value) => `${value}+ ${t('bedrooms')}` },
+    { key: 'bathrooms', labelFn: (value) => `${value}+ ${t('bathrooms')}` },
+    { key: 'minPrice', labelFn: (value) => `$${Number(value).toLocaleString()}+` },
+    { key: 'maxPrice', labelFn: (value) => `<= $${Number(value).toLocaleString()}` },
+    { key: 'parking', labelFn: (value) => `${value}+ ${t('parkingSpaces')}` },
+    { key: 'minArea', labelFn: (value) => `${value}+ m²` },
+    { key: 'maxArea', labelFn: (value) => `<= ${value} m²` },
+    {
+      key: 'furnished',
+      labelFn: (value) => (value === 'true' ? t('furnished') : t('unfurnished')),
+    },
   ];
 
   for (const { key, labelFn } of paramConfig) {
-    const value = searchParams.get(key);
-    if (value && value !== 'all') {
-      activeFilters.push({ key, label: labelFn(value), value });
+    const value = normalizedSearchParams[key];
+    if (value) {
+      activeFilters.push({ key, label: labelFn(value) });
     }
   }
 
-  const removeFilter = (key: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete(key);
-    // If removing state, also remove city
+  const removeFilter = (key: keyof NormalizedSearchParams) => {
+    const nextSearchParams: NormalizedSearchParams = {
+      ...normalizedSearchParams,
+    };
+
+    delete nextSearchParams[key];
+
     if (key === 'state') {
-      params.delete('city');
+      delete nextSearchParams.city;
+      delete nextSearchParams.neighborhood;
     }
+
+    if (key === 'city') {
+      delete nextSearchParams.neighborhood;
+    }
+
+    const queryString = serializeSearchParams(nextSearchParams);
+
     startTransition(() => {
-      router.push(`/search?${params.toString()}`);
+      router.push(queryString ? `/search?${queryString}` : '/search');
     });
   };
 
@@ -80,7 +126,6 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
 
   return (
     <>
-      {/* Filter Toggle Button */}
       <div className="mb-4 flex items-center justify-between">
         <Button
           onClick={() => setFiltersOpen(!filtersOpen)}
@@ -106,7 +151,6 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
         </Button>
       </div>
 
-      {/* Active Filter Chips */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {activeFilters.map(({ key, label }) => (
@@ -137,7 +181,6 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
       )}
 
       <div className="grid lg:grid-cols-[320px,1fr] gap-8">
-        {/* Filters Sidebar */}
         {filtersOpen && (
           <aside className="lg:sticky lg:top-8 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto z-10">
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-5">
@@ -151,10 +194,7 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
           </aside>
         )}
 
-        {/* Results */}
-        <main className={filtersOpen ? '' : 'lg:col-span-2'}>
-          {children}
-        </main>
+        <main className={filtersOpen ? '' : 'lg:col-span-2'}>{children}</main>
       </div>
     </>
   );

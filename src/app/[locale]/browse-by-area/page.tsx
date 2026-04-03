@@ -22,12 +22,19 @@ interface SEOPage {
   };
 }
 
+interface ListingCoverageRow {
+  id: string;
+  city: string | null;
+  state: string | null;
+  property_type: string | null;
+  bedrooms: number | null;
+}
+
 export async function generateMetadata({
   params,
 }: BrowseByAreaPageProps): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'browseByArea' });
-  const tMeta = await getTranslations({ locale, namespace: 'metadata' });
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
 
@@ -69,7 +76,7 @@ export default async function BrowseByAreaPage({ params }: BrowseByAreaPageProps
 
   // Calculate unique listings accessible via SEO pages
   // Fetch all active listings (with pagination to get all 8000+)
-  let allListings: any[] = [];
+  let allListings: ListingCoverageRow[] = [];
   let from = 0;
   const pageSize = 1000;
 

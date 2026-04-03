@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { guides, getGuideBySlug, getGuides, getAllGuides } from '@/lib/guides';
+import { getGuideBySlug, getGuides } from '@/lib/guides';
 import React from 'react';
 
 interface GuidePageProps {

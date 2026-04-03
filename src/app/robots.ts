@@ -11,6 +11,11 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/'],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: [
+      `${baseUrl}/sitemap-static.xml`,
+      `${baseUrl}/sitemap-guides.xml`,
+      `${baseUrl}/sitemap-locations.xml`,
+      `${baseUrl}/sitemap-seo-pages.xml`,
+    ],
   };
 }
