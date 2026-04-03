@@ -23,7 +23,7 @@ export async function generateMetadata({
 
   if (!parsed.isValid) {
     return {
-      title: 'Page Not Found | Property.com.ve',
+      title: 'Page Not Found',
     };
   }
 

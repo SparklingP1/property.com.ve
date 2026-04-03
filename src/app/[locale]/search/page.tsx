@@ -20,7 +20,7 @@ export async function generateMetadata({
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
 
   return {
-    title: `${t('pageTitle')} | Property.com.ve`,
+    title: t('pageTitle'),
     description: t('pageSubtitle'),
     robots: {
       index: false,

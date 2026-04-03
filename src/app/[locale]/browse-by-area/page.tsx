@@ -32,7 +32,7 @@ export async function generateMetadata({
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
 
   return {
-    title: `${t('heading')} | Property.com.ve`,
+    title: t('heading'),
     description: t('description', { count: '' }),
     alternates: {
       canonical: locale === 'es' ? `${baseUrl}/browse-by-area` : `${baseUrl}/en/browse-by-area`,
