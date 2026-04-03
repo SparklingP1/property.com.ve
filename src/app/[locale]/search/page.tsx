@@ -17,12 +17,21 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'search' });
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+
   return {
     title: `${t('pageTitle')} | Property.com.ve`,
     description: t('pageSubtitle'),
     robots: {
       index: false,
       follow: true,
+    },
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/search` : `${baseUrl}/en/search`,
+      languages: {
+        es: `${baseUrl}/search`,
+        en: `${baseUrl}/en/search`,
+      },
     },
   };
 }

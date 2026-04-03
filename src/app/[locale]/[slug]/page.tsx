@@ -300,7 +300,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
                   <h3 className="font-semibold text-stone-900">{tAgg('averagePrice')}</h3>
                 </div>
                 <p className="text-3xl font-bold text-primary">
-                  {avgPrice > 0 ? formatPrice(avgPrice) : 'Varies'}
+                  {avgPrice > 0 ? formatPrice(avgPrice) : tAgg('priceVaries')}
                 </p>
                 <p className="text-sm text-stone-600 mt-1">{tAgg('acrossAllProperties')}</p>
               </div>

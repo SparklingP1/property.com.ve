@@ -29,9 +29,18 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: 'browseByArea' });
   const tMeta = await getTranslations({ locale, namespace: 'metadata' });
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+
   return {
     title: `${t('heading')} | Property.com.ve`,
     description: t('description', { count: '' }),
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/browse-by-area` : `${baseUrl}/en/browse-by-area`,
+      languages: {
+        es: `${baseUrl}/browse-by-area`,
+        en: `${baseUrl}/en/browse-by-area`,
+      },
+    },
   };
 }
 

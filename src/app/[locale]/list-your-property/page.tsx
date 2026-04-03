@@ -13,9 +13,18 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'metadata' });
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+
   return {
     title: t('listPropertyTitle'),
     description: t('defaultDescription'),
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/list-your-property` : `${baseUrl}/en/list-your-property`,
+      languages: {
+        es: `${baseUrl}/list-your-property`,
+        en: `${baseUrl}/en/list-your-property`,
+      },
+    },
   };
 }
 

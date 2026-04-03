@@ -299,7 +299,8 @@
     "bedroom": "Habitación",
     "bedrooms": "Habitaciones",
     "listings": "inmuebles",
-    "popularNeighborhoods": "Urbanizaciones Populares"
+    "popularNeighborhoods": "Urbanizaciones Populares",
+    "priceVaries": "Varía"
   },
   "propertyDetail": {
     "noLongerAvailable": "Inmueble Ya No Disponible",

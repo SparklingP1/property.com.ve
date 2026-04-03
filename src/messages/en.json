@@ -299,7 +299,8 @@
     "bedroom": "Bedroom",
     "bedrooms": "Bedrooms",
     "listings": "listings",
-    "popularNeighborhoods": "Popular Neighborhoods"
+    "popularNeighborhoods": "Popular Neighborhoods",
+    "priceVaries": "Varies"
   },
   "propertyDetail": {
     "noLongerAvailable": "Property No Longer Available",

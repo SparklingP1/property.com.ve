@@ -130,7 +130,7 @@ export default async function CityPage({ params }: CityPageProps) {
               <h3 className="font-semibold text-stone-900">{t('averagePrice')}</h3>
             </div>
             <p className="text-3xl font-bold text-primary">
-              {avgPrice > 0 ? formatPrice(avgPrice) : 'Varies'}
+              {avgPrice > 0 ? formatPrice(avgPrice) : t('priceVaries')}
             </p>
             <p className="text-sm text-stone-600 mt-1">{t('acrossAllProperties')}</p>
           </div>
