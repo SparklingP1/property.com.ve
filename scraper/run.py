@@ -816,13 +816,14 @@ class SupabaseStorage:
         "Falcon", "Portuguesa", "Barinas", "Guarico", "Monagas", "Sucre",
     ]
 
-    def __init__(self):
+    def __init__(self, run_type: str = "full"):
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_KEY")
         if not url or not key:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY required")
         self.client: Client = create_client(url, key)
         self.http_client = httpx.Client(timeout=30.0, follow_redirects=True)
+        self.run_type = run_type  # 'full' or 'daily' — used to tag price_history snapshots
 
     @staticmethod
     def _slugify(text: str) -> str:
@@ -1017,15 +1018,37 @@ class SupabaseStorage:
                     "translated_at": now if getattr(listing, 'title_en', None) else None,
                 }
 
-                self.client.table("listings").upsert(
+                result = self.client.table("listings").upsert(
                     data, on_conflict="source_url"
-                ).execute()
+                ).select("id").execute()
 
                 # Set url_slug only for new listings (where it's NULL)
                 # This prevents scraper runs from breaking existing URLs
                 self.client.table("listings").update(
                     {"url_slug": url_slug, "url_slug_es": url_slug_es}
                 ).eq("source_url", listing.source_url).is_("url_slug", "null").execute()
+
+                # Record price snapshot for market statistics tracking
+                if result.data and listing.price and listing.price > 0:
+                    listing_id = result.data[0]["id"]
+                    price_per_sqm = None
+                    if listing.area_sqm and listing.area_sqm > 0:
+                        price_per_sqm = round(listing.price / listing.area_sqm, 2)
+                    try:
+                        self.client.table("price_history").upsert({
+                            "listing_id": listing_id,
+                            "price": listing.price,
+                            "currency": listing.currency,
+                            "city": getattr(listing, 'city', None),
+                            "state": getattr(listing, 'state', None),
+                            "property_type": listing.property_type,
+                            "bedrooms": listing.bedrooms,
+                            "area_sqm": listing.area_sqm,
+                            "price_per_sqm": price_per_sqm,
+                            "run_type": self.run_type,
+                        }, on_conflict="listing_id,recorded_at").execute()
+                    except Exception as ph_err:
+                        logger.warning(f"Price history insert failed (non-fatal): {ph_err}")
 
                 upserted += 1
 
@@ -1224,6 +1247,13 @@ def parse_args():
         default=1284,
         help='Maximum pages to scrape if end-page not specified (default: 1284)'
     )
+    parser.add_argument(
+        '--run-type',
+        type=str,
+        choices=['full', 'daily'],
+        default='full',
+        help='Scrape run type for price history tagging (default: full)'
+    )
     return parser.parse_args()
 
 
@@ -1249,10 +1279,11 @@ def main():
         logger.info(f"📄 Page Range: {args.start_page} to {args.end_page}")
     else:
         logger.info(f"📄 Max Pages: {args.max_pages} (starting from page {args.start_page})")
+    logger.info(f"📊 Run Type: {args.run_type}")
     logger.info("=" * 60)
 
     # Initialize storage
-    storage = SupabaseStorage()
+    storage = SupabaseStorage(run_type=args.run_type)
     results = []
 
     # Use Playwright extractor as context manager (pass storage for smart translation)

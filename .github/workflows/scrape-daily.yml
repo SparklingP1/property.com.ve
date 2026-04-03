@@ -41,7 +41,8 @@ jobs:
           echo "🔄 Daily scrape: Pages 1-50 (newest listings)"
           python scraper/run.py \
             --start-page 1 \
-            --end-page 50
+            --end-page 50 \
+            --run-type daily
 
       - name: Report completion
         if: always()
