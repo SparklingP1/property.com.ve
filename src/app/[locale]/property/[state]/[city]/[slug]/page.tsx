@@ -35,9 +35,12 @@ export async function generateMetadata({
   const title = locale === 'es'
     ? (listing.title || listing.title_en)
     : (listing.title_en || listing.title);
+  const validEn = listing.description_short_en && listing.description_short_en !== 'N/A' ? listing.description_short_en : null;
+  const validEs = listing.description_short || null;
+  const fallbackDesc = `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.city || listing.location || 'Venezuela'}`;
   const description = locale === 'es'
-    ? (listing.description_short || listing.description_short_en || `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.city || listing.location || 'Venezuela'}`)
-    : (listing.description_short_en || listing.description_short || `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.city || listing.location || 'Venezuela'}`);
+    ? (validEs || validEn || fallbackDesc)
+    : (validEn || validEs || fallbackDesc);
 
   // Generate locale-aware canonical URLs
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';

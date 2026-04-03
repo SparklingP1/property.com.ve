@@ -75,8 +75,10 @@ class PropertyTranslator:
 
             # Add English translations to listing data
             listing_data['title_en'] = parsed.get('title', title_es)
-            listing_data['description_short_en'] = parsed.get('description_short', desc_short_es)
-            listing_data['description_full_en'] = parsed.get('description_full', desc_full_es)
+            desc_short_en = parsed.get('description_short', desc_short_es)
+            listing_data['description_short_en'] = None if desc_short_en in ('N/A', 'n/a', '') else desc_short_en
+            desc_full_en = parsed.get('description_full', desc_full_es)
+            listing_data['description_full_en'] = None if desc_full_en in ('N/A', 'n/a', '') else desc_full_en
 
             # Preserve Spanish originals
             listing_data['title_es'] = title_es
