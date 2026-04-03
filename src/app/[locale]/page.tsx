@@ -49,7 +49,7 @@ async function FeaturedListings({
 }
 
 export default async function HomePage({ params, searchParams }: PageProps) {
-  await params;
+  const { locale } = await params;
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations('homepage');
 
@@ -151,6 +151,52 @@ export default async function HomePage({ params, searchParams }: PageProps) {
               {t('viewAllProperties')}
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Popular Areas - Internal links to SEO pages */}
+      <section className="container py-16">
+        <div className="mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-2">
+            {t('popularAreas')}
+          </h2>
+          <p className="text-lg text-stone-600">
+            {t('popularAreasDescription')}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[
+            { city: 'Caracas', houses: '/casas-caracas', apartments: '/apartamentos-caracas', housesEn: '/en/houses-caracas', apartmentsEn: '/en/apartments-caracas' },
+            { city: 'Maracaibo', houses: '/casas-maracaibo', apartments: '/apartamentos-maracaibo', housesEn: '/en/houses-maracaibo', apartmentsEn: '/en/apartments-maracaibo' },
+            { city: 'Valencia', houses: '/casas-valencia', apartments: '/apartamentos-valencia', housesEn: '/en/houses-valencia', apartmentsEn: '/en/apartments-valencia' },
+            { city: 'Maracay', houses: '/casas-maracay', apartments: '/apartamentos-maracay', housesEn: '/en/houses-maracay', apartmentsEn: '/en/apartments-maracay' },
+            { city: 'Barquisimeto', houses: '/casas-barquisimeto', apartments: '/apartamentos-barquisimeto', housesEn: '/en/houses-barquisimeto', apartmentsEn: '/en/apartments-barquisimeto' },
+            { city: 'Mérida', houses: '/casas-merida', apartments: '/apartamentos-merida', housesEn: '/en/houses-merida', apartmentsEn: '/en/apartments-merida' },
+            { city: 'Punto Fijo', houses: '/casas-punto-fijo', housesEn: '/en/houses-punto-fijo' },
+            { city: 'Margarita', houses: '/casas-margarita', apartments: '/apartamentos-margarita', housesEn: '/en/houses-margarita', apartmentsEn: '/en/apartments-margarita' },
+          ].map((area) => (
+            <div key={area.city} className="bg-white rounded-xl border border-stone-200 p-5 hover:shadow-md transition-shadow">
+              <h3 className="font-bold text-stone-900 mb-3">{area.city}</h3>
+              <div className="space-y-2">
+                <a href={locale === 'es' ? area.houses : area.housesEn} className="block text-sm text-amber-700 hover:text-amber-800 font-medium">
+                  {t('housesIn', { city: area.city })} →
+                </a>
+                {area.apartments && (
+                  <a href={locale === 'es' ? area.apartments : area.apartmentsEn} className="block text-sm text-amber-700 hover:text-amber-800 font-medium">
+                    {t('apartmentsIn', { city: area.city })} →
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          <Link
+            href="/browse-by-area"
+            className="text-stone-900 font-semibold hover:text-amber-700 transition-colors"
+          >
+            {t('viewAllAreas')}
+          </Link>
         </div>
       </section>
 

@@ -53,6 +53,11 @@
     "listWithUs": "List With Us",
     "listWithUsDescription": "Real estate agents: reach thousands of potential buyers.",
     "getStarted": "Get Started →",
+    "popularAreas": "Popular Areas",
+    "popularAreasDescription": "Explore properties in Venezuela's most searched cities",
+    "viewAllAreas": "View All Areas →",
+    "housesIn": "Houses in {city}",
+    "apartmentsIn": "Apartments in {city}",
     "stayInTheLoop": "Stay in the Loop",
     "stayInTheLoopDescription": "Weekly market updates, new listings, and buying tips delivered to your inbox."
   },

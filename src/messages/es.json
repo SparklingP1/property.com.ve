@@ -53,6 +53,11 @@
     "listWithUs": "Publica con Nosotros",
     "listWithUsDescription": "Agentes inmobiliarios: llega a miles de compradores potenciales.",
     "getStarted": "Comenzar →",
+    "popularAreas": "Zonas Populares",
+    "popularAreasDescription": "Explora inmuebles en las ciudades más buscadas de Venezuela",
+    "viewAllAreas": "Ver Todas las Zonas →",
+    "housesIn": "Casas en {city}",
+    "apartmentsIn": "Apartamentos en {city}",
     "stayInTheLoop": "Mantente Informado",
     "stayInTheLoopDescription": "Actualizaciones semanales del mercado, nuevos inmuebles y consejos de compra directo a tu correo."
   },
