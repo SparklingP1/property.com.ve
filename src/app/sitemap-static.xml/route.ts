@@ -11,7 +11,7 @@ export async function GET() {
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: '', changeFrequency: 'daily' as const, priority: 1.0 },
-    { url: '/search', changeFrequency: 'daily' as const, priority: 0.9 },
+    // /search is noindex — omitted from sitemap
     { url: '/guides', changeFrequency: 'weekly' as const, priority: 0.9 },
     { url: '/browse-by-area', changeFrequency: 'weekly' as const, priority: 0.8 },
     { url: '/find-property', changeFrequency: 'monthly' as const, priority: 0.7 },

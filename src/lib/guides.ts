@@ -3524,7 +3524,10 @@ import { newGuides } from "./new-guides";
 import { guidesEs } from './guides-es';
 
 const allGuides: Guide[] = [...guides, ...newGuides];
-const allGuidesEs: Guide[] = [...guidesEs, ...newGuides];
+// Only add newGuides that don't already have Spanish translations in guidesEs
+const translatedSlugs = new Set(guidesEs.map(g => g.slug));
+const untranslatedNewGuides = newGuides.filter(g => !translatedSlugs.has(g.slug));
+const allGuidesEs: Guide[] = [...guidesEs, ...untranslatedNewGuides];
 
 export function getGuideBySlug(slug: string): Guide | undefined {
   return allGuides.find((guide) => guide.slug === slug || guide.slug_es === slug);

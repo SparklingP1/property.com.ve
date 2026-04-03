@@ -27,7 +27,7 @@ export async function generateMetadata({
       ? `Apartamentos, casas y propiedades en venta en ${stateName}. Encuentra tu propiedad ideal con listados detallados, fotos y precios.`
       : `Browse apartments, houses, and properties for sale in ${stateName}. Find your perfect property with detailed listings, photos, and pricing.`,
     alternates: {
-      canonical: `${baseUrl}${path}`,
+      canonical: locale === 'es' ? `${baseUrl}${path}` : `${baseUrl}/en${path}`,
       languages: {
         es: `${baseUrl}${path}`,
         en: `${baseUrl}/en${path}`,

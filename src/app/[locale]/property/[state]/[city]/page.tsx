@@ -30,7 +30,7 @@ export async function generateMetadata({
       ? `Apartamentos, casas y propiedades en venta en ${location}. Listados detallados con fotos, precios y servicios.`
       : `Find apartments, houses, and properties for sale in ${location}. Browse detailed listings with photos, prices, and amenities.`,
     alternates: {
-      canonical: `${baseUrl}${path}`,
+      canonical: locale === 'es' ? `${baseUrl}${path}` : `${baseUrl}/en${path}`,
       languages: {
         es: `${baseUrl}${path}`,
         en: `${baseUrl}/en${path}`,
