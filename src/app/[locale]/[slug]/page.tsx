@@ -237,9 +237,15 @@ export default async function SEOPage({ params }: SEOPageProps) {
             {(locale === 'es' && seoContent.h1_es) ? seoContent.h1_es : seoContent.h1}
           </h1>
 
-          {/* SEO Description */}
+          {/* SEO Description — replace stale listing count with live count */}
           <p className="text-stone-300 text-lg max-w-3xl leading-relaxed">
-            {(locale === 'es' && seoContent.description_es) ? seoContent.description_es : seoContent.description}
+            {(() => {
+              const raw = (locale === 'es' && seoContent.description_es) ? seoContent.description_es : seoContent.description;
+              return totalListings > 0
+                ? raw.replace(/\b\d{1,5}\s*(listings|listados|apartamentos disponibles|casas disponibles|terrenos disponibles|inmuebles|properties available|apartments|houses|homes)\b/i,
+                    `${totalListings.toLocaleString()} $1`)
+                : raw;
+            })()}
           </p>
 
           {totalListings > 0 && (
