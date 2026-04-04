@@ -3,12 +3,12 @@
 import { useActionState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { signUp, type FormState } from '@/actions/auth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Link } from '@/i18n/navigation';
-import { Mail, CheckCircle2 } from 'lucide-react';
 
 const initialState: FormState = {
   success: false,
@@ -18,26 +18,20 @@ const initialState: FormState = {
 export function RegisterForm() {
   const t = useTranslations('auth');
   const locale = useLocale();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect');
 
-  const [state, formAction, isPending] = useActionState(signUp, initialState);
+  const wrappedSignUp = async (prevState: FormState, formData: FormData) => {
+    const result = await signUp(prevState, formData);
+    if (result.success) {
+      router.push(redirectTo || '/dashboard');
+      router.refresh();
+    }
+    return result;
+  };
 
-  if (state.success) {
-    return (
-      <div className="text-center py-4" role="status" aria-live="polite">
-        <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-          <Mail className="h-7 w-7 text-primary" aria-hidden="true" />
-        </div>
-        <h3 className="font-bold text-lg text-foreground mb-2">{t('checkEmail')}</h3>
-        <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">{state.message}</p>
-        <div className="mt-6 flex items-center gap-2 justify-center text-xs text-muted-foreground">
-          <CheckCircle2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-          <span>{t('checkSpam')}</span>
-        </div>
-      </div>
-    );
-  }
+  const [state, formAction, isPending] = useActionState(wrappedSignUp, initialState);
 
   return (
     <div className="space-y-5">
@@ -77,7 +71,6 @@ export function RegisterForm() {
           )}
         </div>
 
-        <input type="hidden" name="confirmPassword" value="" />
         <input type="hidden" name="locale" value={locale} />
 
         <Button
