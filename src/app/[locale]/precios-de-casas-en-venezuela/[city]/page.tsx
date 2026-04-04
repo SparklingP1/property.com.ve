@@ -10,6 +10,15 @@ import { PropertyTypeBreakdown } from '@/components/market-data/property-type-br
 import { StatCard } from '@/components/market-data/stat-card';
 import { Link } from '@/i18n/navigation';
 import {
+  formatMarketCount,
+  getLocalizedPath,
+  getMarketDataCityPath,
+  getMarketDataHubPath,
+  getMarketDataMethodologyPath,
+  getMarketDataYear,
+  slugifyMarketCity,
+} from '@/lib/market-data';
+import {
   getCityComparison,
   getCityStats,
   getLatestPeriod,
@@ -21,15 +30,6 @@ export const revalidate = 86400;
 
 interface Props {
   params: Promise<{ locale: string; city: string }>;
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 }
 
 function formatPrice(price: number): string {
@@ -48,44 +48,47 @@ function formatDate(dateStr: string, locale: string): string {
   });
 }
 
-function getCityPath(citySlug: string, locale: string) {
-  return locale === 'es' ? `/precios-de-casas-en-${citySlug}` : `/property-prices-in-${citySlug}`;
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, city: citySlug } = await params;
   const isEs = locale === 'es';
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+  const [validCities, periodStart] = await Promise.all([
+    getValidCities(),
+    getLatestPeriod(),
+  ]);
+  const year = getMarketDataYear(periodStart);
 
-  const validCities = await getValidCities();
-  const match = validCities.find((city) => slugify(city.city) === citySlug);
+  const match = validCities.find((city) => slugifyMarketCity(city.city) === citySlug);
 
   if (!match) {
     return { title: 'Not Found' };
   }
 
   const cityName = match.city;
-  const esPath = `/precios-de-casas-en-${citySlug}`;
-  const enPath = `/en/property-prices-in-${citySlug}`;
+  const esUrl = `${baseUrl}${getMarketDataCityPath(citySlug, 'es')}`;
+  const enUrl = `${baseUrl}${getLocalizedPath(
+    getMarketDataCityPath(citySlug, 'en'),
+    'en'
+  )}`;
 
   return {
     title: isEs
-      ? `Precios de Casas en ${cityName} 2026 \u2014 Indice de Precios | Property.com.ve`
-      : `Property Prices in ${cityName} 2026 \u2014 Price Index | Property.com.ve`,
+      ? `Precios de Casas en ${cityName} ${year} | Índice de Precios | Property.com.ve`
+      : `Property Prices in ${cityName} ${year} | Price Index | Property.com.ve`,
     description: isEs
-      ? `Precios de inmuebles en ${cityName}, Venezuela. Precios medianos por m\u00b2 para apartamentos y casas, con desglose por habitaciones. Actualizado mensualmente.`
+      ? `Precios de inmuebles en ${cityName}, Venezuela. Precios medianos por m² para apartamentos y casas, con desglose por habitaciones. Actualizado mensualmente.`
       : `Property prices in ${cityName}, Venezuela. Median prices per sqm for apartments and houses, with bedroom-level breakdowns. Updated monthly.`,
     alternates: {
-      canonical: isEs ? `${baseUrl}${esPath}` : `${baseUrl}${enPath}`,
+      canonical: isEs ? esUrl : enUrl,
       languages: {
-        es: `${baseUrl}${esPath}`,
-        en: `${baseUrl}${enPath}`,
+        es: esUrl,
+        en: enUrl,
       },
     },
     openGraph: {
       title: isEs
-        ? `Precios de Casas en ${cityName} 2026`
-        : `Property Prices in ${cityName} 2026`,
+        ? `Precios de Casas en ${cityName} ${year}`
+        : `Property Prices in ${cityName} ${year}`,
       type: 'website',
       locale: isEs ? 'es_VE' : 'en_US',
       siteName: 'Property.com.ve',
@@ -95,21 +98,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export async function generateStaticParams() {
   const cities = await getValidCities();
-  return cities.map((city) => ({ city: slugify(city.city) }));
+  return cities.map((city) => ({ city: slugifyMarketCity(city.city) }));
 }
 
 export default async function CityMarketData({ params }: Props) {
   const { locale, city: citySlug } = await params;
   const isEs = locale === 'es';
   const t = await getTranslations({ locale, namespace: 'marketData' });
+  const copy = {
+    byPropertyType: isEs
+      ? 'Por Tipo de Inmueble Residencial'
+      : 'By Residential Property Type',
+    compareCity: isEs
+      ? '¿Cómo se compara {city}?'
+      : t('compareCity', { city: '{city}' }),
+    medianPricePerSqm: isEs ? 'Precio mediano por m²' : t('medianPricePerSqm'),
+    subtitle: isEs
+      ? `Índice de precios basado en ${'{count}'} inmuebles activos`
+      : t('subtitle', { count: '{count}' }),
+  };
 
-  const periodStart = await getLatestPeriod();
+  const [periodStart, validCities] = await Promise.all([
+    getLatestPeriod(),
+    getValidCities(),
+  ]);
+
   if (!periodStart) {
     return notFound();
   }
 
-  const validCities = await getValidCities();
-  const match = validCities.find((city) => slugify(city.city) === citySlug);
+  const match = validCities.find((city) => slugifyMarketCity(city.city) === citySlug);
 
   if (!match) {
     return notFound();
@@ -130,25 +148,29 @@ export default async function CityMarketData({ params }: Props) {
     return notFound();
   }
 
-  const methodologyUrl = isEs
-    ? '/precios-de-casas-en-venezuela/metodologia'
-    : '/property-prices-in-venezuela/methodology';
-  const hubUrl = isEs ? '/precios-de-casas-en-venezuela' : '/property-prices-in-venezuela';
+  const methodologyUrl = getMarketDataMethodologyPath(locale);
+  const hubUrl = getMarketDataHubPath(locale);
   const searchUrl = `/search?city=${encodeURIComponent(cityName)}`;
   const compareCities = allCities
     .filter((city) => city.city !== cityName && city.median_price_per_sqm)
     .slice(0, 3);
+  const cityListingCount = formatMarketCount(cityTotal.listing_count, locale);
 
   return (
     <div className="min-h-screen bg-stone-50">
       <DatasetSchema
-        name={isEs ? `Precios de Inmuebles en ${cityName}` : `Property Prices in ${cityName}`}
+        name={
+          isEs ? `Precios de Inmuebles en ${cityName}` : `Property Prices in ${cityName}`
+        }
         description={
           isEs
             ? `Precios medianos de inmuebles en ${cityName}, Venezuela.`
             : `Median property prices in ${cityName}, Venezuela.`
         }
-        url={`https://property.com.ve${isEs ? getCityPath(citySlug, locale) : `/en${getCityPath(citySlug, locale)}`}`}
+        url={`https://property.com.ve${getLocalizedPath(
+          getMarketDataCityPath(citySlug, locale),
+          locale
+        )}`}
         spatialCoverage={`${cityName}, Venezuela`}
         temporalCoverage={`${periodStart}/..`}
         listingCount={cityTotal.listing_count}
@@ -172,7 +194,7 @@ export default async function CityMarketData({ params }: Props) {
             {t('titleCity', { city: cityName })}
           </h1>
           <p className="mb-2 max-w-3xl text-lg text-stone-300">
-            {t('subtitle', { count: cityTotal.listing_count.toLocaleString() })}
+            {copy.subtitle.replace('{count}', cityListingCount)}
           </p>
           <p className="text-sm font-medium text-amber-400">
             {t('updated', { date: formatDate(periodStart, locale) })}
@@ -183,30 +205,43 @@ export default async function CityMarketData({ params }: Props) {
       <div className="container space-y-12 py-12">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <StatCard
-            label={t('medianPricePerSqm')}
-            value={cityTotal.median_price_per_sqm ? `${formatPrice(cityTotal.median_price_per_sqm)}/m\u00b2` : '\u2014'}
+            label={copy.medianPricePerSqm}
+            value={
+              cityTotal.median_price_per_sqm
+                ? `${formatPrice(cityTotal.median_price_per_sqm)}/m²`
+                : '—'
+            }
             changePct={cityTotal.price_change_pct}
             icon={<BarChart3 className="h-6 w-6 text-amber-600" />}
           />
           <StatCard
             label={t('medianPrice')}
-            value={cityTotal.median_price ? formatPrice(cityTotal.median_price) : '\u2014'}
+            value={cityTotal.median_price ? formatPrice(cityTotal.median_price) : '—'}
             icon={<Home className="h-6 w-6 text-amber-600" />}
           />
           <StatCard
             label={t('listingsTracked')}
-            value={cityTotal.listing_count.toLocaleString()}
+            value={cityListingCount}
             icon={<TrendingUp className="h-6 w-6 text-amber-600" />}
           />
         </div>
 
         <section>
-          <h2 className="mb-6 text-2xl font-bold text-stone-900">{t('byPropertyType')}</h2>
+          <h2 className="mb-6 text-2xl font-bold text-stone-900">
+            {copy.byPropertyType}
+          </h2>
+          <p className="mb-6 max-w-3xl text-stone-600">
+            {isEs
+              ? 'El desglose público se centra en apartamentos y casas para mantener una comparación residencial consistente.'
+              : 'This public breakdown focuses on apartments and houses to keep the residential comparison consistent.'}
+          </p>
           <PropertyTypeBreakdown stats={cityStats} locale={locale} />
         </section>
 
         <section>
-          <h2 className="mb-6 text-2xl font-bold text-stone-900">{t('byBedrooms')}</h2>
+          <h2 className="mb-6 text-2xl font-bold text-stone-900">
+            {t('byBedrooms')}
+          </h2>
           <BedroomBreakdown stats={cityStats} locale={locale} />
         </section>
 
@@ -215,11 +250,11 @@ export default async function CityMarketData({ params }: Props) {
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-stone-900">
-                  {t('compareCity', { city: cityName })}
+                  {copy.compareCity.replace('{city}', cityName)}
                 </h2>
                 <p className="mt-1 text-stone-600">
                   {isEs
-                    ? 'Usa estas ciudades como referencia rapida antes de abrir listados.'
+                    ? 'Usa estas ciudades como referencia rápida antes de abrir listados.'
                     : 'Use these cities as quick reference points before opening listings.'}
                 </p>
               </div>
@@ -229,15 +264,21 @@ export default async function CityMarketData({ params }: Props) {
               {compareCities.map((city) => (
                 <Link
                   key={city.city}
-                  href={getCityPath(slugify(city.city), locale)}
+                  href={getMarketDataCityPath(
+                    slugifyMarketCity(city.city),
+                    locale
+                  )}
                   className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
                 >
                   <p className="font-bold text-stone-900">{city.city}</p>
                   <p className="mt-1 text-2xl font-bold text-amber-700">
-                    {city.median_price_per_sqm ? `${formatPrice(city.median_price_per_sqm)}/m\u00b2` : '\u2014'}
+                    {city.median_price_per_sqm
+                      ? `${formatPrice(city.median_price_per_sqm)}/m²`
+                      : '—'}
                   </p>
                   <p className="mt-1 text-sm text-stone-500">
-                    {city.listing_count.toLocaleString()} {isEs ? 'inmuebles' : 'listings'}
+                    {formatMarketCount(city.listing_count, locale)}{' '}
+                    {isEs ? 'inmuebles' : 'listings'}
                   </p>
                 </Link>
               ))}
@@ -254,7 +295,7 @@ export default async function CityMarketData({ params }: Props) {
                 </h2>
                 <p className="mt-1 text-stone-600">
                   {isEs
-                    ? 'Una muestra rapida del inventario activo en esta ciudad.'
+                    ? 'Una muestra rápida del inventario activo en esta ciudad.'
                     : 'A quick sample of currently active inventory in this city.'}
                 </p>
               </div>
@@ -292,17 +333,23 @@ export default async function CityMarketData({ params }: Props) {
 
                     <div className="p-4">
                       <p className="text-lg font-bold text-amber-700">
-                        {listing.price ? formatPrice(listing.price) : '\u2014'}
+                        {listing.price ? formatPrice(listing.price) : '—'}
                       </p>
-                      <p className="mt-1 line-clamp-2 text-sm text-stone-600">{title}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-stone-600">
+                        {title}
+                      </p>
                       <div className="mt-2 flex flex-wrap gap-3 text-xs text-stone-500">
                         {listing.bedrooms && (
-                          <span>{listing.bedrooms} {isEs ? 'hab.' : 'bed'}</span>
+                          <span>
+                            {listing.bedrooms} {isEs ? 'hab.' : 'bed'}
+                          </span>
                         )}
                         {listing.bathrooms && (
-                          <span>{listing.bathrooms} {isEs ? 'ba\u00f1os' : 'baths'}</span>
+                          <span>
+                            {listing.bathrooms} {isEs ? 'baños' : 'baths'}
+                          </span>
                         )}
-                        {listing.area_sqm && <span>{listing.area_sqm} m\u00b2</span>}
+                        {listing.area_sqm && <span>{listing.area_sqm} m²</span>}
                       </div>
                     </div>
                   </Link>

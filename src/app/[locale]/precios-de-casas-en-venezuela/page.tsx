@@ -8,6 +8,13 @@ import { PropertyTypeBreakdown } from '@/components/market-data/property-type-br
 import { StatCard } from '@/components/market-data/stat-card';
 import { Link } from '@/i18n/navigation';
 import {
+  formatMarketCount,
+  getLocalizedPath,
+  getMarketDataHubPath,
+  getMarketDataMethodologyPath,
+  getMarketDataYear,
+} from '@/lib/market-data';
+import {
   getCityComparison,
   getLatestPeriod,
   getMarketOverview,
@@ -39,30 +46,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const isEs = locale === 'es';
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
+  const periodStart = await getLatestPeriod();
+  const year = getMarketDataYear(periodStart);
 
-  const esPath = '/precios-de-casas-en-venezuela';
-  const enPath = '/en/property-prices-in-venezuela';
+  const esUrl = `${baseUrl}${getMarketDataHubPath('es')}`;
+  const enUrl = `${baseUrl}${getLocalizedPath(getMarketDataHubPath('en'), 'en')}`;
 
   return {
     title: isEs
-      ? 'Precios de Casas en Venezuela 2026 \u2014 Indice de Precios por Ciudad | Property.com.ve'
-      : 'Property Prices in Venezuela 2026 \u2014 Price Index by City | Property.com.ve',
+      ? `Precios de Casas en Venezuela ${year} | Índice de Precios por Ciudad | Property.com.ve`
+      : `Property Prices in Venezuela ${year} | Price Index by City | Property.com.ve`,
     description: isEs
-      ? 'Indice de precios de inmuebles en Venezuela. Precios medianos por m\u00b2, comparacion por ciudad, apartamentos y casas. Datos actualizados mensualmente.'
+      ? 'Índice de precios de inmuebles en Venezuela. Precios medianos por m², comparación por ciudad, apartamentos y casas. Datos actualizados mensualmente.'
       : 'Venezuela property price index. Median prices per sqm, city comparison, apartments and houses. Updated monthly with data from 11,000+ listings.',
     alternates: {
-      canonical: isEs ? `${baseUrl}${esPath}` : `${baseUrl}${enPath}`,
+      canonical: isEs ? esUrl : enUrl,
       languages: {
-        es: `${baseUrl}${esPath}`,
-        en: `${baseUrl}${enPath}`,
+        es: esUrl,
+        en: enUrl,
       },
     },
     openGraph: {
       title: isEs
-        ? 'Precios de Casas en Venezuela 2026'
-        : 'Property Prices in Venezuela 2026',
+        ? `Precios de Casas en Venezuela ${year}`
+        : `Property Prices in Venezuela ${year}`,
       description: isEs
-        ? 'Indice de precios de inmuebles con datos de mas de 11,000 propiedades activas.'
+        ? 'Índice de precios de inmuebles con datos de más de 11.000 propiedades activas.'
         : 'Property price index with data from 11,000+ active listings.',
       type: 'website',
       locale: isEs ? 'es_VE' : 'en_US',
@@ -75,13 +84,22 @@ export default async function MarketDataHub({ params }: Props) {
   const { locale } = await params;
   const isEs = locale === 'es';
   const t = await getTranslations({ locale, namespace: 'marketData' });
+  const copy = {
+    byPropertyType: isEs
+      ? 'Por Tipo de Inmueble Residencial'
+      : 'By Residential Property Type',
+    medianPricePerSqm: isEs ? 'Precio mediano por m²' : t('medianPricePerSqm'),
+    subtitle: isEs
+      ? `Índice de precios basado en ${'{count}'} inmuebles activos`
+      : t('subtitle', { count: '{count}' }),
+  };
 
   const periodStart = await getLatestPeriod();
   if (!periodStart) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-stone-50">
         <p className="text-stone-500">
-          {isEs ? 'Datos de mercado no disponibles aun.' : 'Market data not yet available.'}
+          {isEs ? 'Datos de mercado no disponibles aún.' : 'Market data not yet available.'}
         </p>
       </div>
     );
@@ -95,29 +113,28 @@ export default async function MarketDataHub({ params }: Props) {
   const national = overview.find(
     (stat) => stat.property_type === '' && stat.bedrooms_bucket === ''
   );
-  const methodologyUrl = isEs
-    ? '/precios-de-casas-en-venezuela/metodologia'
-    : '/property-prices-in-venezuela/methodology';
-  const hubUrl = isEs ? '/precios-de-casas-en-venezuela' : '/property-prices-in-venezuela';
+  const methodologyUrl = getMarketDataMethodologyPath(locale);
+  const hubUrl = getMarketDataHubPath(locale);
+  const listingCountText = national
+    ? formatMarketCount(national.listing_count, locale)
+    : isEs
+      ? '11.000+'
+      : '11,000+';
 
   return (
     <div className="min-h-screen bg-stone-50">
       <DatasetSchema
         name={
           isEs
-            ? 'Indice de Precios de Inmuebles en Venezuela'
+            ? 'Índice de Precios de Inmuebles en Venezuela'
             : 'Venezuela Property Price Index'
         }
         description={
           isEs
-            ? `Precios medianos de inmuebles en Venezuela basados en ${
-                national?.listing_count?.toLocaleString() || '11,000+'
-              } propiedades activas.`
-            : `Median property prices in Venezuela based on ${
-                national?.listing_count?.toLocaleString() || '11,000+'
-              } active listings.`
+            ? `Precios medianos de inmuebles en Venezuela basados en ${listingCountText} propiedades activas.`
+            : `Median property prices in Venezuela based on ${listingCountText} active listings.`
         }
-        url={`https://property.com.ve${isEs ? hubUrl : `/en${hubUrl}`}`}
+        url={`https://property.com.ve${getLocalizedPath(hubUrl, locale)}`}
         spatialCoverage="Venezuela"
         temporalCoverage={`${periodStart}/..`}
         listingCount={national?.listing_count || 0}
@@ -133,9 +150,11 @@ export default async function MarketDataHub({ params }: Props) {
             <span className="text-stone-200">{t('breadcrumbPrices')}</span>
           </div>
 
-          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">{t('title')}</h1>
+          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
+            {t('title')}
+          </h1>
           <p className="mb-2 max-w-3xl text-lg text-stone-300">
-            {t('subtitle', { count: national?.listing_count?.toLocaleString() || '11,000+' })}
+            {copy.subtitle.replace('{count}', listingCountText)}
           </p>
           <p className="text-sm font-medium text-amber-400">
             {t('updated', { date: formatDate(periodStart, locale) })}
@@ -147,19 +166,23 @@ export default async function MarketDataHub({ params }: Props) {
         {national && (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <StatCard
-              label={t('medianPricePerSqm')}
-              value={national.median_price_per_sqm ? `${formatPrice(national.median_price_per_sqm)}/m\u00b2` : '\u2014'}
+              label={copy.medianPricePerSqm}
+              value={
+                national.median_price_per_sqm
+                  ? `${formatPrice(national.median_price_per_sqm)}/m²`
+                  : '—'
+              }
               changePct={national.price_change_pct}
               icon={<BarChart3 className="h-6 w-6 text-amber-600" />}
             />
             <StatCard
               label={t('medianPrice')}
-              value={national.median_price ? formatPrice(national.median_price) : '\u2014'}
+              value={national.median_price ? formatPrice(national.median_price) : '—'}
               icon={<Home className="h-6 w-6 text-amber-600" />}
             />
             <StatCard
               label={t('listingsTracked')}
-              value={national.listing_count.toLocaleString()}
+              value={formatMarketCount(national.listing_count, locale)}
               icon={<TrendingUp className="h-6 w-6 text-amber-600" />}
             />
           </div>
@@ -169,10 +192,12 @@ export default async function MarketDataHub({ params }: Props) {
           <section>
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-stone-900">{t('cityComparison')}</h2>
+                <h2 className="text-2xl font-bold text-stone-900">
+                  {t('cityComparison')}
+                </h2>
                 <p className="mt-1 text-stone-600">
                   {isEs
-                    ? 'Compara rapidamente las ciudades con mejor cobertura de mercado.'
+                    ? 'Compara rápidamente las ciudades con mejor cobertura de mercado.'
                     : 'Quickly compare the cities with the deepest market coverage.'}
                 </p>
               </div>
@@ -185,7 +210,14 @@ export default async function MarketDataHub({ params }: Props) {
         )}
 
         <section>
-          <h2 className="mb-6 text-2xl font-bold text-stone-900">{t('byPropertyType')}</h2>
+          <h2 className="mb-6 text-2xl font-bold text-stone-900">
+            {copy.byPropertyType}
+          </h2>
+          <p className="mb-6 max-w-3xl text-stone-600">
+            {isEs
+              ? 'Este desglose público se centra en apartamentos y casas para mantener una comparación residencial consistente.'
+              : 'This public breakdown focuses on apartments and houses to keep the residential comparison consistent.'}
+          </p>
           <PropertyTypeBreakdown stats={overview} locale={locale} />
         </section>
 
@@ -203,7 +235,7 @@ export default async function MarketDataHub({ params }: Props) {
               </h2>
               <p className="mt-1 text-stone-600">
                 {isEs
-                  ? 'Usa el indice como punto de partida y luego revisa los listados activos.'
+                  ? 'Usa el índice como punto de partida y luego revisa los listados activos.'
                   : 'Use the index as a starting point, then jump into active listings.'}
               </p>
             </div>
@@ -218,7 +250,7 @@ export default async function MarketDataHub({ params }: Props) {
                 href={methodologyUrl}
                 className="inline-flex items-center rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amber-700"
               >
-                {isEs ? 'Ver metodologia' : 'View methodology'}
+                {isEs ? 'Ver metodología' : 'View methodology'}
               </Link>
             </div>
           </div>

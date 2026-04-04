@@ -3,6 +3,10 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { ListingGrid } from '@/components/listings/listing-grid';
+import CityMarketDataPage, {
+  generateMetadata as generateCityMarketMetadata,
+} from '../precios-de-casas-en-venezuela/[city]/page';
+import { parseMarketDataCitySlug } from '@/lib/market-data';
 import { parseSEOUrl, getPageTitleForLocale, getMetaDescriptionForLocale } from '@/lib/seo-url-parser';
 import type { Listing } from '@/types/listing';
 import { Link } from '@/i18n/navigation';
@@ -16,6 +20,14 @@ export async function generateMetadata({
   params,
 }: SEOPageProps): Promise<Metadata> {
   const { locale, slug } = await params;
+  const marketDataCitySlug = parseMarketDataCitySlug(slug, locale);
+
+  if (marketDataCitySlug) {
+    return generateCityMarketMetadata({
+      params: Promise.resolve({ locale, city: marketDataCitySlug }),
+    });
+  }
+
   const supabase = createServiceClient();
 
   // Parse URL to extract filters
@@ -105,6 +117,14 @@ export async function generateMetadata({
 
 export default async function SEOPage({ params }: SEOPageProps) {
   const { locale, slug } = await params;
+  const marketDataCitySlug = parseMarketDataCitySlug(slug, locale);
+
+  if (marketDataCitySlug) {
+    return CityMarketDataPage({
+      params: Promise.resolve({ locale, city: marketDataCitySlug }),
+    });
+  }
+
   const t = await getTranslations('seoPage');
   const tAgg = await getTranslations('aggregate');
   const tListing = await getTranslations('listing');

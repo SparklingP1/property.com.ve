@@ -26,6 +26,11 @@ const SPANISH_STATE_SUFFIX = '-estado';
 
 const SPANISH_LISTING_MARKERS = ['-hab-', 'en-venta', 'en-alquiler'];
 
+const MARKET_DATA_HUB_ES_PATH = '/precios-de-casas-en-venezuela';
+const MARKET_DATA_HUB_EN_PATH = '/property-prices-in-venezuela';
+const MARKET_DATA_METHODOLOGY_ES_PATH = `${MARKET_DATA_HUB_ES_PATH}/metodologia`;
+const MARKET_DATA_METHODOLOGY_EN_PATH = `${MARKET_DATA_HUB_EN_PATH}/methodology`;
+
 const GUIDE_EN_TO_ES: Record<string, string> = {
   'how-to-buy-property-in-venezuela-as-a-foreigner':
     'como-comprar-propiedad-en-venezuela-siendo-extranjero',
@@ -84,52 +89,91 @@ function isEnglishListingSlug(slug: string): boolean {
   return ENGLISH_LISTING_MARKERS.some((marker) => slug.includes(marker));
 }
 
+function normalizePathname(pathname: string): string {
+  return pathname !== '/' && pathname.endsWith('/')
+    ? pathname.slice(0, -1)
+    : pathname;
+}
+
+function isEnglishMarketDataCityPath(pathname: string): boolean {
+  const normalizedPathname = normalizePathname(pathname);
+  return (
+    /^\/property-prices-in-[^/]+$/.test(normalizedPathname) &&
+    normalizedPathname !== MARKET_DATA_HUB_EN_PATH
+  );
+}
+
+function getEnglishInternalMarketDataCitySlug(pathname: string): string | null {
+  const prefix = `/en${MARKET_DATA_HUB_ES_PATH}/`;
+  const normalizedPathname = normalizePathname(pathname);
+
+  if (!normalizedPathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const citySlug = normalizedPathname.slice(prefix.length);
+  if (!citySlug || citySlug === 'metodologia' || citySlug.includes('/')) {
+    return null;
+  }
+
+  return citySlug;
+}
+
+function getSpanishInternalMarketDataCitySlug(pathname: string): string | null {
+  const prefix = `${MARKET_DATA_HUB_ES_PATH}/`;
+  const normalizedPathname = normalizePathname(pathname);
+
+  if (!normalizedPathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const citySlug = normalizedPathname.slice(prefix.length);
+  if (!citySlug || citySlug === 'metodologia' || citySlug.includes('/')) {
+    return null;
+  }
+
+  return citySlug;
+}
+
 const intlMiddleware = createMiddleware(routing);
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const normalizedPathname = normalizePathname(pathname);
 
-  // Market data: English vanity URLs → rewrite to Spanish route paths (invisible to user)
-  if (pathname.startsWith('/en/property-prices-in-')) {
-    const rest = pathname.slice('/en/property-prices-in-'.length).replace(/\/$/, '');
-    const url = request.nextUrl.clone();
-
-    if (rest === 'venezuela') {
-      url.pathname = '/en/precios-de-casas-en-venezuela';
-    } else if (rest === 'venezuela/methodology') {
-      url.pathname = '/en/precios-de-casas-en-venezuela/metodologia';
-    } else {
-      // City: /en/property-prices-in-caracas → /en/precios-de-casas-en-venezuela/caracas
-      url.pathname = `/en/precios-de-casas-en-venezuela/${rest}`;
-    }
-    return NextResponse.rewrite(url);
-  }
-
-  // Market data: redirect /en/precios-de-casas-en-venezuela → canonical English URL
   if (
-    pathname === '/en/precios-de-casas-en-venezuela' ||
-    pathname === '/en/precios-de-casas-en-venezuela/'
+    normalizedPathname === MARKET_DATA_HUB_EN_PATH ||
+    normalizedPathname === MARKET_DATA_METHODOLOGY_EN_PATH ||
+    isEnglishMarketDataCityPath(normalizedPathname)
   ) {
     const url = request.nextUrl.clone();
-    url.pathname = '/en/property-prices-in-venezuela';
+    url.pathname = `/en${normalizedPathname}`;
     return NextResponse.redirect(url, 301);
   }
 
-  if (
-    pathname === '/en/precios-de-casas-en-venezuela/metodologia' ||
-    pathname === '/en/precios-de-casas-en-venezuela/metodologia/'
-  ) {
+  if (normalizedPathname === `/en${MARKET_DATA_HUB_ES_PATH}`) {
     const url = request.nextUrl.clone();
-    url.pathname = '/en/property-prices-in-venezuela/methodology';
+    url.pathname = `/en${MARKET_DATA_HUB_EN_PATH}`;
+    return NextResponse.redirect(url, 301);
+  }
+
+  if (normalizedPathname === `/en${MARKET_DATA_METHODOLOGY_ES_PATH}`) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/en${MARKET_DATA_METHODOLOGY_EN_PATH}`;
+    return NextResponse.redirect(url, 301);
+  }
+
+  const englishInternalMarketDataCitySlug =
+    getEnglishInternalMarketDataCitySlug(normalizedPathname);
+
+  if (englishInternalMarketDataCitySlug) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/en/property-prices-in-${englishInternalMarketDataCitySlug}`;
     return NextResponse.redirect(url, 301);
   }
 
   if (pathname.startsWith('/en/')) {
-    const enPath = pathname.slice(3);
-
-    if (pathname.startsWith('/en/precios-de-casas-en-venezuela/')) {
-      return intlMiddleware(request);
-    }
+    const enPath = normalizedPathname.slice(3);
 
     if (isSpanishSEOSlug(enPath)) {
       const url = request.nextUrl.clone();
@@ -158,7 +202,7 @@ export default function middleware(request: NextRequest) {
     return intlMiddleware(request);
   }
 
-  if (pathname === '/en') {
+  if (normalizedPathname === '/en') {
     return intlMiddleware(request);
   }
 
@@ -199,19 +243,13 @@ export default function middleware(request: NextRequest) {
     }
   }
 
-  // Market data: Spanish city vanity URLs → rewrite to route structure
-  // /precios-de-casas-en-caracas → /precios-de-casas-en-venezuela/caracas
-  if (
-    pathname.startsWith('/precios-de-casas-en-') &&
-    pathname !== '/precios-de-casas-en-venezuela' &&
-    !pathname.startsWith('/precios-de-casas-en-venezuela/')
-  ) {
-    const citySlug = pathname.slice('/precios-de-casas-en-'.length).replace(/\/$/, '');
-    if (citySlug) {
-      const url = request.nextUrl.clone();
-      url.pathname = `/precios-de-casas-en-venezuela/${citySlug}`;
-      return NextResponse.rewrite(url);
-    }
+  const spanishInternalMarketDataCitySlug =
+    getSpanishInternalMarketDataCitySlug(normalizedPathname);
+
+  if (spanishInternalMarketDataCitySlug) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/precios-de-casas-en-${spanishInternalMarketDataCitySlug}`;
+    return NextResponse.redirect(url, 301);
   }
 
   return intlMiddleware(request);

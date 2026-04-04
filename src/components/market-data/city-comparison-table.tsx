@@ -1,19 +1,15 @@
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import {
+  formatMarketCount,
+  getMarketDataCityPath,
+  slugifyMarketCity,
+} from '@/lib/market-data';
 import type { MarketStat } from '@/lib/supabase/market-data-queries';
 
 interface CityComparisonTableProps {
   cities: MarketStat[];
   locale: string;
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 }
 
 function formatPrice(price: number): string {
@@ -25,11 +21,13 @@ function formatPrice(price: number): string {
 }
 
 function getCityHref(city: string, locale: string) {
-  const slug = slugify(city);
-  return locale === 'es' ? `/precios-de-casas-en-${slug}` : `/property-prices-in-${slug}`;
+  return getMarketDataCityPath(slugifyMarketCity(city), locale);
 }
 
-export function CityComparisonTable({ cities, locale }: CityComparisonTableProps) {
+export function CityComparisonTable({
+  cities,
+  locale,
+}: CityComparisonTableProps) {
   const isEs = locale === 'es';
 
   return (
@@ -41,7 +39,7 @@ export function CityComparisonTable({ cities, locale }: CityComparisonTableProps
               {isEs ? 'Ciudad' : 'City'}
             </th>
             <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-stone-600">
-              {isEs ? 'Precio/m\u00b2' : 'Price/sqm'}
+              {isEs ? 'Precio/m²' : 'Price/sqm'}
             </th>
             <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-stone-600">
               {isEs ? 'Precio mediano' : 'Median price'}
@@ -72,13 +70,15 @@ export function CityComparisonTable({ cities, locale }: CityComparisonTableProps
                 <span className="ml-2 text-sm text-stone-400">{city.state}</span>
               </td>
               <td className="px-4 py-4 text-right font-semibold text-stone-900">
-                {city.median_price_per_sqm ? `${formatPrice(city.median_price_per_sqm)}/m\u00b2` : '\u2014'}
+                {city.median_price_per_sqm
+                  ? `${formatPrice(city.median_price_per_sqm)}/m²`
+                  : '—'}
               </td>
               <td className="px-4 py-4 text-right text-stone-700">
-                {city.median_price ? formatPrice(city.median_price) : '\u2014'}
+                {city.median_price ? formatPrice(city.median_price) : '—'}
               </td>
               <td className="px-4 py-4 text-right text-stone-600">
-                {city.listing_count.toLocaleString()}
+                {formatMarketCount(city.listing_count, locale)}
               </td>
               <td className="px-4 py-4 text-right">
                 {city.price_change_pct !== null ? (
@@ -102,7 +102,7 @@ export function CityComparisonTable({ cities, locale }: CityComparisonTableProps
                     {city.price_change_pct}%
                   </span>
                 ) : (
-                  <span className="text-stone-400">\u2014</span>
+                  <span className="text-stone-400">—</span>
                 )}
               </td>
             </tr>
