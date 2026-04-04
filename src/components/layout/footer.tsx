@@ -1,8 +1,10 @@
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, getLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 
 export async function Footer() {
   const t = await getTranslations('footer');
+  const tMarket = await getTranslations('marketData');
+  const locale = await getLocale();
 
   const footerLinks = {
     explore: [
@@ -53,6 +55,14 @@ export async function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <a
+                  href={locale === 'es' ? '/precios-de-casas-en-venezuela' : '/en/property-prices-in-venezuela'}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {tMarket('navLabel')}
+                </a>
+              </li>
             </ul>
           </div>
 
