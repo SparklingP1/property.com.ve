@@ -74,27 +74,30 @@ export function Header() {
 
   return (
     <header className="bg-white border-b border-border sticky top-0 z-50">
-      <nav className="container flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center gap-2">
+      <nav className="container flex items-center h-16">
+        <Link href="/" className="flex items-center gap-2.5 mr-auto">
           <Logo size={32} />
           <span className="font-bold text-xl text-foreground">{tHeader('branding')}</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-7">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-muted-foreground hover:text-foreground transition-colors text-[15px] font-medium focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:rounded-sm"
+              className="text-stone-600 hover:text-foreground transition-colors text-base font-medium focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:rounded-sm"
             >
               {link.label}
             </Link>
           ))}
+        </div>
+
+        <div className="hidden lg:flex items-center gap-4 ml-auto">
           <Link
             href={pathname}
             locale={targetLocale}
             onClick={handleLanguageSwitch}
-            className="text-sm font-semibold px-3 py-1 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
+            className="text-sm font-semibold px-3 py-1.5 rounded-md border border-stone-300 hover:bg-stone-50 transition-colors flex items-center gap-1.5"
           >
             <Globe className="h-3.5 w-3.5" aria-hidden="true" />
             {tHeader('langSwitch')}
@@ -105,7 +108,7 @@ export function Header() {
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden min-w-[44px] min-h-[44px]"
+          className="lg:hidden min-w-[44px] min-h-[44px]"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-expanded={mobileMenuOpen}
           aria-label={mobileMenuOpen ? t('closeMenu') : t('openMenu')}
@@ -119,7 +122,7 @@ export function Header() {
       </nav>
 
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-white">
+        <div className="lg:hidden border-t border-border bg-white">
           <div className="container py-4 flex flex-col gap-2">
             {navLinks.map((link) => (
               <Link

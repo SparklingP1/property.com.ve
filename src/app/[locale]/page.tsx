@@ -4,7 +4,6 @@ import { Link } from '@/i18n/navigation';
 import { SearchBar } from '@/components/search/search-bar';
 import { ListingGrid } from '@/components/listings/listing-grid';
 import { ListingSkeleton } from '@/components/listings/listing-skeleton';
-import { EmailSignupForm } from '@/components/forms/email-signup-form';
 import { getFeaturedListings } from '@/lib/supabase/cached-queries';
 import type { Metadata } from 'next';
 
@@ -128,9 +127,6 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,63,0.15),transparent_50%)]" />
         <div className="container relative pt-10 pb-16 md:pt-12 md:pb-20">
           <div className="max-w-2xl mx-auto text-center mb-8">
-            <p className="text-xs font-semibold tracking-[0.2em] text-amber-200 uppercase mb-3">
-              {t('heroTagline')}
-            </p>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
               {t('heroHeadline')}
             </h1>
@@ -275,20 +271,6 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* Email Signup */}
-      <section className="bg-stone-900 py-16">
-        <div className="container">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              {t('stayInTheLoop')}
-            </h2>
-            <p className="text-stone-400 text-lg mb-8">{t('stayInTheLoopDescription')}</p>
-            <div className="bg-stone-800 rounded-2xl p-6">
-              <EmailSignupForm />
-            </div>
-          </div>
-        </div>
-      </section>
     </>
   );
 }
