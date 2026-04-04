@@ -33,9 +33,11 @@ const GUIDE_EN_TO_ES: Record<string, string> = {
   'margarita-island-real-estate-guide': 'guia-inmobiliaria-isla-margarita',
   'venezuela-property-laws-foreign-buyers':
     'leyes-propiedad-venezuela-compradores-extranjeros',
-  'is-it-safe-to-buy-property-in-venezuela': 'es-seguro-comprar-propiedad-en-venezuela',
+  'is-it-safe-to-buy-property-in-venezuela':
+    'es-seguro-comprar-propiedad-en-venezuela',
   'caracas-vs-valencia-where-to-buy': 'caracas-vs-valencia-donde-comprar',
-  'beachfront-property-venezuela-guide': 'guia-propiedades-playa-venezuela',
+  'beachfront-property-venezuela-guide':
+    'guia-propiedades-playa-venezuela',
   'venezuela-property-prices-2026': 'precios-propiedades-venezuela-2026',
   'renting-vs-buying-in-venezuela': 'alquilar-vs-comprar-en-venezuela',
   'venezuela-real-estate-taxes-foreigners':
@@ -87,34 +89,30 @@ const intlMiddleware = createMiddleware(routing);
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Market data: rewrite to canonical route paths by mutating the URL,
-  // then return intlMiddleware immediately (don't fall through — the stale
-  // `pathname` const would match later conditions and cause redirects).
-  if (pathname.startsWith('/en/property-prices-in-')) {
-    const rest = pathname.slice('/en/property-prices-in-'.length);
-
-    if (rest === 'venezuela' || rest === 'venezuela/') {
-      request.nextUrl.pathname = '/en/precios-de-casas-en-venezuela';
-    } else if (rest === 'venezuela/methodology' || rest === 'venezuela/methodology/') {
-      request.nextUrl.pathname = '/en/precios-de-casas-en-venezuela/metodologia';
-    } else {
-      const citySlug = rest.replace(/\/$/, '');
-      request.nextUrl.pathname = `/en/precios-de-casas-en-venezuela/${citySlug}`;
-    }
-    return intlMiddleware(request);
+  if (
+    pathname === '/en/precios-de-casas-en-venezuela' ||
+    pathname === '/en/precios-de-casas-en-venezuela/'
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/en/property-prices-in-venezuela';
+    return NextResponse.redirect(url, 301);
   }
 
-  // Spanish city URLs: /precios-de-casas-en-caracas → /precios-de-casas-en-venezuela/caracas
-  if (pathname.startsWith('/precios-de-casas-en-') && pathname !== '/precios-de-casas-en-venezuela' && !pathname.startsWith('/precios-de-casas-en-venezuela/')) {
-    const citySlug = pathname.slice('/precios-de-casas-en-'.length).replace(/\/$/, '');
-    if (citySlug) {
-      request.nextUrl.pathname = `/precios-de-casas-en-venezuela/${citySlug}`;
-      return intlMiddleware(request);
-    }
+  if (
+    pathname === '/en/precios-de-casas-en-venezuela/metodologia' ||
+    pathname === '/en/precios-de-casas-en-venezuela/metodologia/'
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/en/property-prices-in-venezuela/methodology';
+    return NextResponse.redirect(url, 301);
   }
 
   if (pathname.startsWith('/en/')) {
     const enPath = pathname.slice(3);
+
+    if (pathname.startsWith('/en/precios-de-casas-en-venezuela/')) {
+      return intlMiddleware(request);
+    }
 
     if (isSpanishSEOSlug(enPath)) {
       const url = request.nextUrl.clone();
