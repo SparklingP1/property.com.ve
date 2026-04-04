@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { createClient } from './server';
+import { createServiceClient } from './server';
 
 export interface MarketStat {
   id: number;
@@ -27,7 +27,7 @@ export interface MarketStat {
  * Uses anon key — RLS auto-filters to medium/high confidence.
  */
 export const getLatestPeriod = cache(async (): Promise<string | null> => {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
     .select('period_start')
@@ -42,7 +42,7 @@ export const getLatestPeriod = cache(async (): Promise<string | null> => {
  * National overview: rollup rows (city='', state='') for the latest period.
  */
 export const getMarketOverview = cache(async (periodStart: string): Promise<MarketStat[]> => {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
     .select('*')
@@ -59,7 +59,7 @@ export const getMarketOverview = cache(async (periodStart: string): Promise<Mark
  * City comparison: one row per city (all property types, all bedrooms).
  */
 export const getCityComparison = cache(async (periodStart: string): Promise<MarketStat[]> => {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
     .select('*')
@@ -77,7 +77,7 @@ export const getCityComparison = cache(async (periodStart: string): Promise<Mark
  * All stats for a specific city (by type, by bedrooms, rollups).
  */
 export const getCityStats = cache(async (city: string, periodStart: string): Promise<MarketStat[]> => {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
     .select('*')
@@ -93,7 +93,7 @@ export const getCityStats = cache(async (city: string, periodStart: string): Pro
  * Time series: multiple periods for a city (for charts).
  */
 export const getTimeSeries = cache(async (city: string, months: number = 12): Promise<MarketStat[]> => {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
     .select('*')
@@ -112,7 +112,7 @@ export const getTimeSeries = cache(async (city: string, months: number = 12): Pr
  * Returns unique city names with their state.
  */
 export const getValidCities = cache(async (): Promise<Array<{ city: string; state: string; listing_count: number }>> => {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
   // Get latest period first
   const { data: latest } = await supabase
@@ -141,7 +141,7 @@ export const getValidCities = cache(async (): Promise<Array<{ city: string; stat
  * Sample listings from a city for display on market data pages.
  */
 export const getSampleListings = cache(async (city: string, limit: number = 6) => {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data } = await supabase
     .from('listings')
     .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, state, bedrooms, bathrooms, area_sqm, url_slug, url_slug_es')
