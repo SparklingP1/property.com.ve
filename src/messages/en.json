@@ -420,6 +420,15 @@
     "saveSearchDescription": "Get alerts when new properties match these filters.",
     "loginToSave": "Log in to save this search"
   },
+  "cta": {
+    "trackLocation": "Track new listings in {location}",
+    "trackGeneric": "Never miss a new listing",
+    "alertsForLocation": "Get alerts for new properties in {location}",
+    "alertsGeneric": "Get alerts when new properties are listed",
+    "description": "Create a free account to save properties, set up alerts, and track the market.",
+    "createAccount": "Create Free Account",
+    "signUp": "Sign Up"
+  },
   "marketData": {
     "title": "Property Prices in Venezuela",
     "titleCity": "Property Prices in {city}",

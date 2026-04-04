@@ -420,6 +420,15 @@
     "saveSearchDescription": "Recibe alertas cuando aparezcan nuevos inmuebles que coincidan con estos filtros.",
     "loginToSave": "Inicia sesión para guardar esta búsqueda"
   },
+  "cta": {
+    "trackLocation": "Sigue nuevos inmuebles en {location}",
+    "trackGeneric": "No te pierdas ningún inmueble nuevo",
+    "alertsForLocation": "Recibe alertas de nuevos inmuebles en {location}",
+    "alertsGeneric": "Recibe alertas cuando se publiquen nuevos inmuebles",
+    "description": "Crea una cuenta gratis para guardar inmuebles, configurar alertas y seguir el mercado.",
+    "createAccount": "Crear Cuenta Gratis",
+    "signUp": "Registrarse"
+  },
   "marketData": {
     "title": "Precios de Casas en Venezuela",
     "titleCity": "Precios de Casas en {city}",

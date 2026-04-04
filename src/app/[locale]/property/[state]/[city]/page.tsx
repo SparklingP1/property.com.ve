@@ -6,6 +6,7 @@ import { ListingGrid } from '@/components/listings/listing-grid';
 import type { Listing } from '@/types/listing';
 import { Link } from '@/i18n/navigation';
 import { MapPin, Home, TrendingUp, Bed } from 'lucide-react';
+import { RegisterCTA } from '@/components/common/register-cta';
 
 interface CityPageProps {
   params: Promise<{ locale: string; state: string; city: string }>;
@@ -214,8 +215,10 @@ export default async function CityPage({ params }: CityPageProps) {
           </section>
         )}
 
+        <RegisterCTA location={cityName} />
+
         {/* Featured Listings */}
-        <section>
+        <section className="mt-12">
           <h2 className="text-2xl font-bold mb-6 text-stone-900">
             {t('propertiesForSaleIn', { location: cityName }).replace(' →', '')}
           </h2>

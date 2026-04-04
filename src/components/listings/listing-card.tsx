@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
 import type { Listing } from '@/types/listing';
 import { getListingUrlForLocale } from '@/lib/slug';
+import { SaveButton } from './save-button';
 
 interface ListingCardProps {
   listing: Listing;
@@ -70,6 +71,9 @@ export function ListingCard({ listing }: ListingCardProps) {
               {propertyTypeLabels[listing.property_type] || listing.property_type}
             </Badge>
           )}
+          <div className="absolute top-3 right-3">
+            <SaveButton listingId={listing.id} />
+          </div>
         </div>
 
         <CardContent className="p-3">

@@ -7,6 +7,7 @@ import { slugify } from '@/lib/slug';
 import type { Listing } from '@/types/listing';
 import { Link } from '@/i18n/navigation';
 import { MapPin, Home, TrendingUp } from 'lucide-react';
+import { RegisterCTA } from '@/components/common/register-cta';
 
 interface StatePageProps {
   params: Promise<{ locale: string; state: string }>;
@@ -195,8 +196,10 @@ export default async function StatePage({ params }: StatePageProps) {
           </section>
         )}
 
+        <RegisterCTA location={stateName} />
+
         {/* Featured Listings */}
-        <section>
+        <section className="mt-12">
           <h2 className="text-2xl font-bold mb-6 text-stone-900">{t('featuredProperties')}</h2>
           <ListingGrid listings={listings as Listing[]} />
 

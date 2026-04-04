@@ -10,6 +10,9 @@ import { getListingUrlForLocale } from '@/lib/slug';
 import { Link } from '@/i18n/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { getListingBySlug } from '@/lib/supabase/cached-queries';
+import { SaveButton } from '@/components/listings/save-button';
+import { TrackView } from '@/components/listings/track-view';
+import { RegisterCTA } from '@/components/common/register-cta';
 
 interface PropertyPageProps {
   params: Promise<{ locale: string; state: string; city: string; slug: string }>;
@@ -176,6 +179,7 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
   return (
     <>
       <ListingSchema listing={listing as Listing} />
+      <TrackView listingId={listing.id} />
 
       <div className="container py-8">
         <Link
@@ -192,11 +196,14 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="sticky top-24">
+            <div className="sticky top-24 space-y-4">
               <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-                <h2 className="text-xl font-semibold mb-4">
-                  {t('interestedInProperty')}
-                </h2>
+                <div className="flex items-start justify-between mb-4">
+                  <h2 className="text-xl font-semibold">
+                    {t('interestedInProperty')}
+                  </h2>
+                  <SaveButton listingId={listing.id} size="md" />
+                </div>
                 <p className="text-muted-foreground text-sm mb-4">
                   {t('contactAgentDescription')}
                 </p>
@@ -219,6 +226,8 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
                   </Link>
                 </div>
               </div>
+
+              <RegisterCTA location={listing.city || listing.state || undefined} variant="compact" />
             </div>
           </div>
         </div>
