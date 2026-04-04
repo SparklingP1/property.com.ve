@@ -69,7 +69,6 @@ export function Header() {
     { href: '/search' as const, label: t('search') },
     { href: '/guides' as const, label: t('guides') },
     { href: '/find-property' as const, label: t('findProperty') },
-    { href: '/list-your-property' as const, label: t('listProperty') },
     { href: '/about' as const, label: t('about') },
   ];
 
@@ -86,7 +85,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:rounded-sm"
+              className="text-muted-foreground hover:text-foreground transition-colors text-[15px] font-medium focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:rounded-sm"
             >
               {link.label}
             </Link>
