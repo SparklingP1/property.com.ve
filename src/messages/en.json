@@ -339,5 +339,26 @@
     "disclaimerTitle": "Disclaimer",
     "takedownTitle": "Takedown Request",
     "guidesTitle": "Property Guides"
+  },
+  "marketData": {
+    "title": "Property Prices in Venezuela",
+    "titleCity": "Property Prices in {city}",
+    "subtitle": "Price index based on {count} active listings",
+    "updated": "Updated {date}",
+    "medianPricePerSqm": "Median Price per sqm",
+    "medianPrice": "Median Price",
+    "listingsTracked": "Listings Tracked",
+    "cityComparison": "Prices by City",
+    "byPropertyType": "By Property Type",
+    "byBedrooms": "By Bedrooms",
+    "methodology": "Methodology",
+    "methodologyTitle": "Price Index Methodology",
+    "keyFindings": "Key Findings",
+    "viewListings": "View listings in {city}",
+    "compareCity": "How does {city} compare?",
+    "sampleListings": "Featured Listings in {city}",
+    "breadcrumbHome": "Home",
+    "breadcrumbPrices": "Prices",
+    "navLabel": "Prices"
   }
 }

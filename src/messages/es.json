@@ -339,5 +339,26 @@
     "disclaimerTitle": "Aviso Legal",
     "takedownTitle": "Solicitud de Retiro",
     "guidesTitle": "Guías Inmobiliarias"
+  },
+  "marketData": {
+    "title": "Precios de Casas en Venezuela",
+    "titleCity": "Precios de Casas en {city}",
+    "subtitle": "Índice de precios basado en {count} inmuebles activos",
+    "updated": "Actualizado {date}",
+    "medianPricePerSqm": "Precio Mediano por m²",
+    "medianPrice": "Precio Mediano",
+    "listingsTracked": "Inmuebles Analizados",
+    "cityComparison": "Precios por Ciudad",
+    "byPropertyType": "Por Tipo de Inmueble",
+    "byBedrooms": "Por Habitaciones",
+    "methodology": "Metodología",
+    "methodologyTitle": "Metodología del Índice de Precios",
+    "keyFindings": "Hallazgos Principales",
+    "viewListings": "Ver inmuebles en {city}",
+    "compareCity": "¿Cómo se compara {city}?",
+    "sampleListings": "Inmuebles Destacados en {city}",
+    "breadcrumbHome": "Inicio",
+    "breadcrumbPrices": "Precios",
+    "navLabel": "Precios"
   }
 }

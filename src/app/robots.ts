@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
       `${baseUrl}/sitemap-guides.xml`,
       `${baseUrl}/sitemap-locations.xml`,
       `${baseUrl}/sitemap-seo-pages.xml`,
+      `${baseUrl}/sitemap-market-data.xml`,
     ],
   };
 }

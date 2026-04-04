@@ -62,6 +62,9 @@ export function Header() {
     handleLanguageSwitch(event);
   }, [closeMobileMenu, handleLanguageSwitch]);
 
+  const tMarket = useTranslations('marketData');
+  const pricesHref = locale === 'es' ? '/precios-de-casas-en-venezuela' : '/en/property-prices-in-venezuela';
+
   const navLinks = [
     { href: '/' as const, label: t('home') },
     { href: '/search' as const, label: t('search') },
@@ -91,6 +94,12 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          <a
+            href={pricesHref}
+            className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none focus-visible:rounded-sm"
+          >
+            {tMarket('navLabel')}
+          </a>
           <Link
             href={pathname}
             locale={targetLocale}
@@ -131,6 +140,13 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href={pricesHref}
+              className="text-muted-foreground hover:text-foreground transition-colors py-2 text-sm font-medium"
+              onClick={closeMobileMenu}
+            >
+              {tMarket('navLabel')}
+            </a>
             <Link
               href={pathname}
               locale={targetLocale}
