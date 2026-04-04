@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useTransition } from 'react';
+import { ReactNode, useState, useTransition, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
@@ -38,7 +38,7 @@ interface CollapsibleFiltersProps {
 }
 
 export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -47,6 +47,18 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
   const normalizedSearchParams = normalizeSearchParams(
     Object.fromEntries(searchParams.entries()) as SearchParamRecord
   );
+
+  // Prevent body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileFiltersOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileFiltersOpen]);
 
   const activeFilters: { key: keyof NormalizedSearchParams; label: string }[] = [];
   const paramConfig: Array<{
@@ -126,31 +138,24 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
+      {/* Mobile: Filter toggle button */}
+      <div className="mb-4 flex items-center justify-between lg:hidden">
         <Button
-          onClick={() => setFiltersOpen(!filtersOpen)}
+          onClick={() => setMobileFiltersOpen(true)}
           variant="outline"
           className="border-stone-300 text-stone-700 hover:bg-stone-50"
         >
-          {filtersOpen ? (
-            <>
-              <X className="h-4 w-4 mr-2" />
-              {t('hideFilters')}
-            </>
-          ) : (
-            <>
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              {t('showFilters')}
-              {activeFilters.length > 0 && (
-                <Badge className="ml-2 bg-amber-600 hover:bg-amber-600 text-white">
-                  {activeFilters.length}
-                </Badge>
-              )}
-            </>
+          <SlidersHorizontal className="h-4 w-4 mr-2" />
+          {t('showFilters')}
+          {activeFilters.length > 0 && (
+            <Badge className="ml-2 bg-amber-600 hover:bg-amber-600 text-white">
+              {activeFilters.length}
+            </Badge>
           )}
         </Button>
       </div>
 
+      {/* Active filter badges */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {activeFilters.map(({ key, label }) => (
@@ -180,21 +185,51 @@ export function CollapsibleFilters({ children }: CollapsibleFiltersProps) {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[320px,1fr] gap-8">
-        {filtersOpen && (
-          <aside className="lg:sticky lg:top-8 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto z-10">
-            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-stone-900">
-                  {t('refineSearch')}
-                </h2>
-              </div>
+      {/* Mobile: Slide-over drawer */}
+      {mobileFiltersOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setMobileFiltersOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="absolute inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-stone-200 px-5 py-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-semibold text-stone-900">
+                {t('refineSearch')}
+              </h2>
+              <Button
+                onClick={() => setMobileFiltersOpen(false)}
+                variant="ghost"
+                size="icon"
+                className="text-stone-500 hover:text-stone-900"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-5">
               <AdvancedSearchFilters />
             </div>
-          </aside>
-        )}
+          </div>
+        </div>
+      )}
 
-        <main className={filtersOpen ? '' : 'lg:col-span-2'}>{children}</main>
+      {/* Desktop: Sidebar + content layout */}
+      <div className="grid lg:grid-cols-[300px,1fr] gap-8">
+        {/* Desktop filter sidebar (always visible) */}
+        <aside className="hidden lg:block lg:sticky lg:top-8 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-stone-900">
+                {t('refineSearch')}
+              </h2>
+            </div>
+            <AdvancedSearchFilters />
+          </div>
+        </aside>
+
+        <main>{children}</main>
       </div>
     </>
   );

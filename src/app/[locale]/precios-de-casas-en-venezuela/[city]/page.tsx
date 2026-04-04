@@ -1,20 +1,21 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
-import { BarChart3, Home, TrendingUp, ExternalLink } from 'lucide-react';
-import {
-  getLatestPeriod,
-  getCityStats,
-  getCityComparison,
-  getValidCities,
-  getSampleListings,
-} from '@/lib/supabase/market-data-queries';
-import { StatCard } from '@/components/market-data/stat-card';
-import { PropertyTypeBreakdown } from '@/components/market-data/property-type-breakdown';
+import { getTranslations } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import { BarChart3, ExternalLink, Home, TrendingUp } from 'lucide-react';
 import { BedroomBreakdown } from '@/components/market-data/bedroom-breakdown';
-import { MethodologyNote } from '@/components/market-data/methodology-note';
 import { DatasetSchema } from '@/components/market-data/dataset-schema';
+import { MethodologyNote } from '@/components/market-data/methodology-note';
+import { PropertyTypeBreakdown } from '@/components/market-data/property-type-breakdown';
+import { StatCard } from '@/components/market-data/stat-card';
+import { Link } from '@/i18n/navigation';
+import {
+  getCityComparison,
+  getCityStats,
+  getLatestPeriod,
+  getSampleListings,
+  getValidCities,
+} from '@/lib/supabase/market-data-queries';
 
 export const revalidate = 86400;
 
@@ -23,8 +24,10 @@ interface Props {
 }
 
 function slugify(name: string): string {
-  return name.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 }
@@ -38,11 +41,15 @@ function formatPrice(price: number): string {
 }
 
 function formatDate(dateStr: string, locale: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
+  const date = new Date(`${dateStr}T00:00:00`);
   return date.toLocaleDateString(locale === 'es' ? 'es-VE' : 'en-US', {
     month: 'long',
     year: 'numeric',
   });
+}
+
+function getCityPath(citySlug: string, locale: string) {
+  return locale === 'es' ? `/precios-de-casas-en-${citySlug}` : `/property-prices-in-${citySlug}`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -51,8 +58,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
 
   const validCities = await getValidCities();
-  const match = validCities.find(c => slugify(c.city) === citySlug);
-  if (!match) return { title: 'Not Found' };
+  const match = validCities.find((city) => slugify(city.city) === citySlug);
+
+  if (!match) {
+    return { title: 'Not Found' };
+  }
 
   const cityName = match.city;
   const esPath = `/precios-de-casas-en-${citySlug}`;
@@ -60,11 +70,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: isEs
-      ? `Precios de Casas en ${cityName} 2026 — Índice de Precios | Property.com.ve`
-      : `Property Prices in ${cityName} 2026 — Price Index | Property.com.ve`,
+      ? `Precios de Casas en ${cityName} 2026 \u2014 Indice de Precios | Property.com.ve`
+      : `Property Prices in ${cityName} 2026 \u2014 Price Index | Property.com.ve`,
     description: isEs
-      ? `Precios de inmuebles en ${cityName}, Venezuela. Precios medianos por m² para apartamentos y casas, desglose por habitaciones. Actualizado mensualmente.`
-      : `Property prices in ${cityName}, Venezuela. Median prices per sqm for apartments and houses, bedroom breakdown. Updated monthly.`,
+      ? `Precios de inmuebles en ${cityName}, Venezuela. Precios medianos por m\u00b2 para apartamentos y casas, con desglose por habitaciones. Actualizado mensualmente.`
+      : `Property prices in ${cityName}, Venezuela. Median prices per sqm for apartments and houses, with bedroom-level breakdowns. Updated monthly.`,
     alternates: {
       canonical: isEs ? `${baseUrl}${esPath}` : `${baseUrl}${enPath}`,
       languages: {
@@ -73,7 +83,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       },
     },
     openGraph: {
-      title: isEs ? `Precios de Casas en ${cityName} 2026` : `Property Prices in ${cityName} 2026`,
+      title: isEs
+        ? `Precios de Casas en ${cityName} 2026`
+        : `Property Prices in ${cityName} 2026`,
       type: 'website',
       locale: isEs ? 'es_VE' : 'en_US',
       siteName: 'Property.com.ve',
@@ -83,20 +95,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export async function generateStaticParams() {
   const cities = await getValidCities();
-  return cities.map(c => ({ city: slugify(c.city) }));
+  return cities.map((city) => ({ city: slugify(city.city) }));
 }
 
 export default async function CityMarketData({ params }: Props) {
   const { locale, city: citySlug } = await params;
-  const t = await getTranslations({ locale, namespace: 'marketData' });
   const isEs = locale === 'es';
+  const t = await getTranslations({ locale, namespace: 'marketData' });
 
   const periodStart = await getLatestPeriod();
-  if (!periodStart) return notFound();
+  if (!periodStart) {
+    return notFound();
+  }
 
   const validCities = await getValidCities();
-  const match = validCities.find(c => slugify(c.city) === citySlug);
-  if (!match) return notFound();
+  const match = validCities.find((city) => slugify(city.city) === citySlug);
+
+  if (!match) {
+    return notFound();
+  }
 
   const cityName = match.city;
   const [cityStats, allCities, sampleListings] = await Promise.all([
@@ -105,67 +122,75 @@ export default async function CityMarketData({ params }: Props) {
     getSampleListings(cityName, 6),
   ]);
 
-  // Main city stat (all types, all bedrooms)
-  const cityTotal = cityStats.find(s => s.property_type === '' && s.bedrooms_bucket === '');
-  if (!cityTotal) return notFound();
+  const cityTotal = cityStats.find(
+    (stat) => stat.property_type === '' && stat.bedrooms_bucket === ''
+  );
 
-  const methodologyUrl = isEs ? '/precios-de-casas-en-venezuela/metodologia/' : '/en/property-prices-in-venezuela/methodology/';
-  const hubUrl = isEs ? '/precios-de-casas-en-venezuela/' : '/en/property-prices-in-venezuela/';
-  const searchUrl = isEs ? `/buscar?city=${encodeURIComponent(cityName)}` : `/en/search?city=${encodeURIComponent(cityName)}`;
+  if (!cityTotal) {
+    return notFound();
+  }
 
-  // Find top 3 comparison cities (different from current)
+  const methodologyUrl = isEs
+    ? '/precios-de-casas-en-venezuela/metodologia'
+    : '/property-prices-in-venezuela/methodology';
+  const hubUrl = isEs ? '/precios-de-casas-en-venezuela' : '/property-prices-in-venezuela';
+  const searchUrl = `/search?city=${encodeURIComponent(cityName)}`;
   const compareCities = allCities
-    .filter(c => c.city !== cityName && c.median_price_per_sqm)
+    .filter((city) => city.city !== cityName && city.median_price_per_sqm)
     .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-stone-50">
       <DatasetSchema
         name={isEs ? `Precios de Inmuebles en ${cityName}` : `Property Prices in ${cityName}`}
-        description={isEs
-          ? `Precios medianos de inmuebles en ${cityName}, Venezuela.`
-          : `Median property prices in ${cityName}, Venezuela.`}
-        url={`https://property.com.ve/precios-de-casas-en-${citySlug}`}
+        description={
+          isEs
+            ? `Precios medianos de inmuebles en ${cityName}, Venezuela.`
+            : `Median property prices in ${cityName}, Venezuela.`
+        }
+        url={`https://property.com.ve${isEs ? getCityPath(citySlug, locale) : `/en${getCityPath(citySlug, locale)}`}`}
         spatialCoverage={`${cityName}, Venezuela`}
         temporalCoverage={`${periodStart}/..`}
         listingCount={cityTotal.listing_count}
       />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 text-stone-50 py-16">
+      <div className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 py-16 text-stone-50">
         <div className="container">
-          <div className="flex items-center gap-2 text-stone-400 text-sm mb-4">
-            <a href={isEs ? '/' : '/en'} className="hover:text-stone-200">{t('breadcrumbHome')}</a>
+          <div className="mb-4 flex items-center gap-2 text-sm text-stone-400">
+            <Link href="/" className="hover:text-stone-200">
+              {t('breadcrumbHome')}
+            </Link>
             <span>/</span>
-            <a href={hubUrl} className="hover:text-stone-200">{t('breadcrumbPrices')}</a>
+            <Link href={hubUrl} className="hover:text-stone-200">
+              {t('breadcrumbPrices')}
+            </Link>
             <span>/</span>
             <span className="text-stone-200">{cityName}</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
             {t('titleCity', { city: cityName })}
           </h1>
-          <p className="text-stone-300 text-lg max-w-3xl mb-2">
+          <p className="mb-2 max-w-3xl text-lg text-stone-300">
             {t('subtitle', { count: cityTotal.listing_count.toLocaleString() })}
           </p>
-          <p className="text-amber-400 text-sm font-medium">
+          <p className="text-sm font-medium text-amber-400">
             {t('updated', { date: formatDate(periodStart, locale) })}
           </p>
         </div>
       </div>
 
-      <div className="container py-12 space-y-12">
-        {/* Key stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="container space-y-12 py-12">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <StatCard
             label={t('medianPricePerSqm')}
-            value={cityTotal.median_price_per_sqm ? `${formatPrice(cityTotal.median_price_per_sqm)}/m²` : '—'}
+            value={cityTotal.median_price_per_sqm ? `${formatPrice(cityTotal.median_price_per_sqm)}/m\u00b2` : '\u2014'}
             changePct={cityTotal.price_change_pct}
             icon={<BarChart3 className="h-6 w-6 text-amber-600" />}
           />
           <StatCard
             label={t('medianPrice')}
-            value={cityTotal.median_price ? formatPrice(cityTotal.median_price) : '—'}
+            value={cityTotal.median_price ? formatPrice(cityTotal.median_price) : '\u2014'}
             icon={<Home className="h-6 w-6 text-amber-600" />}
           />
           <StatCard
@@ -175,95 +200,118 @@ export default async function CityMarketData({ params }: Props) {
           />
         </div>
 
-        {/* Property type breakdown */}
         <section>
-          <h2 className="text-2xl font-bold text-stone-900 mb-6">{t('byPropertyType')}</h2>
+          <h2 className="mb-6 text-2xl font-bold text-stone-900">{t('byPropertyType')}</h2>
           <PropertyTypeBreakdown stats={cityStats} locale={locale} />
         </section>
 
-        {/* Bedroom breakdown */}
         <section>
-          <h2 className="text-2xl font-bold text-stone-900 mb-6">{t('byBedrooms')}</h2>
+          <h2 className="mb-6 text-2xl font-bold text-stone-900">{t('byBedrooms')}</h2>
           <BedroomBreakdown stats={cityStats} locale={locale} />
         </section>
 
-        {/* City comparison */}
         {compareCities.length > 0 && (
           <section>
-            <h2 className="text-2xl font-bold text-stone-900 mb-6">{t('compareCity', { city: cityName })}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {compareCities.map(c => (
-                <a
-                  key={c.city}
-                  href={`${isEs ? '/precios-de-casas-en-' : '/en/property-prices-in-'}${slugify(c.city)}/`}
-                  className="bg-white rounded-xl shadow-sm border border-stone-200 p-5 hover:shadow-md hover:border-amber-300 transition-all"
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-stone-900">
+                  {t('compareCity', { city: cityName })}
+                </h2>
+                <p className="mt-1 text-stone-600">
+                  {isEs
+                    ? 'Usa estas ciudades como referencia rapida antes de abrir listados.'
+                    : 'Use these cities as quick reference points before opening listings.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {compareCities.map((city) => (
+                <Link
+                  key={city.city}
+                  href={getCityPath(slugify(city.city), locale)}
+                  className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
                 >
-                  <p className="font-bold text-stone-900">{c.city}</p>
-                  <p className="text-2xl font-bold text-amber-700 mt-1">
-                    {c.median_price_per_sqm ? `${formatPrice(c.median_price_per_sqm)}/m²` : '—'}
+                  <p className="font-bold text-stone-900">{city.city}</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-700">
+                    {city.median_price_per_sqm ? `${formatPrice(city.median_price_per_sqm)}/m\u00b2` : '\u2014'}
                   </p>
-                  <p className="text-sm text-stone-500 mt-1">
-                    {c.listing_count.toLocaleString()} {isEs ? 'inmuebles' : 'listings'}
+                  <p className="mt-1 text-sm text-stone-500">
+                    {city.listing_count.toLocaleString()} {isEs ? 'inmuebles' : 'listings'}
                   </p>
-                </a>
+                </Link>
               ))}
             </div>
           </section>
         )}
 
-        {/* Sample listings */}
         {sampleListings.length > 0 && (
           <section>
-            <h2 className="text-2xl font-bold text-stone-900 mb-6">{t('sampleListings', { city: cityName })}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sampleListings.map(listing => {
+            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-stone-900">
+                  {t('sampleListings', { city: cityName })}
+                </h2>
+                <p className="mt-1 text-stone-600">
+                  {isEs
+                    ? 'Una muestra rapida del inventario activo en esta ciudad.'
+                    : 'A quick sample of currently active inventory in this city.'}
+                </p>
+              </div>
+              <Link
+                href={searchUrl}
+                className="inline-flex items-center gap-2 self-start rounded-xl bg-amber-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-amber-700"
+              >
+                {t('viewListings', { city: cityName })}
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {sampleListings.map((listing) => {
                 const slug = isEs ? listing.url_slug_es : listing.url_slug;
                 const title = (isEs ? listing.title : listing.title_en) || listing.title;
+
                 return (
-                  <a
+                  <Link
                     key={listing.id}
-                    href={`${isEs ? '' : '/en'}/listing/${slug || listing.id}`}
-                    className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-md transition-all group"
+                    href={`/listing/${slug || listing.id}`}
+                    className="group overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm transition-all hover:shadow-md"
                   >
                     {listing.thumbnail_url && (
-                      <div className="aspect-[4/3] relative overflow-hidden bg-stone-100">
+                      <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
                         <Image
                           src={listing.thumbnail_url}
                           alt={title}
                           fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </div>
                     )}
+
                     <div className="p-4">
-                      <p className="font-bold text-lg text-amber-700">
-                        {listing.price ? formatPrice(listing.price) : '—'}
+                      <p className="text-lg font-bold text-amber-700">
+                        {listing.price ? formatPrice(listing.price) : '\u2014'}
                       </p>
-                      <p className="text-sm text-stone-600 mt-1 line-clamp-2">{title}</p>
-                      <div className="flex gap-3 text-xs text-stone-500 mt-2">
-                        {listing.bedrooms && <span>{listing.bedrooms} {isEs ? 'hab.' : 'bed'}</span>}
-                        {listing.bathrooms && <span>{listing.bathrooms} {isEs ? 'baño' : 'bath'}</span>}
-                        {listing.area_sqm && <span>{listing.area_sqm}m²</span>}
+                      <p className="mt-1 line-clamp-2 text-sm text-stone-600">{title}</p>
+                      <div className="mt-2 flex flex-wrap gap-3 text-xs text-stone-500">
+                        {listing.bedrooms && (
+                          <span>{listing.bedrooms} {isEs ? 'hab.' : 'bed'}</span>
+                        )}
+                        {listing.bathrooms && (
+                          <span>{listing.bathrooms} {isEs ? 'ba\u00f1os' : 'baths'}</span>
+                        )}
+                        {listing.area_sqm && <span>{listing.area_sqm} m\u00b2</span>}
                       </div>
                     </div>
-                  </a>
+                  </Link>
                 );
               })}
-            </div>
-            <div className="mt-6 text-center">
-              <a
-                href={searchUrl}
-                className="inline-flex items-center gap-2 bg-amber-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-amber-700 transition-colors"
-              >
-                {t('viewListings', { city: cityName })}
-                <ExternalLink className="h-4 w-4" />
-              </a>
             </div>
           </section>
         )}
 
-        {/* Methodology */}
         <MethodologyNote
           listingCount={cityTotal.listing_count}
           locale={locale}

@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getGuides, getGuideSlugForLocale } from '@/lib/guides';
+import { formatGuideDate, getGuideCategoryLabel } from '@/lib/guides-ui';
 
 interface GuidesPageProps {
   params: Promise<{ locale: string }>;
@@ -35,8 +36,9 @@ export default async function GuidesPage({ params }: GuidesPageProps) {
   const t = await getTranslations('guides');
   const guides = getGuides(locale);
 
-  // Group guides by category
-  const categories = [...new Set(guides.map((g) => g.category))];
+  const categories = [
+    ...new Set(guides.map((guide) => getGuideCategoryLabel(guide.category, locale))),
+  ];
 
   return (
     <div className="container py-12">
@@ -53,7 +55,7 @@ export default async function GuidesPage({ params }: GuidesPageProps) {
           <Badge
             key={category}
             variant="outline"
-            className="text-sm py-1 px-3 cursor-pointer hover:bg-primary hover:text-white transition-colors"
+            className="border-stone-200 bg-stone-100 text-sm py-1 px-3 text-stone-700"
           >
             {category}
           </Badge>
@@ -64,10 +66,10 @@ export default async function GuidesPage({ params }: GuidesPageProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {guides.map((guide) => (
           <Link key={guide.slug} href={`/guides/${getGuideSlugForLocale(guide, locale)}`}>
-            <Card className="h-full card-hover">
+              <Card className="h-full card-hover">
               <CardHeader>
                 <Badge variant="outline" className="w-fit mb-2">
-                  {guide.category}
+                  {getGuideCategoryLabel(guide.category, locale)}
                 </Badge>
                 <CardTitle className="text-xl leading-tight">
                   {guide.title}
@@ -78,7 +80,7 @@ export default async function GuidesPage({ params }: GuidesPageProps) {
                   {guide.description}
                 </p>
                 <p className="text-xs text-muted-foreground mt-4">
-                  {t('published')} {new Date(guide.publishedAt).toLocaleDateString()}
+                  {t('published')} {formatGuideDate(guide.publishedAt, locale)}
                 </p>
               </CardContent>
             </Card>

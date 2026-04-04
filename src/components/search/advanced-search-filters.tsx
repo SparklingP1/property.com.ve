@@ -15,8 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, X } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Search, X, MapPin, Home, DollarSign, Settings2 } from 'lucide-react';
 import {
   normalizeSearchParams,
   serializeSearchParams,
@@ -65,6 +70,7 @@ function AdvancedSearchFiltersContent({
   const [availableStates, setAvailableStates] = useState<string[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>([]);
 
+  const currentTransaction = normalizedSearchParams.transaction || 'all';
   const currentType = normalizedSearchParams.type || 'all';
   const currentState = normalizedSearchParams.state || 'all';
   const currentCity = normalizedSearchParams.city || 'all';
@@ -80,6 +86,15 @@ function AdvancedSearchFiltersContent({
   const [maxArea, setMaxArea] = useState(() => normalizedSearchParams.maxArea || '');
   const [priceError, setPriceError] = useState('');
   const [areaError, setAreaError] = useState('');
+
+  // Determine which accordion sections should start open
+  const defaultOpenSections: string[] = ['location', 'property'];
+  if (normalizedSearchParams.minPrice || normalizedSearchParams.maxPrice || normalizedSearchParams.minArea || normalizedSearchParams.maxArea) {
+    defaultOpenSections.push('price');
+  }
+  if (normalizedSearchParams.parking || normalizedSearchParams.furnished) {
+    defaultOpenSections.push('extras');
+  }
 
   useEffect(() => {
     const fetchStates = async () => {
@@ -239,7 +254,8 @@ function AdvancedSearchFiltersContent({
   const hasAnyFilter = searchParamsString.length > 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Keyword Search */}
       <div className="space-y-1.5">
         <Label htmlFor="keyword" className="text-sm font-medium text-stone-700">
           {t('keywords')}
@@ -264,214 +280,284 @@ function AdvancedSearchFiltersContent({
         </div>
       </div>
 
-      <Separator className="bg-stone-200" />
-
+      {/* Transaction Type Toggle (Sale / Rent) */}
       <div className="space-y-1.5">
         <Label className="text-sm font-medium text-stone-700">
-          {t('propertyType')}
+          {t('transactionType')}
         </Label>
-        <Select value={currentType} onValueChange={(value) => updateParam('type', value)}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder={t('any')} />
-          </SelectTrigger>
-          <SelectContent className="bg-white z-50">
-            <SelectItem value="all">{t('anyType')}</SelectItem>
-            <SelectItem value="apartment">{tListing('apartment')}</SelectItem>
-            <SelectItem value="house">{tListing('house')}</SelectItem>
-            <SelectItem value="land">{tListing('land')}</SelectItem>
-            <SelectItem value="commercial">{tListing('commercial')}</SelectItem>
-            <SelectItem value="office">{tListing('office')}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">{t('state')}</Label>
-        <Select value={currentState} onValueChange={(value) => updateParam('state', value)}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder={t('anyState')} />
-          </SelectTrigger>
-          <SelectContent className="bg-white z-50">
-            <SelectItem value="all">{t('allStates')}</SelectItem>
-            {availableStates.map((state) => (
-              <SelectItem key={state} value={state}>
-                {state}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {availableCities.length > 0 && (
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-stone-700">{t('city')}</Label>
-          <Select value={currentCity} onValueChange={(value) => updateParam('city', value)}>
-            <SelectTrigger className="border-stone-300">
-              <SelectValue placeholder={t('anyCity')} />
-            </SelectTrigger>
-            <SelectContent className="bg-white z-50">
-              <SelectItem value="all">{t('allCities')}</SelectItem>
-              {availableCities.map((city) => (
-                <SelectItem key={city} value={city}>
-                  {city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-3 gap-1 rounded-lg bg-stone-100 p-1">
+          {(['all', 'sale', 'rent'] as const).map((value) => {
+            const isActive = currentTransaction === value;
+            const label = value === 'all'
+              ? t('any')
+              : value === 'sale'
+                ? tListing('forSale')
+                : tListing('forRent');
+            return (
+              <button
+                key={value}
+                onClick={() => updateParam('transaction', value)}
+                className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-white text-stone-900 shadow-sm'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
-      )}
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">{t('bedrooms')}</Label>
-        <Select
-          value={currentBedrooms}
-          onValueChange={(value) => updateParam('bedrooms', value)}
-        >
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder={t('any')} />
-          </SelectTrigger>
-          <SelectContent className="bg-white z-50">
-            <SelectItem value="all">{t('any')}</SelectItem>
-            <SelectItem value="1">1+</SelectItem>
-            <SelectItem value="2">2+</SelectItem>
-            <SelectItem value="3">3+</SelectItem>
-            <SelectItem value="4">4+</SelectItem>
-            <SelectItem value="5">5+</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">{t('bathrooms')}</Label>
-        <Select
-          value={currentBathrooms}
-          onValueChange={(value) => updateParam('bathrooms', value)}
-        >
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder={t('any')} />
-          </SelectTrigger>
-          <SelectContent className="bg-white z-50">
-            <SelectItem value="all">{t('any')}</SelectItem>
-            <SelectItem value="1">1+</SelectItem>
-            <SelectItem value="2">2+</SelectItem>
-            <SelectItem value="3">3+</SelectItem>
-            <SelectItem value="4">4+</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Accordion Filter Sections */}
+      <Accordion type="multiple" defaultValue={defaultOpenSections} className="w-full">
+        {/* Location Section */}
+        <AccordionItem value="location">
+          <AccordionTrigger className="gap-2">
+            <span className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-stone-400" />
+              {t('sectionLocation')}
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-500">{t('state')}</Label>
+              <Select value={currentState} onValueChange={(value) => updateParam('state', value)}>
+                <SelectTrigger className="border-stone-300">
+                  <SelectValue placeholder={t('anyState')} />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="all">{t('allStates')}</SelectItem>
+                  {availableStates.map((state) => (
+                    <SelectItem key={state} value={state}>
+                      {state}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <Separator className="bg-stone-200" />
+            {availableCities.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-stone-500">{t('city')}</Label>
+                <Select value={currentCity} onValueChange={(value) => updateParam('city', value)}>
+                  <SelectTrigger className="border-stone-300">
+                    <SelectValue placeholder={t('anyCity')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="all">{t('allCities')}</SelectItem>
+                    {availableCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">{t('priceUSD')}</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type="number"
-            placeholder={t('min')}
-            value={minPrice}
-            onChange={(event) => {
-              setMinPrice(event.target.value);
-              setPriceError('');
-            }}
-            onKeyDown={(event) => event.key === 'Enter' && applyPrice()}
-            onBlur={applyPrice}
-            className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
-          />
-          <Input
-            type="number"
-            placeholder={t('max')}
-            value={maxPrice}
-            onChange={(event) => {
-              setMaxPrice(event.target.value);
-              setPriceError('');
-            }}
-            onKeyDown={(event) => event.key === 'Enter' && applyPrice()}
-            onBlur={applyPrice}
-            className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
-          />
-        </div>
-        {priceError && <p className="text-xs text-red-500">{priceError}</p>}
-      </div>
+        {/* Property Section */}
+        <AccordionItem value="property">
+          <AccordionTrigger className="gap-2">
+            <span className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-stone-400" />
+              {t('sectionProperty')}
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-500">
+                {t('propertyType')}
+              </Label>
+              <Select value={currentType} onValueChange={(value) => updateParam('type', value)}>
+                <SelectTrigger className="border-stone-300">
+                  <SelectValue placeholder={t('any')} />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="all">{t('anyType')}</SelectItem>
+                  <SelectItem value="apartment">{tListing('apartment')}</SelectItem>
+                  <SelectItem value="house">{tListing('house')}</SelectItem>
+                  <SelectItem value="land">{tListing('land')}</SelectItem>
+                  <SelectItem value="commercial">{tListing('commercial')}</SelectItem>
+                  <SelectItem value="office">{tListing('office')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">{t('areaM2')}</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type="number"
-            placeholder={t('min')}
-            value={minArea}
-            onChange={(event) => {
-              setMinArea(event.target.value);
-              setAreaError('');
-            }}
-            onKeyDown={(event) => event.key === 'Enter' && applyArea()}
-            onBlur={applyArea}
-            className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
-          />
-          <Input
-            type="number"
-            placeholder={t('max')}
-            value={maxArea}
-            onChange={(event) => {
-              setMaxArea(event.target.value);
-              setAreaError('');
-            }}
-            onKeyDown={(event) => event.key === 'Enter' && applyArea()}
-            onBlur={applyArea}
-            className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
-          />
-        </div>
-        {areaError && <p className="text-xs text-red-500">{areaError}</p>}
-      </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-stone-500">{t('bedrooms')}</Label>
+                <Select
+                  value={currentBedrooms}
+                  onValueChange={(value) => updateParam('bedrooms', value)}
+                >
+                  <SelectTrigger className="border-stone-300">
+                    <SelectValue placeholder={t('any')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="all">{t('any')}</SelectItem>
+                    <SelectItem value="1">1+</SelectItem>
+                    <SelectItem value="2">2+</SelectItem>
+                    <SelectItem value="3">3+</SelectItem>
+                    <SelectItem value="4">4+</SelectItem>
+                    <SelectItem value="5">5+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-      <Separator className="bg-stone-200" />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-stone-500">{t('bathrooms')}</Label>
+                <Select
+                  value={currentBathrooms}
+                  onValueChange={(value) => updateParam('bathrooms', value)}
+                >
+                  <SelectTrigger className="border-stone-300">
+                    <SelectValue placeholder={t('any')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="all">{t('any')}</SelectItem>
+                    <SelectItem value="1">1+</SelectItem>
+                    <SelectItem value="2">2+</SelectItem>
+                    <SelectItem value="3">3+</SelectItem>
+                    <SelectItem value="4">4+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">
-          {t('parkingSpaces')}
-        </Label>
-        <Select value={currentParking} onValueChange={(value) => updateParam('parking', value)}>
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder={t('any')} />
-          </SelectTrigger>
-          <SelectContent className="bg-white z-50">
-            <SelectItem value="all">{t('any')}</SelectItem>
-            <SelectItem value="1">1+</SelectItem>
-            <SelectItem value="2">2+</SelectItem>
-            <SelectItem value="3">3+</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        {/* Price & Area Section */}
+        <AccordionItem value="price">
+          <AccordionTrigger className="gap-2">
+            <span className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-stone-400" />
+              {t('sectionPrice')}
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-500">{t('priceUSD')}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="number"
+                  placeholder={t('min')}
+                  value={minPrice}
+                  onChange={(event) => {
+                    setMinPrice(event.target.value);
+                    setPriceError('');
+                  }}
+                  onKeyDown={(event) => event.key === 'Enter' && applyPrice()}
+                  onBlur={applyPrice}
+                  className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
+                />
+                <Input
+                  type="number"
+                  placeholder={t('max')}
+                  value={maxPrice}
+                  onChange={(event) => {
+                    setMaxPrice(event.target.value);
+                    setPriceError('');
+                  }}
+                  onKeyDown={(event) => event.key === 'Enter' && applyPrice()}
+                  onBlur={applyPrice}
+                  className={`border-stone-300 ${priceError ? 'border-red-400' : ''}`}
+                />
+              </div>
+              {priceError && <p className="text-xs text-red-500">{priceError}</p>}
+            </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-stone-700">{t('furnished')}</Label>
-        <Select
-          value={currentFurnished}
-          onValueChange={(value) => updateParam('furnished', value)}
-        >
-          <SelectTrigger className="border-stone-300">
-            <SelectValue placeholder={t('any')} />
-          </SelectTrigger>
-          <SelectContent className="bg-white z-50">
-            <SelectItem value="all">{t('any')}</SelectItem>
-            <SelectItem value="true">{t('furnishedYes')}</SelectItem>
-            <SelectItem value="false">{t('furnishedNo')}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-500">{t('areaM2')}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="number"
+                  placeholder={t('min')}
+                  value={minArea}
+                  onChange={(event) => {
+                    setMinArea(event.target.value);
+                    setAreaError('');
+                  }}
+                  onKeyDown={(event) => event.key === 'Enter' && applyArea()}
+                  onBlur={applyArea}
+                  className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
+                />
+                <Input
+                  type="number"
+                  placeholder={t('max')}
+                  value={maxArea}
+                  onChange={(event) => {
+                    setMaxArea(event.target.value);
+                    setAreaError('');
+                  }}
+                  onKeyDown={(event) => event.key === 'Enter' && applyArea()}
+                  onBlur={applyArea}
+                  className={`border-stone-300 ${areaError ? 'border-red-400' : ''}`}
+                />
+              </div>
+              {areaError && <p className="text-xs text-red-500">{areaError}</p>}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Extras Section */}
+        <AccordionItem value="extras">
+          <AccordionTrigger className="gap-2">
+            <span className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-stone-400" />
+              {t('sectionExtras')}
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-500">
+                {t('parkingSpaces')}
+              </Label>
+              <Select value={currentParking} onValueChange={(value) => updateParam('parking', value)}>
+                <SelectTrigger className="border-stone-300">
+                  <SelectValue placeholder={t('any')} />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="all">{t('any')}</SelectItem>
+                  <SelectItem value="1">1+</SelectItem>
+                  <SelectItem value="2">2+</SelectItem>
+                  <SelectItem value="3">3+</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-stone-500">{t('furnished')}</Label>
+              <Select
+                value={currentFurnished}
+                onValueChange={(value) => updateParam('furnished', value)}
+              >
+                <SelectTrigger className="border-stone-300">
+                  <SelectValue placeholder={t('any')} />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="all">{t('any')}</SelectItem>
+                  <SelectItem value="true">{t('furnishedYes')}</SelectItem>
+                  <SelectItem value="false">{t('furnishedNo')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {hasAnyFilter && (
-        <>
-          <Separator className="bg-stone-200" />
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            className="w-full border-stone-300 text-stone-700 hover:bg-stone-50"
-          >
-            <X className="h-4 w-4 mr-2" />
-            {t('resetShort')}
-          </Button>
-        </>
+        <Button
+          onClick={handleReset}
+          variant="outline"
+          className="w-full border-stone-300 text-stone-700 hover:bg-stone-50"
+        >
+          <X className="h-4 w-4 mr-2" />
+          {t('resetShort')}
+        </Button>
       )}
     </div>
   );

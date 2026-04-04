@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { getGuideBySlug, getGuides } from '@/lib/guides';
+import { formatGuideDate, getGuideCategoryLabel } from '@/lib/guides-ui';
 import React from 'react';
 
 interface GuidePageProps {
@@ -186,12 +187,12 @@ export default async function GuidePage({ params }: GuidePageProps) {
         {/* Header */}
         <header className="mb-8">
           <Badge variant="outline" className="mb-4">
-            {guide.category}
+            {getGuideCategoryLabel(guide.category, locale)}
           </Badge>
           <h1 className="text-3xl md:text-4xl font-bold mb-4">{guide.title}</h1>
           <p className="text-muted-foreground text-lg">{guide.description}</p>
           <p className="text-sm text-muted-foreground mt-4">
-            {t('published')} {new Date(guide.publishedAt).toLocaleDateString()}
+            {t('published')} {formatGuideDate(guide.publishedAt, locale)}
           </p>
         </header>
 

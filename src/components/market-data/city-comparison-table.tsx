@@ -1,15 +1,17 @@
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import type { MarketStat } from '@/lib/supabase/market-data-queries';
 
 interface CityComparisonTableProps {
   cities: MarketStat[];
   locale: string;
-  cityUrlPrefix: string;
 }
 
 function slugify(name: string): string {
-  return name.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 }
@@ -22,7 +24,12 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-export function CityComparisonTable({ cities, locale, cityUrlPrefix }: CityComparisonTableProps) {
+function getCityHref(city: string, locale: string) {
+  const slug = slugify(city);
+  return locale === 'es' ? `/precios-de-casas-en-${slug}` : `/property-prices-in-${slug}`;
+}
+
+export function CityComparisonTable({ cities, locale }: CityComparisonTableProps) {
   const isEs = locale === 'es';
 
   return (
@@ -30,57 +37,72 @@ export function CityComparisonTable({ cities, locale, cityUrlPrefix }: CityCompa
       <table className="w-full text-left">
         <thead>
           <tr className="border-b-2 border-stone-200">
-            <th className="py-3 px-4 text-sm font-semibold text-stone-600 uppercase tracking-wide">
+            <th className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-stone-600">
               {isEs ? 'Ciudad' : 'City'}
             </th>
-            <th className="py-3 px-4 text-sm font-semibold text-stone-600 uppercase tracking-wide text-right">
-              {isEs ? 'Precio/m²' : 'Price/sqm'}
+            <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-stone-600">
+              {isEs ? 'Precio/m\u00b2' : 'Price/sqm'}
             </th>
-            <th className="py-3 px-4 text-sm font-semibold text-stone-600 uppercase tracking-wide text-right">
-              {isEs ? 'Precio Mediano' : 'Median Price'}
+            <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-stone-600">
+              {isEs ? 'Precio mediano' : 'Median price'}
             </th>
-            <th className="py-3 px-4 text-sm font-semibold text-stone-600 uppercase tracking-wide text-right">
+            <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-stone-600">
               {isEs ? 'Inmuebles' : 'Listings'}
             </th>
-            <th className="py-3 px-4 text-sm font-semibold text-stone-600 uppercase tracking-wide text-right">
+            <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-stone-600">
               {isEs ? 'Cambio' : 'Change'}
             </th>
           </tr>
         </thead>
         <tbody>
-          {cities.map((city, i) => (
-            <tr key={city.city} className={`border-b border-stone-100 ${i % 2 === 0 ? 'bg-stone-50/50' : ''} hover:bg-amber-50/50 transition-colors`}>
-              <td className="py-4 px-4">
-                <a
-                  href={`${cityUrlPrefix}${slugify(city.city)}/`}
-                  className="font-medium text-stone-900 hover:text-amber-700 transition-colors"
+          {cities.map((city, index) => (
+            <tr
+              key={city.city}
+              className={`border-b border-stone-100 transition-colors hover:bg-amber-50/50 ${
+                index % 2 === 0 ? 'bg-stone-50/50' : ''
+              }`}
+            >
+              <td className="px-4 py-4">
+                <Link
+                  href={getCityHref(city.city, locale)}
+                  className="font-medium text-stone-900 transition-colors hover:text-amber-700"
                 >
                   {city.city}
-                </a>
-                <span className="text-stone-400 text-sm ml-2">{city.state}</span>
+                </Link>
+                <span className="ml-2 text-sm text-stone-400">{city.state}</span>
               </td>
-              <td className="py-4 px-4 text-right font-semibold text-stone-900">
-                {city.median_price_per_sqm ? `${formatPrice(city.median_price_per_sqm)}/m²` : '—'}
+              <td className="px-4 py-4 text-right font-semibold text-stone-900">
+                {city.median_price_per_sqm ? `${formatPrice(city.median_price_per_sqm)}/m\u00b2` : '\u2014'}
               </td>
-              <td className="py-4 px-4 text-right text-stone-700">
-                {city.median_price ? formatPrice(city.median_price) : '—'}
+              <td className="px-4 py-4 text-right text-stone-700">
+                {city.median_price ? formatPrice(city.median_price) : '\u2014'}
               </td>
-              <td className="py-4 px-4 text-right text-stone-600">
+              <td className="px-4 py-4 text-right text-stone-600">
                 {city.listing_count.toLocaleString()}
               </td>
-              <td className="py-4 px-4 text-right">
+              <td className="px-4 py-4 text-right">
                 {city.price_change_pct !== null ? (
-                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${
-                    city.price_change_pct > 0 ? 'text-green-600' :
-                    city.price_change_pct < 0 ? 'text-red-600' : 'text-stone-500'
-                  }`}>
-                    {city.price_change_pct > 0 ? <TrendingUp className="h-3.5 w-3.5" /> :
-                     city.price_change_pct < 0 ? <TrendingDown className="h-3.5 w-3.5" /> :
-                     <Minus className="h-3.5 w-3.5" />}
-                    {city.price_change_pct > 0 ? '+' : ''}{city.price_change_pct}%
+                  <span
+                    className={`inline-flex items-center gap-1 text-sm font-medium ${
+                      city.price_change_pct > 0
+                        ? 'text-green-600'
+                        : city.price_change_pct < 0
+                          ? 'text-red-600'
+                          : 'text-stone-500'
+                    }`}
+                  >
+                    {city.price_change_pct > 0 ? (
+                      <TrendingUp className="h-3.5 w-3.5" />
+                    ) : city.price_change_pct < 0 ? (
+                      <TrendingDown className="h-3.5 w-3.5" />
+                    ) : (
+                      <Minus className="h-3.5 w-3.5" />
+                    )}
+                    {city.price_change_pct > 0 ? '+' : ''}
+                    {city.price_change_pct}%
                   </span>
                 ) : (
-                  <span className="text-stone-400">—</span>
+                  <span className="text-stone-400">\u2014</span>
                 )}
               </td>
             </tr>

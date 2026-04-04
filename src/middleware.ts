@@ -89,6 +89,23 @@ const intlMiddleware = createMiddleware(routing);
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Market data: English vanity URLs → rewrite to Spanish route paths (invisible to user)
+  if (pathname.startsWith('/en/property-prices-in-')) {
+    const rest = pathname.slice('/en/property-prices-in-'.length).replace(/\/$/, '');
+    const url = request.nextUrl.clone();
+
+    if (rest === 'venezuela') {
+      url.pathname = '/en/precios-de-casas-en-venezuela';
+    } else if (rest === 'venezuela/methodology') {
+      url.pathname = '/en/precios-de-casas-en-venezuela/metodologia';
+    } else {
+      // City: /en/property-prices-in-caracas → /en/precios-de-casas-en-venezuela/caracas
+      url.pathname = `/en/precios-de-casas-en-venezuela/${rest}`;
+    }
+    return NextResponse.rewrite(url);
+  }
+
+  // Market data: redirect /en/precios-de-casas-en-venezuela → canonical English URL
   if (
     pathname === '/en/precios-de-casas-en-venezuela' ||
     pathname === '/en/precios-de-casas-en-venezuela/'
@@ -179,6 +196,21 @@ export default function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = `/en${pathname}`;
       return NextResponse.redirect(url, 301);
+    }
+  }
+
+  // Market data: Spanish city vanity URLs → rewrite to route structure
+  // /precios-de-casas-en-caracas → /precios-de-casas-en-venezuela/caracas
+  if (
+    pathname.startsWith('/precios-de-casas-en-') &&
+    pathname !== '/precios-de-casas-en-venezuela' &&
+    !pathname.startsWith('/precios-de-casas-en-venezuela/')
+  ) {
+    const citySlug = pathname.slice('/precios-de-casas-en-'.length).replace(/\/$/, '');
+    if (citySlug) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/precios-de-casas-en-venezuela/${citySlug}`;
+      return NextResponse.rewrite(url);
     }
   }
 

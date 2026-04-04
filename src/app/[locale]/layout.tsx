@@ -87,12 +87,13 @@ export default async function LocaleLayout({
 }: LocaleLayoutProps) {
   const { locale } = await params;
   const messages = await getMessages();
+  const skipToContentLabel = locale === "es" ? "Saltar al contenido" : "Skip to content";
 
   return (
     <html lang={locale}>
       <body className={`${dmSans.variable} antialiased min-h-screen flex flex-col`}>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-white focus:text-black focus:px-4 focus:py-2 focus:rounded focus:shadow-lg">
-          Skip to content
+          {skipToContentLabel}
         </a>
         <NextIntlClientProvider messages={messages}>
           <Header />

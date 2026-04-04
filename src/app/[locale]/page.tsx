@@ -8,13 +8,77 @@ import { EmailSignupForm } from '@/components/forms/email-signup-form';
 import { getFeaturedListings } from '@/lib/supabase/cached-queries';
 import type { Metadata } from 'next';
 
-// Enable ISR - revalidate every 30 minutes (1800 seconds)
 export const revalidate = 1800;
 
 interface PageProps {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }
+
+interface PopularArea {
+  city: string;
+  housesEs: string;
+  housesEn: string;
+  apartmentsEs?: string;
+  apartmentsEn?: string;
+}
+
+const POPULAR_AREAS: PopularArea[] = [
+  {
+    city: 'Caracas',
+    housesEs: '/casas-caracas',
+    housesEn: '/houses-caracas',
+    apartmentsEs: '/apartamentos-caracas',
+    apartmentsEn: '/apartments-caracas',
+  },
+  {
+    city: 'Maracaibo',
+    housesEs: '/casas-maracaibo',
+    housesEn: '/houses-maracaibo',
+    apartmentsEs: '/apartamentos-maracaibo',
+    apartmentsEn: '/apartments-maracaibo',
+  },
+  {
+    city: 'Valencia',
+    housesEs: '/casas-valencia',
+    housesEn: '/houses-valencia',
+    apartmentsEs: '/apartamentos-valencia',
+    apartmentsEn: '/apartments-valencia',
+  },
+  {
+    city: 'Maracay',
+    housesEs: '/casas-maracay',
+    housesEn: '/houses-maracay',
+    apartmentsEs: '/apartamentos-maracay',
+    apartmentsEn: '/apartments-maracay',
+  },
+  {
+    city: 'Barquisimeto',
+    housesEs: '/casas-barquisimeto',
+    housesEn: '/houses-barquisimeto',
+    apartmentsEs: '/apartamentos-barquisimeto',
+    apartmentsEn: '/apartments-barquisimeto',
+  },
+  {
+    city: 'Merida',
+    housesEs: '/casas-merida',
+    housesEn: '/houses-merida',
+    apartmentsEs: '/apartamentos-merida',
+    apartmentsEn: '/apartments-merida',
+  },
+  {
+    city: 'Punto Fijo',
+    housesEs: '/casas-punto-fijo',
+    housesEn: '/houses-punto-fijo',
+  },
+  {
+    city: 'Margarita',
+    housesEs: '/casas-margarita',
+    housesEn: '/houses-margarita',
+    apartmentsEs: '/apartamentos-margarita',
+    apartmentsEn: '/apartments-margarita',
+  },
+];
 
 export async function generateMetadata({
   params,
@@ -49,12 +113,7 @@ async function FeaturedListings({
     price: searchParams.price,
   });
 
-  return (
-    <ListingGrid
-      listings={listings}
-      totalCount={count}
-    />
-  );
+  return <ListingGrid listings={listings} totalCount={count} />;
 }
 
 export default async function HomePage({ params, searchParams }: PageProps) {
@@ -62,25 +121,20 @@ export default async function HomePage({ params, searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations('homepage');
 
-
   return (
     <>
-      {/* Hero Section - Compact */}
       <section className="relative overflow-hidden bg-stone-900 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,63,0.15),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,63,0.15),transparent_50%)]" />
         <div className="container relative py-12 pb-20 md:py-16">
           <div className="grid md:grid-cols-2 gap-8 items-center">
-            {/* Left: Headline */}
             <div className="space-y-5">
               <div className="inline-block">
                 <div className="text-xs font-medium tracking-wider text-amber-200 mb-3 uppercase">
                   {t('heroTagline')}
                 </div>
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-balance">
-                {t('heroHeadline').split(' ').slice(0, 2).join(' ')}<br />
-                {t('heroHeadline').split(' ').slice(2, 3).join(' ')}<br />
-                <span className="text-amber-100">{t('heroHeadline').split(' ').slice(3).join(' ') || 'Property'}</span>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-pretty">
+                {t('heroHeadline')}
               </h1>
               <p className="text-lg text-stone-300 max-w-md leading-relaxed">
                 {t('heroDescription')}
@@ -88,7 +142,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link
                   href="/search"
-                  className="px-7 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105"
+                  className="px-7 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-[transform,background-color] hover:scale-[1.02]"
                 >
                   {t('startSearching')}
                 </Link>
@@ -101,14 +155,17 @@ export default async function HomePage({ params, searchParams }: PageProps) {
               </div>
             </div>
 
-            {/* Right: Stats Cards - Hidden on mobile */}
             <div className="hidden md:grid grid-cols-3 gap-3">
               <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
-                <div className="text-3xl font-bold text-amber-100">{t('activeListingsValue')}</div>
+                <div className="text-3xl font-bold text-amber-100">
+                  {t('activeListingsValue')}
+                </div>
                 <div className="text-stone-400 mt-2 text-sm">{t('activeListings')}</div>
               </div>
               <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
-                <div className="text-3xl font-bold text-amber-100">{t('statesCoveredValue')}</div>
+                <div className="text-3xl font-bold text-amber-100">
+                  {t('statesCoveredValue')}
+                </div>
                 <div className="text-stone-400 mt-2 text-sm">{t('statesCovered')}</div>
               </div>
               <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
@@ -120,7 +177,6 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* Quick Search Bar - Overlapping */}
       <section className="container -mt-12 relative z-10">
         <div className="bg-white rounded-2xl shadow-2xl p-6 border border-stone-200">
           <Suspense fallback={<div className="h-16 animate-pulse bg-stone-100 rounded-lg" />}>
@@ -129,7 +185,6 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* Featured Listings */}
       <section className="bg-stone-50 py-12 mt-4">
         <div className="container">
           <div className="flex items-end justify-between mb-10">
@@ -137,9 +192,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
               <h2 className="text-4xl md:text-5xl font-bold text-stone-900 mb-2">
                 {t('latestListings')}
               </h2>
-              <p className="text-lg text-stone-600">
-                {t('updatedDaily')}
-              </p>
+              <p className="text-lg text-stone-600">{t('updatedDaily')}</p>
             </div>
             <Link
               href="/search"
@@ -152,7 +205,6 @@ export default async function HomePage({ params, searchParams }: PageProps) {
             <FeaturedListings searchParams={resolvedSearchParams} />
           </Suspense>
 
-          {/* Mobile View All Button */}
           <div className="md:hidden text-center mt-8">
             <Link
               href="/search"
@@ -164,37 +216,36 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* Popular Areas - Internal links to SEO pages */}
       <section className="container py-16">
         <div className="mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-2">
             {t('popularAreas')}
           </h2>
-          <p className="text-lg text-stone-600">
-            {t('popularAreasDescription')}
-          </p>
+          <p className="text-lg text-stone-600">{t('popularAreasDescription')}</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[
-            { city: 'Caracas', houses: '/casas-caracas', apartments: '/apartamentos-caracas', housesEn: '/en/houses-caracas', apartmentsEn: '/en/apartments-caracas' },
-            { city: 'Maracaibo', houses: '/casas-maracaibo', apartments: '/apartamentos-maracaibo', housesEn: '/en/houses-maracaibo', apartmentsEn: '/en/apartments-maracaibo' },
-            { city: 'Valencia', houses: '/casas-valencia', apartments: '/apartamentos-valencia', housesEn: '/en/houses-valencia', apartmentsEn: '/en/apartments-valencia' },
-            { city: 'Maracay', houses: '/casas-maracay', apartments: '/apartamentos-maracay', housesEn: '/en/houses-maracay', apartmentsEn: '/en/apartments-maracay' },
-            { city: 'Barquisimeto', houses: '/casas-barquisimeto', apartments: '/apartamentos-barquisimeto', housesEn: '/en/houses-barquisimeto', apartmentsEn: '/en/apartments-barquisimeto' },
-            { city: 'Mérida', houses: '/casas-merida', apartments: '/apartamentos-merida', housesEn: '/en/houses-merida', apartmentsEn: '/en/apartments-merida' },
-            { city: 'Punto Fijo', houses: '/casas-punto-fijo', housesEn: '/en/houses-punto-fijo' },
-            { city: 'Margarita', houses: '/casas-margarita', apartments: '/apartamentos-margarita', housesEn: '/en/houses-margarita', apartmentsEn: '/en/apartments-margarita' },
-          ].map((area) => (
-            <div key={area.city} className="bg-white rounded-xl border border-stone-200 p-5 hover:shadow-md transition-shadow">
+          {POPULAR_AREAS.map((area) => (
+            <div
+              key={area.city}
+              className="bg-white rounded-xl border border-stone-200 p-5 hover:shadow-md transition-shadow"
+            >
               <h3 className="font-bold text-stone-900 mb-3">{area.city}</h3>
               <div className="space-y-2">
-                <a href={locale === 'es' ? area.houses : area.housesEn} className="block text-sm text-amber-700 hover:text-amber-800 font-medium">
-                  {t('housesIn', { city: area.city })} →
-                </a>
-                {area.apartments && (
-                  <a href={locale === 'es' ? area.apartments : area.apartmentsEn} className="block text-sm text-amber-700 hover:text-amber-800 font-medium">
-                    {t('apartmentsIn', { city: area.city })} →
-                  </a>
+                <Link
+                  href={locale === 'es' ? area.housesEs : area.housesEn}
+                  className="block text-sm text-amber-700 hover:text-amber-800 font-medium"
+                >
+                  {t('housesIn', { city: area.city })}{' '}
+                  <span aria-hidden="true">{'\u2192'}</span>
+                </Link>
+                {area.apartmentsEs && area.apartmentsEn && (
+                  <Link
+                    href={locale === 'es' ? area.apartmentsEs : area.apartmentsEn}
+                    className="block text-sm text-amber-700 hover:text-amber-800 font-medium"
+                  >
+                    {t('apartmentsIn', { city: area.city })}{' '}
+                    <span aria-hidden="true">{'\u2192'}</span>
+                  </Link>
                 )}
               </div>
             </div>
@@ -210,12 +261,10 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* Split CTA Section - Asymmetric */}
       <section className="container py-20">
         <div className="grid md:grid-cols-5 gap-8">
-          {/* Buyers - Larger */}
           <div className="md:col-span-3 bg-amber-600 text-white rounded-3xl p-10 md:p-12 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500 rounded-full blur-3xl opacity-30 transform translate-x-20 -translate-y-20"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500 rounded-full blur-3xl opacity-30 transform translate-x-20 -translate-y-20" />
             <div className="relative z-10">
               <h3 className="text-3xl md:text-4xl font-bold mb-4">
                 {t('findPerfectHome')}
@@ -240,14 +289,9 @@ export default async function HomePage({ params, searchParams }: PageProps) {
             </div>
           </div>
 
-          {/* Agents - Smaller */}
           <div className="md:col-span-2 bg-stone-900 text-white rounded-3xl p-8 md:p-10">
-            <h3 className="text-2xl md:text-3xl font-bold mb-4">
-              {t('listWithUs')}
-            </h3>
-            <p className="text-stone-400 mb-8">
-              {t('listWithUsDescription')}
-            </p>
+            <h3 className="text-2xl md:text-3xl font-bold mb-4">{t('listWithUs')}</h3>
+            <p className="text-stone-400 mb-8">{t('listWithUsDescription')}</p>
             <Link
               href="/list-your-property"
               className="inline-flex px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors"
@@ -258,16 +302,13 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* Newsletter Section */}
       <section className="bg-stone-900 py-16">
         <div className="container">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               {t('stayInTheLoop')}
             </h2>
-            <p className="text-stone-400 text-lg mb-8">
-              {t('stayInTheLoopDescription')}
-            </p>
+            <p className="text-stone-400 text-lg mb-8">{t('stayInTheLoopDescription')}</p>
             <div className="bg-stone-800 rounded-2xl p-6">
               <EmailSignupForm />
             </div>

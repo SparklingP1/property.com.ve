@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Search } from 'lucide-react';
 import { parseSearchQuery } from '@/lib/search-parser';
 import { serializeSearchParams } from '@/lib/search-params';
@@ -13,6 +14,7 @@ export function SearchBar() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const t = useTranslations('search');
+  const inputId = 'homepage-search';
 
   const [location, setLocation] = useState('');
 
@@ -49,9 +51,23 @@ export function SearchBar() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-3">
-      <div className="flex-1">
+    <form
+      className="flex flex-col md:flex-row md:items-end gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        handleSearch();
+      }}
+    >
+      <div className="flex-1 space-y-2">
+        <Label htmlFor={inputId} className="text-sm font-medium text-stone-700">
+          {t('keywords')}
+        </Label>
         <Input
+          id={inputId}
+          name="q"
+          aria-label={t('keywords')}
+          autoComplete="off"
+          spellCheck={false}
           placeholder={t('placeholder')}
           value={location}
           onChange={(e) => setLocation(e.target.value)}
@@ -61,6 +77,7 @@ export function SearchBar() {
       </div>
 
       <Button
+        type="submit"
         onClick={handleSearch}
         disabled={isPending}
         size="lg"
@@ -69,6 +86,6 @@ export function SearchBar() {
         <Search className="h-5 w-5 mr-2" />
         {isPending ? t('searching') : t('searchButton')}
       </Button>
-    </div>
+    </form>
   );
 }
