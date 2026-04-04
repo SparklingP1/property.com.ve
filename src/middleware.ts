@@ -87,9 +87,9 @@ const intlMiddleware = createMiddleware(routing);
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Market data: rewrite to canonical route paths by mutating the URL
-  // before passing to intlMiddleware (which sets the locale).
-  // English: /en/property-prices-in-X → /en/precios-de-casas-en-venezuela/X
+  // Market data: rewrite to canonical route paths by mutating the URL,
+  // then return intlMiddleware immediately (don't fall through — the stale
+  // `pathname` const would match later conditions and cause redirects).
   if (pathname.startsWith('/en/property-prices-in-')) {
     const rest = pathname.slice('/en/property-prices-in-'.length);
 
@@ -101,15 +101,15 @@ export default function middleware(request: NextRequest) {
       const citySlug = rest.replace(/\/$/, '');
       request.nextUrl.pathname = `/en/precios-de-casas-en-venezuela/${citySlug}`;
     }
-    // Fall through to intlMiddleware below
+    return intlMiddleware(request);
   }
 
-  // Spanish: /precios-de-casas-en-caracas → /precios-de-casas-en-venezuela/caracas
+  // Spanish city URLs: /precios-de-casas-en-caracas → /precios-de-casas-en-venezuela/caracas
   if (pathname.startsWith('/precios-de-casas-en-') && pathname !== '/precios-de-casas-en-venezuela' && !pathname.startsWith('/precios-de-casas-en-venezuela/')) {
     const citySlug = pathname.slice('/precios-de-casas-en-'.length).replace(/\/$/, '');
     if (citySlug) {
       request.nextUrl.pathname = `/precios-de-casas-en-venezuela/${citySlug}`;
-      // Fall through to intlMiddleware below
+      return intlMiddleware(request);
     }
   }
 
