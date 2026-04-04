@@ -32,8 +32,12 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
 
   // Keyword search (title, location, city, neighborhood)
   if (normalizedSearchParams.q) {
+    const escapedQ = normalizedSearchParams.q
+      .replace(/\\/g, '\\\\')
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_');
     query = query.or(
-      `title.ilike.%${normalizedSearchParams.q}%,location.ilike.%${normalizedSearchParams.q}%,city.ilike.%${normalizedSearchParams.q}%,neighborhood.ilike.%${normalizedSearchParams.q}%`
+      `title.ilike.%${escapedQ}%,location.ilike.%${escapedQ}%,city.ilike.%${escapedQ}%,neighborhood.ilike.%${escapedQ}%`
     );
   }
 

@@ -30,14 +30,22 @@ export async function generateMetadata({
     ? (listing.description_short || listing.description_short_en || `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.location || 'Venezuela'}`)
     : (listing.description_short_en || listing.description_short || `${listing.bedrooms || ''} bed, ${listing.bathrooms || ''} bath property in ${listing.location || 'Venezuela'}`);
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
   return {
     title,
     description,
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/listing/${id}` : `${baseUrl}/en/listing/${id}`,
+      languages: {
+        es: `${baseUrl}/listing/${id}`,
+        en: `${baseUrl}/en/listing/${id}`,
+      },
+    },
     openGraph: {
       title,
       description,
       type: 'website',
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/listing/${id}`,
+      url: `${baseUrl}/listing/${id}`,
       images: listing.thumbnail_url ? [listing.thumbnail_url] : [],
       siteName: 'Property.com.ve',
     },

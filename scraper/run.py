@@ -11,7 +11,7 @@ import logging
 import uuid
 import time
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Generator, Tuple
 from dataclasses import dataclass
 
@@ -346,7 +346,8 @@ class PlaywrightExtractor:
                 price_str = price_match.group(1).replace('.', '').replace(',', '')
                 data['price'] = float(price_str)
                 data['currency'] = 'USD'
-            except:
+            except (ValueError, IndexError) as e:
+                logger.warning(f"Failed to parse price: {e}")
                 pass
 
         # Location - look for "Casa en Venta en [location]" pattern
@@ -556,7 +557,8 @@ class PlaywrightExtractor:
                             # Remove thousand separators and convert
                             price_str = price_match.group(2).replace('.', '').replace(',', '')
                             data['price'] = float(price_str)
-                        except:
+                        except (ValueError, IndexError) as e:
+                            logger.warning(f"Failed to parse RentAHouse price: {e}")
                             pass
 
             # Extract from property-detailes-list (structured data)
@@ -935,7 +937,7 @@ class SupabaseStorage:
         if not listings:
             return {"upserted": 0, "errors": 0}
 
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         upserted = 0
         errors = 0
 
@@ -1060,12 +1062,12 @@ class SupabaseStorage:
 
     def mark_stale_listings(self, source: str, days: int = 14) -> int:
         """Mark old listings as inactive."""
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         try:
             result = (
                 self.client.table("listings")
-                .update({"active": False, "deactivated_at": datetime.utcnow().isoformat()})
+                .update({"active": False, "deactivated_at": datetime.now(timezone.utc).isoformat()})
                 .eq("source", source)
                 .eq("active", True)
                 .lt("last_seen_at", cutoff)
@@ -1274,7 +1276,7 @@ def main():
 
     logger.info("=" * 60)
     logger.info("Property.com.ve Scraper Starting")
-    logger.info(f"Time: {datetime.utcnow().isoformat()}")
+    logger.info(f"Time: {datetime.now(timezone.utc).isoformat()}")
     if args.end_page:
         logger.info(f"📄 Page Range: {args.start_page} to {args.end_page}")
     else:

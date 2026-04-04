@@ -49,20 +49,22 @@ export const getFeaturedListings = cache(async (params: {
 
   let query = supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'exact' })
+    .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'exact' })
     .eq('active', true)
     .order('scraped_at', { ascending: false })
     .limit(12);
 
+  const escapeLike = (v: string) => v.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
   if (params.region) {
-    query = query.ilike('region', `%${params.region}%`);
+    query = query.ilike('region', `%${escapeLike(params.region)}%`);
   }
   if (params.type) {
     query = query.eq('property_type', params.type);
   }
   if (params.search) {
+    const escaped = escapeLike(params.search);
     query = query.or(
-      `title.ilike.%${params.search}%,location.ilike.%${params.search}%`
+      `title.ilike.%${escaped}%,location.ilike.%${escaped}%`
     );
   }
   if (params.price) {
@@ -134,7 +136,7 @@ export const getRelatedListings = cache(async (params: {
 
   let query = supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type')
+    .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type')
     .eq('active', true)
     .neq('id', params.excludeId)
     .limit(params.limit || 6);

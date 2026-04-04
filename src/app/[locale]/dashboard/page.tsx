@@ -17,15 +17,29 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'dashboard' });
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
   return {
     title: t('title'),
     robots: { index: false, follow: false },
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/dashboard` : `${baseUrl}/en/dashboard`,
+      languages: {
+        es: `${baseUrl}/dashboard`,
+        en: `${baseUrl}/en/dashboard`,
+      },
+    },
   };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const user = await getUser();
   const supabase = await createClient();
+  const t2 = await getTranslations({ locale, namespace: 'dashboard' });
 
   const [
     { data: alerts },
@@ -61,13 +75,13 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t2('title')}</h1>
           <p className="text-muted-foreground mt-1">{user?.email}</p>
         </div>
         <Link href="/dashboard/alerts/new">
           <Button className="bg-primary hover:bg-primary-700">
             <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-            Create Alert
+            {t2('createAlert')}
           </Button>
         </Link>
       </div>
@@ -79,7 +93,7 @@ export default async function DashboardPage() {
               <Bell className="h-5 w-5 text-primary" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Active Alerts</p>
+              <p className="text-sm text-muted-foreground">{t2('activeAlerts')}</p>
               <p className="text-2xl font-bold text-foreground">{activeCount}</p>
             </div>
           </div>
@@ -90,7 +104,7 @@ export default async function DashboardPage() {
               <Heart className="h-5 w-5 text-red-500" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Saved Properties</p>
+              <p className="text-sm text-muted-foreground">{t2('savedProperties')}</p>
               <p className="text-2xl font-bold text-foreground">{savedCount}</p>
             </div>
           </div>
@@ -101,7 +115,7 @@ export default async function DashboardPage() {
               <TrendingUp className="h-5 w-5 text-amber-600" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Matches</p>
+              <p className="text-sm text-muted-foreground">{t2('totalMatches')}</p>
               <p className="text-2xl font-bold text-foreground">{totalMatches}</p>
             </div>
           </div>
@@ -113,7 +127,7 @@ export default async function DashboardPage() {
         <section>
           <div className="flex items-center gap-2 mb-4">
             <Heart className="h-5 w-5 text-red-500" aria-hidden="true" />
-            <h2 className="text-lg font-semibold text-foreground">Saved Properties</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t2('savedProperties')}</h2>
           </div>
           <ListingGrid listings={savedListings} />
         </section>
@@ -124,7 +138,7 @@ export default async function DashboardPage() {
         <section>
           <div className="flex items-center gap-2 mb-4">
             <Clock className="h-5 w-5 text-stone-400" aria-hidden="true" />
-            <h2 className="text-lg font-semibold text-foreground">Recently Viewed</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t2('recentlyViewed')}</h2>
           </div>
           <ListingGrid listings={viewedListings} />
         </section>

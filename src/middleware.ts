@@ -105,7 +105,7 @@ function isEnglishMarketDataCityPath(pathname: string): boolean {
 }
 
 function getEnglishInternalMarketDataCitySlug(pathname: string): string | null {
-  const prefix = `/en${MARKET_DATA_HUB_ES_PATH}/`;
+  const prefix = `/en${MARKET_DATA_HUB_EN_PATH}/`;
   const normalizedPathname = normalizePathname(pathname);
 
   if (!normalizedPathname.startsWith(prefix)) {

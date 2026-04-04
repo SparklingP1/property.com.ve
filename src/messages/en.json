@@ -394,6 +394,8 @@
     "noAlertsDescription": "Create your first property alert to get notified when new listings match your criteria.",
     "createFirstAlert": "Create Your First Alert",
     "createAlert": "Create Alert",
+    "savedProperties": "Saved Properties",
+    "recentlyViewed": "Recently Viewed",
     "manageAlerts": "Manage Alerts"
   },
   "alerts": {

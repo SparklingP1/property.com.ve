@@ -10,9 +10,17 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'alerts' });
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
   return {
     title: t('createNew'),
     robots: { index: false, follow: false },
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/dashboard/alerts/new` : `${baseUrl}/en/dashboard/alerts/new`,
+      languages: {
+        es: `${baseUrl}/dashboard/alerts/new`,
+        en: `${baseUrl}/en/dashboard/alerts/new`,
+      },
+    },
   };
 }
 

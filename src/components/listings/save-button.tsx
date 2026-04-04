@@ -21,8 +21,11 @@ export function SaveButton({ listingId, size = 'sm' }: SaveButtonProps) {
   const t = useTranslations('listing');
 
   useEffect(() => {
+    let cancelled = false;
     const supabase = createClient();
+
     supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled) return;
       setUser(user);
       if (user) {
         supabase
@@ -32,10 +35,12 @@ export function SaveButton({ listingId, size = 'sm' }: SaveButtonProps) {
           .eq('listing_id', listingId)
           .maybeSingle()
           .then(({ data }) => {
-            setSaved(!!data);
+            if (!cancelled) setSaved(!!data);
           });
       }
     });
+
+    return () => { cancelled = true; };
   }, [listingId]);
 
   const handleClick = async (e: React.MouseEvent) => {

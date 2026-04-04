@@ -394,6 +394,8 @@
     "noAlertsDescription": "Crea tu primera alerta de inmueble para recibir notificaciones cuando aparezcan nuevos listados que coincidan con tus criterios.",
     "createFirstAlert": "Crear tu Primera Alerta",
     "createAlert": "Crear Alerta",
+    "savedProperties": "Inmuebles Guardados",
+    "recentlyViewed": "Vistos Recientemente",
     "manageAlerts": "Gestionar Alertas"
   },
   "alerts": {

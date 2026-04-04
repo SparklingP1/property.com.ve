@@ -11,10 +11,18 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'auth' });
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
   return {
     title: t('logInTitle'),
     description: t('logInDescription'),
     robots: { index: false, follow: false },
+    alternates: {
+      canonical: locale === 'es' ? `${baseUrl}/login` : `${baseUrl}/en/login`,
+      languages: {
+        es: `${baseUrl}/login`,
+        en: `${baseUrl}/en/login`,
+      },
+    },
   };
 }
 

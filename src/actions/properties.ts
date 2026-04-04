@@ -8,9 +8,14 @@ export async function saveProperty(listingId: string): Promise<{ saved: boolean 
   if (!user) return { saved: false };
 
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from('saved_properties')
     .insert({ user_id: user.id, listing_id: listingId });
+
+  if (error) {
+    if (error.code === '23505') return { saved: true };
+    return { saved: false };
+  }
 
   revalidatePath('/dashboard');
   return { saved: true };
@@ -21,11 +26,13 @@ export async function unsaveProperty(listingId: string): Promise<{ saved: boolea
   if (!user) return { saved: false };
 
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from('saved_properties')
     .delete()
     .eq('user_id', user.id)
     .eq('listing_id', listingId);
+
+  if (error) return { saved: true };
 
   revalidatePath('/dashboard');
   return { saved: false };

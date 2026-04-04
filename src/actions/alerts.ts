@@ -12,11 +12,23 @@ export type FormState = {
 
 const alertSchema = z.object({
   name: z.string().min(1, 'Alert name is required').max(100),
-  criteria: z.string().transform((val) => {
+  criteria: z.string().transform((val, ctx) => {
     try {
-      return JSON.parse(val);
+      const parsed = JSON.parse(val);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Criteria must be a valid JSON object',
+        });
+        return z.NEVER;
+      }
+      return parsed;
     } catch {
-      return {};
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid JSON in alert criteria',
+      });
+      return z.NEVER;
     }
   }),
 });

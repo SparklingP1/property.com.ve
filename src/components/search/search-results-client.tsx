@@ -43,8 +43,12 @@ export function SearchResultsClient({
 
     // Apply all the same filters
     if (searchParams.q) {
+      const escapedQ = searchParams.q
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
       query = query.or(
-        `title.ilike.%${searchParams.q}%,location.ilike.%${searchParams.q}%,city.ilike.%${searchParams.q}%,neighborhood.ilike.%${searchParams.q}%`
+        `title.ilike.%${escapedQ}%,location.ilike.%${escapedQ}%,city.ilike.%${escapedQ}%,neighborhood.ilike.%${escapedQ}%`
       );
     }
 
