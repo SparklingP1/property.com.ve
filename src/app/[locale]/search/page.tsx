@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { CollapsibleFilters } from '@/components/search/collapsible-filters';
 import { SearchResults } from '@/components/search/search-results';
 import { ListingSkeleton } from '@/components/listings/listing-skeleton';
+import { SaveSearchButton } from '@/components/search/save-search-button';
 
 interface SearchPageProps {
   params: Promise<{ locale: string }>;
@@ -58,9 +59,12 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
           <h1 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight">
             {t('pageTitle')}
           </h1>
-          <p className="text-stone-300 text-lg max-w-2xl">
-            {t('pageSubtitle')}
-          </p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <p className="text-stone-300 text-lg max-w-2xl">
+              {t('pageSubtitle')}
+            </p>
+            <SaveSearchButton />
+          </div>
         </div>
       </div>
 

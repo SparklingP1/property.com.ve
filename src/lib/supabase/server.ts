@@ -28,6 +28,16 @@ export async function createClient() {
 }
 
 /**
+ * Get the currently authenticated user, or null if not logged in.
+ * Convenience wrapper for server components and server actions.
+ */
+export async function getUser() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
+
+/**
  * Create a stateless client for server-side operations that don't need user context.
  * Uses the anon key (subject to RLS) — suitable for sitemaps, SSR pages, etc.
  * Does NOT bypass RLS despite the legacy name.

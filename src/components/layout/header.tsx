@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Menu, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UserMenu } from '@/components/auth/user-menu';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -100,6 +101,7 @@ export function Header() {
             <Globe className="h-3.5 w-3.5" aria-hidden="true" />
             {tHeader('langSwitch')}
           </Link>
+          <UserMenu />
         </div>
 
         <Button

@@ -115,9 +115,35 @@ jobs:
           echo "   Time: $(date)"
           echo "=============================================="
 
+  send-alerts:
+    name: Send Property Alerts
+    needs: [scrape]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install supabase requests
+
+      - name: Send property alerts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SITE_URL: https://property.com.ve
+        run: python scraper/send_alerts.py
+
   summary:
     name: Scrape Summary
-    needs: [detect, scrape]
+    needs: [detect, scrape, send-alerts]
     runs-on: ubuntu-latest
     if: always()
 
@@ -129,7 +155,8 @@ jobs:
           echo "=============================================="
           echo "Total pages detected: ${{ needs.detect.outputs.total_pages }}"
           echo "Jobs: ${{ needs.detect.outputs.job_count }} parallel"
-          echo "Status: ${{ needs.scrape.result }}"
+          echo "Scrape status: ${{ needs.scrape.result }}"
+          echo "Alerts status: ${{ needs.send-alerts.result }}"
           echo ""
           echo "Next steps:"
           echo "- Check Supabase dashboard for listing count"

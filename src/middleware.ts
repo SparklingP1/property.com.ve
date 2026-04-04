@@ -1,4 +1,5 @@
 import createMiddleware from 'next-intl/middleware';
+import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from './i18n/routing';
 
@@ -137,9 +138,47 @@ function getSpanishInternalMarketDataCitySlug(pathname: string): string | null {
 
 const intlMiddleware = createMiddleware(routing);
 
-export default function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const normalizedPathname = normalizePathname(pathname);
+
+  const authCookiesToSet: Array<{
+    name: string;
+    value: string;
+    options?: Record<string, unknown>;
+  }> = [];
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
+          authCookiesToSet.push(...cookiesToSet);
+        },
+      },
+    }
+  );
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (pathname.match(/^\/(en\/)?dashboard/) && !user) {
+    const locale = pathname.startsWith('/en') ? 'en' : 'es';
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = locale === 'en' ? '/en/login' : '/login';
+    loginUrl.searchParams.set('redirect', pathname);
+    const response = NextResponse.redirect(loginUrl);
+    authCookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options as Record<string, string>);
+    });
+    return response;
+  }
 
   if (
     normalizedPathname === MARKET_DATA_HUB_EN_PATH ||
@@ -148,19 +187,19 @@ export default function middleware(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone();
     url.pathname = `/en${normalizedPathname}`;
-    return NextResponse.redirect(url, 301);
+    return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
   }
 
   if (normalizedPathname === `/en${MARKET_DATA_HUB_ES_PATH}`) {
     const url = request.nextUrl.clone();
     url.pathname = `/en${MARKET_DATA_HUB_EN_PATH}`;
-    return NextResponse.redirect(url, 301);
+    return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
   }
 
   if (normalizedPathname === `/en${MARKET_DATA_METHODOLOGY_ES_PATH}`) {
     const url = request.nextUrl.clone();
     url.pathname = `/en${MARKET_DATA_METHODOLOGY_EN_PATH}`;
-    return NextResponse.redirect(url, 301);
+    return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
   }
 
   const englishInternalMarketDataCitySlug =
@@ -169,7 +208,7 @@ export default function middleware(request: NextRequest) {
   if (englishInternalMarketDataCitySlug) {
     const url = request.nextUrl.clone();
     url.pathname = `/en/property-prices-in-${englishInternalMarketDataCitySlug}`;
-    return NextResponse.redirect(url, 301);
+    return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
   }
 
   if (pathname.startsWith('/en/')) {
@@ -178,7 +217,7 @@ export default function middleware(request: NextRequest) {
     if (isSpanishSEOSlug(enPath)) {
       const url = request.nextUrl.clone();
       url.pathname = enPath;
-      return NextResponse.redirect(url, 301);
+      return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
     }
 
     if (enPath.startsWith('/property/')) {
@@ -186,7 +225,7 @@ export default function middleware(request: NextRequest) {
       if (parts.length >= 5 && isSpanishListingSlug(parts[4])) {
         const url = request.nextUrl.clone();
         url.pathname = enPath;
-        return NextResponse.redirect(url, 301);
+        return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
       }
     }
 
@@ -195,15 +234,15 @@ export default function middleware(request: NextRequest) {
       if (GUIDE_ES_TO_EN[guideSlug]) {
         const url = request.nextUrl.clone();
         url.pathname = enPath;
-        return NextResponse.redirect(url, 301);
+        return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
       }
     }
 
-    return intlMiddleware(request);
+    return applyAuthCookies(intlMiddleware(request), authCookiesToSet);
   }
 
   if (normalizedPathname === '/en') {
-    return intlMiddleware(request);
+    return applyAuthCookies(intlMiddleware(request), authCookiesToSet);
   }
 
   if (
@@ -217,12 +256,15 @@ export default function middleware(request: NextRequest) {
     !pathname.startsWith('/disclaimer') &&
     !pathname.startsWith('/takedown') &&
     !pathname.startsWith('/listing/') &&
+    !pathname.startsWith('/login') &&
+    !pathname.startsWith('/register') &&
+    !pathname.startsWith('/dashboard') &&
     pathname !== '/' &&
     isEnglishSEOSlug(pathname)
   ) {
     const url = request.nextUrl.clone();
     url.pathname = `/en${pathname}`;
-    return NextResponse.redirect(url, 301);
+    return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
   }
 
   if (pathname.startsWith('/property/')) {
@@ -230,7 +272,7 @@ export default function middleware(request: NextRequest) {
     if (parts.length >= 5 && isEnglishListingSlug(parts[4])) {
       const url = request.nextUrl.clone();
       url.pathname = `/en${pathname}`;
-      return NextResponse.redirect(url, 301);
+      return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
     }
   }
 
@@ -239,7 +281,7 @@ export default function middleware(request: NextRequest) {
     if (GUIDE_EN_TO_ES[guideSlug]) {
       const url = request.nextUrl.clone();
       url.pathname = `/en${pathname}`;
-      return NextResponse.redirect(url, 301);
+      return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
     }
   }
 
@@ -249,14 +291,24 @@ export default function middleware(request: NextRequest) {
   if (spanishInternalMarketDataCitySlug) {
     const url = request.nextUrl.clone();
     url.pathname = `/precios-de-casas-en-${spanishInternalMarketDataCitySlug}`;
-    return NextResponse.redirect(url, 301);
+    return applyAuthCookies(NextResponse.redirect(url, 301), authCookiesToSet);
   }
 
-  return intlMiddleware(request);
+  return applyAuthCookies(intlMiddleware(request), authCookiesToSet);
+}
+
+function applyAuthCookies(
+  response: NextResponse,
+  cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>
+): NextResponse {
+  cookiesToSet.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options as Record<string, string>);
+  });
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next|_vercel|sitemap|robots\\.txt|favicon\\.ico|icon\\.svg|og-image\\.jpg|.*\\..*).*)',
+    '/((?!api|auth/callback|_next|_vercel|sitemap|robots\\.txt|favicon\\.ico|icon\\.svg|og-image\\.jpg|.*\\..*).*)',
   ],
 };

@@ -44,6 +44,17 @@ jobs:
             --end-page 50 \
             --run-type daily
 
+      - name: Send property alerts
+        if: success()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SITE_URL: https://property.com.ve
+        run: |
+          echo "📬 Sending property alert emails..."
+          python scraper/send_alerts.py
+
       - name: Report completion
         if: always()
         run: |
