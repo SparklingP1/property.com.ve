@@ -6,6 +6,7 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { Menu, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/auth/user-menu';
+import { Logo } from '@/components/layout/logo';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -76,9 +77,7 @@ export function Header() {
     <header className="bg-white border-b border-border sticky top-0 z-50">
       <nav className="container flex items-center justify-between h-16">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">P</span>
-          </div>
+          <Logo size={32} />
           <span className="font-bold text-xl text-foreground">{tHeader('branding')}</span>
         </Link>
 

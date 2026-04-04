@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
+import { Logo } from '@/components/layout/logo';
 
 export async function Footer() {
   const t = await getTranslations('footer');
@@ -30,9 +31,7 @@ export async function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">P</span>
-              </div>
+              <Logo size={32} />
               <span className="font-bold text-lg text-foreground">{t('branding')}</span>
             </Link>
             <p className="text-sm text-muted-foreground">
