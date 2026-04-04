@@ -144,7 +144,10 @@
     "noPropertiesFound": "No properties found",
     "tryAdjusting": "Try adjusting your search filters",
     "showingOf": "Showing {current} of {total} properties",
-    "noImagesAvailable": "No images available"
+    "noImagesAvailable": "No images available",
+    "save": "Save",
+    "saved": "Saved",
+    "unsave": "Remove from saved"
   },
   "results": {
     "propertiesFound": "{count} Properties Found",

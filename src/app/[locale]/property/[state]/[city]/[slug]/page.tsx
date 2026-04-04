@@ -198,11 +198,11 @@ export default async function PropertyPage({ params }: PropertyPageProps) {
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between gap-3 mb-4">
                   <h2 className="text-xl font-semibold">
                     {t('interestedInProperty')}
                   </h2>
-                  <SaveButton listingId={listing.id} size="md" />
+                  <SaveButton listingId={listing.id} size="lg" />
                 </div>
                 <p className="text-muted-foreground text-sm mb-4">
                   {t('contactAgentDescription')}

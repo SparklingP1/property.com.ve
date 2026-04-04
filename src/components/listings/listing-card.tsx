@@ -71,8 +71,8 @@ export function ListingCard({ listing }: ListingCardProps) {
               {propertyTypeLabels[listing.property_type] || listing.property_type}
             </Badge>
           )}
-          <div className="absolute top-3 right-3">
-            <SaveButton listingId={listing.id} />
+          <div className="absolute top-3 right-3 z-10">
+            <SaveButton listingId={listing.id} size="md" />
           </div>
         </div>
 

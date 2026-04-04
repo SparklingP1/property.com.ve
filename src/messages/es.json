@@ -144,7 +144,10 @@
     "noPropertiesFound": "No se encontraron inmuebles",
     "tryAdjusting": "Intenta ajustar los filtros de búsqueda",
     "showingOf": "Mostrando {current} de {total} inmuebles",
-    "noImagesAvailable": "No hay imágenes disponibles"
+    "noImagesAvailable": "No hay imágenes disponibles",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "unsave": "Quitar de guardados"
   },
   "results": {
     "propertiesFound": "{count} Inmuebles Encontrados",
