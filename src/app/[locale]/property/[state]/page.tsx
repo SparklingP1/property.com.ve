@@ -50,11 +50,12 @@ export default async function StatePage({ params }: StatePageProps) {
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
-  // Get count, active listings, and unique cities in this state in parallel
-  const [{ count: totalCount }, { data: listings }, { data: citiesData }] = await Promise.all([
+  // Fetch aggregate stats separately from the featured listing sample so the
+  // summary cards reflect the full matching inventory, not just the first page.
+  const [{ data: statsRows }, { data: listings }, { data: citiesData }] = await Promise.all([
     supabase
       .from('listings')
-      .select('*', { count: 'exact', head: true })
+      .select('price, property_type, city')
       .eq('active', true)
       .ilike('state', stateSlug.replace(/-/g, ' ')),
     supabase
@@ -80,12 +81,13 @@ export default async function StatePage({ params }: StatePageProps) {
 
   // Calculate stats
   const stateName = listings[0].state || stateSlug.replace(/-/g, ' ');
-  const totalListings = totalCount || listings?.length || 0;
-  const avgPrice = listings
+  const totalListings = statsRows?.length || 0;
+  const avgPrice = (statsRows || [])
     .filter(l => l.price)
-    .reduce((sum, l) => sum + (l.price || 0), 0) / listings.filter(l => l.price).length;
+    .reduce((sum, l) => sum + (l.price || 0), 0) /
+    ((statsRows || []).filter(l => l.price).length || 1);
 
-  const propertyTypes = listings.reduce((acc, l) => {
+  const propertyTypes = (statsRows || []).reduce((acc, l) => {
     if (l.property_type) {
       acc[l.property_type] = (acc[l.property_type] || 0) + 1;
     }

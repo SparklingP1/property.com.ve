@@ -56,6 +56,10 @@ export function AlertForm({ mode, alertId, initialName = '', initialCriteria = {
   const [maxPrice, setMaxPrice] = useState(initialCriteria.maxPrice || '');
   const [bedrooms, setBedrooms] = useState(initialCriteria.bedrooms || '');
   const [bathrooms, setBathrooms] = useState(initialCriteria.bathrooms || '');
+  const [parking, setParking] = useState(initialCriteria.parking || '');
+  const [minArea, setMinArea] = useState(initialCriteria.minArea || '');
+  const [maxArea, setMaxArea] = useState(initialCriteria.maxArea || '');
+  const [furnished, setFurnished] = useState(initialCriteria.furnished || '');
 
   const [states, setStates] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
@@ -108,6 +112,10 @@ export function AlertForm({ mode, alertId, initialName = '', initialCriteria = {
     if (maxPrice) criteria.maxPrice = maxPrice;
     if (bedrooms) criteria.bedrooms = bedrooms;
     if (bathrooms) criteria.bathrooms = bathrooms;
+    if (parking) criteria.parking = parking;
+    if (minArea) criteria.minArea = minArea;
+    if (maxArea) criteria.maxArea = maxArea;
+    if (furnished) criteria.furnished = furnished;
     return criteria;
   };
 
@@ -232,6 +240,28 @@ export function AlertForm({ mode, alertId, initialName = '', initialCriteria = {
           </div>
 
           <div>
+            <Label>{tSearch('areaM2')} ({tSearch('min')})</Label>
+            <Input
+              type="number"
+              value={minArea}
+              onChange={(e) => setMinArea(e.target.value)}
+              placeholder="50"
+              className="mt-1 bg-white"
+            />
+          </div>
+
+          <div>
+            <Label>{tSearch('areaM2')} ({tSearch('max')})</Label>
+            <Input
+              type="number"
+              value={maxArea}
+              onChange={(e) => setMaxArea(e.target.value)}
+              placeholder="250"
+              className="mt-1 bg-white"
+            />
+          </div>
+
+          <div>
             <Label>{tSearch('bedrooms')}</Label>
             <Select value={bedrooms} onValueChange={setBedrooms}>
               <SelectTrigger className="mt-1 bg-white">
@@ -257,6 +287,35 @@ export function AlertForm({ mode, alertId, initialName = '', initialCriteria = {
                 {['1', '2', '3', '4'].map((n) => (
                   <SelectItem key={n} value={n}>{n}+</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>{tSearch('parkingSpaces')}</Label>
+            <Select value={parking} onValueChange={setParking}>
+              <SelectTrigger className="mt-1 bg-white">
+                <SelectValue placeholder={tSearch('any')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{tSearch('any')}</SelectItem>
+                {['1', '2', '3'].map((n) => (
+                  <SelectItem key={n} value={n}>{n}+</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>{tSearch('furnished')}</Label>
+            <Select value={furnished} onValueChange={setFurnished}>
+              <SelectTrigger className="mt-1 bg-white">
+                <SelectValue placeholder={tSearch('any')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{tSearch('any')}</SelectItem>
+                <SelectItem value="true">{tSearch('furnishedYes')}</SelectItem>
+                <SelectItem value="false">{tSearch('furnishedNo')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

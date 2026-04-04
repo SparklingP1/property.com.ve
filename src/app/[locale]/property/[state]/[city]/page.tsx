@@ -52,11 +52,12 @@ export default async function CityPage({ params }: CityPageProps) {
   const tNav = await getTranslations('nav');
   const supabase = createServiceClient();
 
-  // Get count and active listings in this city in parallel
-  const [{ count: totalCount }, { data: listings }] = await Promise.all([
+  // Fetch aggregate stats separately from the featured listing sample so the
+  // summary cards reflect the full matching inventory, not just the first page.
+  const [{ data: statsRows }, { data: listings }] = await Promise.all([
     supabase
       .from('listings')
-      .select('*', { count: 'exact', head: true })
+      .select('price, property_type, bedrooms, neighborhood')
       .eq('active', true)
       .ilike('state', stateSlug.replace(/-/g, ' '))
       .ilike('city', citySlug.replace(/-/g, ' ')),
@@ -77,13 +78,13 @@ export default async function CityPage({ params }: CityPageProps) {
   // Calculate stats
   const cityName = listings[0].city || citySlug.replace(/-/g, ' ');
   const stateName = listings[0].state || stateSlug.replace(/-/g, ' ');
-  const totalListings = totalCount || listings?.length || 0;
+  const totalListings = statsRows?.length || 0;
 
   let priceSum = 0, priceCount = 0;
   const propertyTypes: Record<string, number> = {};
   const bedroomSet = new Set<number>();
   const neighborhoodSet = new Set<string>();
-  for (const l of listings) {
+  for (const l of statsRows || []) {
     if (l.price) { priceSum += l.price; priceCount++; }
     if (l.property_type) { propertyTypes[l.property_type] = (propertyTypes[l.property_type] || 0) + 1; }
     if (l.bedrooms) bedroomSet.add(l.bedrooms);

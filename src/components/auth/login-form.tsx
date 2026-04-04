@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { signIn, type FormState } from '@/actions/auth';
+import { sanitizeInternalRedirect } from '@/lib/auth-redirect';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -19,7 +20,7 @@ export function LoginForm() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect');
+  const redirectTo = sanitizeInternalRedirect(searchParams.get('redirect'));
 
   const wrappedSignIn = async (prevState: FormState, formData: FormData) => {
     const result = await signIn(prevState, formData);

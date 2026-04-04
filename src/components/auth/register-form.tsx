@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { signUp, type FormState } from '@/actions/auth';
+import { sanitizeInternalRedirect } from '@/lib/auth-redirect';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,12 +21,12 @@ export function RegisterForm() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect');
+  const redirectTo = sanitizeInternalRedirect(searchParams.get('redirect'));
 
   const wrappedSignUp = async (prevState: FormState, formData: FormData) => {
     const result = await signUp(prevState, formData);
-    if (result.success) {
-      router.push(redirectTo || '/dashboard');
+    if (result.success && result.redirectTo) {
+      router.push(result.redirectTo);
       router.refresh();
     }
     return result;
@@ -72,6 +73,7 @@ export function RegisterForm() {
         </div>
 
         <input type="hidden" name="locale" value={locale} />
+        <input type="hidden" name="redirect" value={redirectTo || ''} />
 
         <Button
           type="submit"
@@ -83,6 +85,12 @@ export function RegisterForm() {
 
         {state.message && !state.success && (
           <p className="text-sm text-red-500 text-center" role="alert" aria-live="assertive">{state.message}</p>
+        )}
+
+        {state.message && state.success && (
+          <p className="text-sm text-green-700 text-center" role="status" aria-live="polite">
+            {state.message}
+          </p>
         )}
 
         <p className="text-sm text-center text-muted-foreground pt-1">

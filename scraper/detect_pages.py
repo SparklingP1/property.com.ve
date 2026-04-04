@@ -4,6 +4,8 @@ Quick page detection for dynamic distributed scraping.
 Checks the pagination to find the total number of pages available.
 """
 
+import argparse
+import json
 import sys
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
@@ -149,6 +151,7 @@ def calculate_page_ranges(total_pages: int, num_jobs: int = 9) -> list:
     Returns:
         List of dictionaries with page ranges
     """
+    num_jobs = max(1, num_jobs)
     pages_per_job = total_pages // num_jobs
     remainder = total_pages % num_jobs
 
@@ -172,18 +175,25 @@ def calculate_page_ranges(total_pages: int, num_jobs: int = 9) -> list:
 
 
 if __name__ == "__main__":
-    # URL for Rent-A-House for-sale residential listings
-    url = "https://rentahouse.com.ve/buscar-propiedades?tipo_negocio=venta&tipo_inmueble=Apartamento,Casa,Townhouse"
+    parser = argparse.ArgumentParser(description="Detect total listing pages and split them into job ranges.")
+    parser.add_argument(
+        "--url",
+        default="https://rentahouse.com.ve/buscar-propiedades?tipo_negocio=venta&tipo_inmueble=Apartamento,Casa,Townhouse",
+        help="Base search URL to inspect.",
+    )
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=9,
+        help="Number of parallel jobs to split the result into.",
+    )
+    args = parser.parse_args()
 
-    # Detect total pages
-    total_pages = detect_total_pages(url)
+    total_pages = detect_total_pages(args.url)
+    ranges = calculate_page_ranges(total_pages, num_jobs=args.jobs)
 
-    # Calculate ranges for 9 parallel jobs
-    ranges = calculate_page_ranges(total_pages, num_jobs=9)
-
-    # Output JSON for GitHub Actions
-    import json
     print(json.dumps({
         "total_pages": total_pages,
-        "ranges": ranges
+        "ranges": ranges,
+        "jobs": max(1, args.jobs),
     }))

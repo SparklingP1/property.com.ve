@@ -37,7 +37,7 @@ def build_alert_query(supabase, criteria: dict, since: str):
         supabase.table("listings")
         .select("id, title, title_en, price, currency, city, state, bedrooms, bathrooms, area_sqm, image_urls, url_slug, url_slug_es, property_type, transaction_type")
         .eq("active", True)
-        .gt("scraped_at", since)
+        .gt("created_at", since)
     )
 
     if criteria.get("type") and criteria["type"] != "all":
@@ -56,8 +56,16 @@ def build_alert_query(supabase, criteria: dict, since: str):
         query = query.gte("bedrooms", int(criteria["bedrooms"]))
     if criteria.get("bathrooms") and criteria["bathrooms"] != "all":
         query = query.gte("bathrooms", int(criteria["bathrooms"]))
+    if criteria.get("parking") and criteria["parking"] != "all":
+        query = query.gte("parking_spaces", int(criteria["parking"]))
+    if criteria.get("minArea"):
+        query = query.gte("area_sqm", float(criteria["minArea"]))
+    if criteria.get("maxArea"):
+        query = query.lte("area_sqm", float(criteria["maxArea"]))
+    if criteria.get("furnished") and criteria["furnished"] != "all":
+        query = query.eq("furnished", criteria["furnished"].lower() == "true")
 
-    return query.order("scraped_at", desc=True).limit(20)
+    return query.order("created_at", desc=True).limit(20)
 
 
 def send_email(to: str, subject: str, html: str) -> bool:

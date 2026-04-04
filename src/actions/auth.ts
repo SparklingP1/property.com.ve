@@ -2,18 +2,21 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from '@/i18n/navigation';
+import { sanitizeInternalRedirect } from '@/lib/auth-redirect';
 import { z } from 'zod';
 
 export type FormState = {
   success: boolean;
   message: string;
   errors?: Record<string, string[]>;
+  redirectTo?: string;
 };
 
 const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   locale: z.string().optional(),
+  redirect: z.string().optional(),
 });
 
 const signInSchema = z.object({
@@ -29,6 +32,7 @@ export async function signUp(
     email: formData.get('email') as string,
     password: formData.get('password') as string,
     locale: formData.get('locale') as string || 'es',
+    redirect: formData.get('redirect') as string || undefined,
   };
 
   const validatedData = signUpSchema.safeParse(rawData);
@@ -42,15 +46,24 @@ export async function signUp(
   }
 
   const supabase = await createClient();
+  const safeRedirect = sanitizeInternalRedirect(validatedData.data.redirect);
+  const callbackUrl = new URL(
+    '/auth/callback',
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve'
+  );
+  callbackUrl.searchParams.set('locale', validatedData.data.locale || 'es');
+  if (safeRedirect) {
+    callbackUrl.searchParams.set('redirect', safeRedirect);
+  }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: validatedData.data.email,
     password: validatedData.data.password,
     options: {
       data: {
         preferred_locale: validatedData.data.locale,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve'}/auth/callback?locale=${validatedData.data.locale}`,
+      emailRedirectTo: callbackUrl.toString(),
     },
   });
 
@@ -70,6 +83,7 @@ export async function signUp(
   return {
     success: true,
     message: 'Check your email to confirm your account.',
+    redirectTo: data.session ? safeRedirect || '/dashboard' : undefined,
   };
 }
 

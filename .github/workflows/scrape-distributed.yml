@@ -24,7 +24,7 @@ jobs:
   detect:
     name: Detect Total Pages
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       total_pages: ${{ steps.calculate.outputs.total }}
       page_ranges: ${{ steps.calculate.outputs.ranges }}
@@ -47,33 +47,34 @@ jobs:
 
       - name: Detect page count and calculate ranges
         id: calculate
+        env:
+          JOB_COUNT: ${{ inputs.job_count || '9' }}
         run: |
-          echo "🔍 Calculating page ranges..."
-          # Full scrape with optimized settings (18 jobs for faster completion)
-          TOTAL=1282
-          START=1
+          echo "Detecting total page count and splitting into $JOB_COUNT jobs..."
+          DETECTION_JSON=$(python scraper/detect_pages.py --jobs "$JOB_COUNT")
+          echo "$DETECTION_JSON"
 
-          # Calculate ranges for ALL pages (1-1282 across 18 jobs, ~71 pages each)
-          RANGES='[{"start":1,"end":71,"name":"Job 1/18"},{"start":72,"end":142,"name":"Job 2/18"},{"start":143,"end":213,"name":"Job 3/18"},{"start":214,"end":284,"name":"Job 4/18"},{"start":285,"end":355,"name":"Job 5/18"},{"start":356,"end":426,"name":"Job 6/18"},{"start":427,"end":497,"name":"Job 7/18"},{"start":498,"end":568,"name":"Job 8/18"},{"start":569,"end":639,"name":"Job 9/18"},{"start":640,"end":710,"name":"Job 10/18"},{"start":711,"end":781,"name":"Job 11/18"},{"start":782,"end":852,"name":"Job 12/18"},{"start":853,"end":923,"name":"Job 13/18"},{"start":924,"end":994,"name":"Job 14/18"},{"start":995,"end":1065,"name":"Job 15/18"},{"start":1066,"end":1136,"name":"Job 16/18"},{"start":1137,"end":1207,"name":"Job 17/18"},{"start":1208,"end":1282,"name":"Job 18/18"}]'
+          TOTAL=$(printf '%s' "$DETECTION_JSON" | python -c "import json, sys; print(json.load(sys.stdin)['total_pages'])")
+          RANGES=$(printf '%s' "$DETECTION_JSON" | python -c "import json, sys; print(json.dumps(json.load(sys.stdin)['ranges']))")
+          JOBS=$(printf '%s' "$DETECTION_JSON" | python -c "import json, sys; print(json.load(sys.stdin)['jobs'])")
 
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
           echo "ranges=$RANGES" >> $GITHUB_OUTPUT
-          echo "jobs=18" >> $GITHUB_OUTPUT
+          echo "jobs=$JOBS" >> $GITHUB_OUTPUT
 
-          echo "✅ Full scrape pages $START-$TOTAL (1282 pages)"
-          echo "📊 Split into 18 parallel jobs (~71 pages each)"
-          echo "🚀 Optimized: domcontentloaded wait strategy for 2-3x faster page loads"
+          echo "Detected $TOTAL pages"
+          echo "Split into $JOBS parallel jobs"
 
   scrape:
     name: ${{ matrix.page_range.name }} (Pages ${{ matrix.page_range.start }}-${{ matrix.page_range.end }})
     needs: detect
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hours per job (increased safety margin)
-    environment: Production  # Re-enabled - billing issue resolved
+    timeout-minutes: 360
+    environment: Production
 
     strategy:
-      max-parallel: 20  # Run up to 20 jobs concurrently (GitHub free tier limit)
-      fail-fast: false  # Continue other jobs if one fails
+      max-parallel: 20
+      fail-fast: false
       matrix:
         page_range: ${{ fromJson(needs.detect.outputs.page_ranges) }}
 
@@ -109,41 +110,15 @@ jobs:
         if: always()
         run: |
           echo "=============================================="
-          echo "✅ Completed ${{ matrix.page_range.name }}"
-          echo "   Pages: ${{ matrix.page_range.start }}-${{ matrix.page_range.end }}"
-          echo "   Status: ${{ job.status }}"
-          echo "   Time: $(date)"
+          echo "Completed ${{ matrix.page_range.name }}"
+          echo "  Pages: ${{ matrix.page_range.start }}-${{ matrix.page_range.end }}"
+          echo "  Status: ${{ job.status }}"
+          echo "  Time: $(date)"
           echo "=============================================="
-
-  send-alerts:
-    name: Send Property Alerts
-    needs: [scrape]
-    runs-on: ubuntu-latest
-    if: success()
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pip install supabase requests
-
-      - name: Send property alerts
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          SITE_URL: https://property.com.ve
-        run: python scraper/send_alerts.py
 
   summary:
     name: Scrape Summary
-    needs: [detect, scrape, send-alerts]
+    needs: [detect, scrape]
     runs-on: ubuntu-latest
     if: always()
 
@@ -151,12 +126,12 @@ jobs:
       - name: Check scrape results
         run: |
           echo "=============================================="
-          echo "📊 DISTRIBUTED SCRAPE SUMMARY"
+          echo "DISTRIBUTED SCRAPE SUMMARY"
           echo "=============================================="
           echo "Total pages detected: ${{ needs.detect.outputs.total_pages }}"
           echo "Jobs: ${{ needs.detect.outputs.job_count }} parallel"
           echo "Scrape status: ${{ needs.scrape.result }}"
-          echo "Alerts status: ${{ needs.send-alerts.result }}"
+          echo "Alerts: daily incremental workflow only"
           echo ""
           echo "Next steps:"
           echo "- Check Supabase dashboard for listing count"

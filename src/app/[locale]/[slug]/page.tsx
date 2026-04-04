@@ -160,34 +160,36 @@ export default async function SEOPage({ params }: SEOPageProps) {
     notFound();
   }
 
-  // Build count query with same filters as listing query
-  let countQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('active', true);
+  // Build a full stats query plus a capped listing query so the hero metrics
+  // reflect the entire matching inventory while the grid stays lightweight.
+  let statsQuery = supabase
+    .from('listings')
+    .select('price, property_type, bedrooms')
+    .eq('active', true);
   let listQuery = supabase.from('listings').select('*').eq('active', true);
 
-  if (filters.city) { countQuery = countQuery.ilike('city', filters.city); listQuery = listQuery.ilike('city', filters.city); }
-  if (filters.state) { countQuery = countQuery.ilike('state', filters.state); listQuery = listQuery.ilike('state', filters.state); }
-  if (filters.property_type) { countQuery = countQuery.eq('property_type', filters.property_type); listQuery = listQuery.eq('property_type', filters.property_type); }
-  if (filters.bedrooms) { countQuery = countQuery.eq('bedrooms', filters.bedrooms); listQuery = listQuery.eq('bedrooms', filters.bedrooms); }
+  if (filters.city) { statsQuery = statsQuery.ilike('city', filters.city); listQuery = listQuery.ilike('city', filters.city); }
+  if (filters.state) { statsQuery = statsQuery.ilike('state', filters.state); listQuery = listQuery.ilike('state', filters.state); }
+  if (filters.property_type) { statsQuery = statsQuery.eq('property_type', filters.property_type); listQuery = listQuery.eq('property_type', filters.property_type); }
+  if (filters.bedrooms) { statsQuery = statsQuery.eq('bedrooms', filters.bedrooms); listQuery = listQuery.eq('bedrooms', filters.bedrooms); }
 
-  const [{ count: totalCount }, { data: listings }] = await Promise.all([
-    countQuery,
+  const [{ data: statsRows }, { data: listings }] = await Promise.all([
+    statsQuery,
     listQuery.order('last_seen_at', { ascending: false }).limit(100),
   ]);
 
-  const totalListings = totalCount || listings?.length || 0;
+  const totalListings = statsRows?.length || 0;
 
   // Calculate stats (only if listings exist)
+  const pricedStatsRows = (statsRows || []).filter((l) => l.price);
   const avgPrice =
-    totalListings > 0
-      ? listings!
-          .filter((l) => l.price)
-          .reduce((sum, l) => sum + (l.price || 0), 0) /
-        listings!.filter((l) => l.price).length
+    pricedStatsRows.length > 0
+      ? pricedStatsRows.reduce((sum, l) => sum + (l.price || 0), 0) / pricedStatsRows.length
       : 0;
 
   const propertyTypes =
     totalListings > 0
-      ? listings!.reduce((acc, l) => {
+      ? statsRows!.reduce((acc, l) => {
           if (l.property_type) {
             acc[l.property_type] = (acc[l.property_type] || 0) + 1;
           }
@@ -199,7 +201,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
     totalListings > 0
       ? [
           ...new Set(
-            listings!.map((l) => l.bedrooms).filter((b): b is number => b !== null && b !== undefined)
+            statsRows!.map((l) => l.bedrooms).filter((b): b is number => b !== null && b !== undefined)
           ),
         ].sort((a, b) => a - b)
       : [];
