@@ -123,61 +123,44 @@ export default async function HomePage({ params, searchParams }: PageProps) {
 
   return (
     <>
+      {/* Hero — compact, focused on the search bar */}
       <section className="relative overflow-hidden bg-stone-900 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,63,0.15),transparent_50%)]" />
-        <div className="container relative py-12 pb-20 md:py-16">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-5">
-              <div className="inline-block">
-                <div className="text-xs font-medium tracking-wider text-amber-200 mb-3 uppercase">
-                  {t('heroTagline')}
-                </div>
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-pretty">
-                {t('heroHeadline')}
-              </h1>
-              <p className="text-lg text-stone-300 max-w-md leading-relaxed">
-                {t('heroDescription')}
-              </p>
-              <div className="flex flex-wrap gap-3 pt-2">
-                <Link
-                  href="/search"
-                  className="px-7 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-[transform,background-color] hover:scale-[1.02]"
-                >
-                  {t('startSearching')}
-                </Link>
-                <Link
-                  href="/guides"
-                  className="px-7 py-3 bg-stone-800 hover:bg-stone-700 text-white font-semibold rounded-lg transition-colors border border-stone-700"
-                >
-                  {t('buyingGuide')}
-                </Link>
-              </div>
-            </div>
+        <div className="container relative pt-10 pb-16 md:pt-12 md:pb-20">
+          <div className="max-w-2xl mx-auto text-center mb-8">
+            <p className="text-xs font-semibold tracking-[0.2em] text-amber-200 uppercase mb-3">
+              {t('heroTagline')}
+            </p>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
+              {t('heroHeadline')}
+            </h1>
+            <p className="text-stone-400 text-base md:text-lg max-w-lg mx-auto leading-relaxed">
+              {t('heroDescription')}
+            </p>
+          </div>
 
-            <div className="hidden md:grid grid-cols-3 gap-3">
-              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
-                <div className="text-3xl font-bold text-amber-100">
-                  {t('activeListingsValue')}
-                </div>
-                <div className="text-stone-400 mt-2 text-sm">{t('activeListings')}</div>
-              </div>
-              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
-                <div className="text-3xl font-bold text-amber-100">
-                  {t('statesCoveredValue')}
-                </div>
-                <div className="text-stone-400 mt-2 text-sm">{t('statesCovered')}</div>
-              </div>
-              <div className="bg-stone-800/50 backdrop-blur-sm border border-stone-700 rounded-2xl p-5">
-                <div className="text-3xl font-bold text-amber-100">{t('updatedValue')}</div>
-                <div className="text-stone-400 mt-2 text-sm">{t('updated')}</div>
-              </div>
+          {/* Stats row — inline, compact */}
+          <div className="hidden md:flex items-center justify-center gap-8 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-amber-100">{t('activeListingsValue')}</span>
+              <span className="text-sm text-stone-500">{t('activeListings')}</span>
+            </div>
+            <div className="w-px h-5 bg-stone-700" />
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-amber-100">{t('statesCoveredValue')}</span>
+              <span className="text-sm text-stone-500">{t('statesCovered')}</span>
+            </div>
+            <div className="w-px h-5 bg-stone-700" />
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-amber-100">{t('updatedValue')}</span>
+              <span className="text-sm text-stone-500">{t('updated')}</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="container -mt-12 relative z-10">
+      {/* Search bar — overlapping the hero */}
+      <section className="container -mt-8 relative z-10">
         <div className="bg-white rounded-2xl shadow-2xl p-6 border border-stone-200">
           <Suspense fallback={<div className="h-16 animate-pulse bg-stone-100 rounded-lg" />}>
             <SearchBar />
@@ -185,11 +168,12 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
+      {/* Latest Listings */}
       <section className="bg-stone-50 py-12 mt-4">
         <div className="container">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold text-stone-900 mb-2">
+              <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-2">
                 {t('latestListings')}
               </h2>
               <p className="text-lg text-stone-600">{t('updatedDaily')}</p>
@@ -216,6 +200,7 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
+      {/* Popular Areas */}
       <section className="container py-16">
         <div className="mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-2">
@@ -261,47 +246,36 @@ export default async function HomePage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      <section className="container py-20">
-        <div className="grid md:grid-cols-5 gap-8">
-          <div className="md:col-span-3 bg-amber-600 text-white rounded-3xl p-10 md:p-12 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500 rounded-full blur-3xl opacity-30 transform translate-x-20 -translate-y-20" />
-            <div className="relative z-10">
-              <h3 className="text-3xl md:text-4xl font-bold mb-4">
-                {t('findPerfectHome')}
-              </h3>
-              <p className="text-amber-50 text-lg mb-8 max-w-md">
-                {t('findPerfectHomeDescription')}
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  href="/search"
-                  className="px-8 py-4 bg-white text-amber-700 rounded-lg font-semibold hover:bg-stone-100 transition-colors"
-                >
-                  {t('startSearching')}
-                </Link>
-                <Link
-                  href="/find-property"
-                  className="px-8 py-4 bg-amber-700 text-white rounded-lg font-semibold hover:bg-amber-800 transition-colors border border-amber-500"
-                >
-                  {t('getMatched')}
-                </Link>
-              </div>
+      {/* CTA — single card, focused on search + alerts */}
+      <section className="container pb-20">
+        <div className="bg-amber-600 text-white rounded-3xl p-10 md:p-14 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500 rounded-full blur-3xl opacity-30 transform translate-x-20 -translate-y-20" />
+          <div className="relative z-10 max-w-xl">
+            <h3 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('findPerfectHome')}
+            </h3>
+            <p className="text-amber-50 text-lg mb-8 max-w-md">
+              {t('findPerfectHomeDescription')}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link
+                href="/search"
+                className="px-8 py-4 bg-white text-amber-700 rounded-lg font-semibold hover:bg-stone-100 transition-colors"
+              >
+                {t('startSearching')}
+              </Link>
+              <Link
+                href="/find-property"
+                className="px-8 py-4 bg-amber-700 text-white rounded-lg font-semibold hover:bg-amber-800 transition-colors border border-amber-500"
+              >
+                {t('getMatched')}
+              </Link>
             </div>
-          </div>
-
-          <div className="md:col-span-2 bg-stone-900 text-white rounded-3xl p-8 md:p-10">
-            <h3 className="text-2xl md:text-3xl font-bold mb-4">{t('listWithUs')}</h3>
-            <p className="text-stone-400 mb-8">{t('listWithUsDescription')}</p>
-            <Link
-              href="/list-your-property"
-              className="inline-flex px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              {t('getStarted')}
-            </Link>
           </div>
         </div>
       </section>
 
+      {/* Email Signup */}
       <section className="bg-stone-900 py-16">
         <div className="container">
           <div className="max-w-2xl mx-auto text-center">
