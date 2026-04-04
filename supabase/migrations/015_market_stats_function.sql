@@ -10,12 +10,16 @@
 --   - Supplementary: repeat-listing price change (same listing across periods)
 --
 -- Called by: scripts/compute-market-stats.ts via supabase.rpc()
+--
+-- NOTE: Uses GROUPING() to distinguish data NULLs from rollup NULLs.
+-- Data NULLs (e.g., listing with no city) → 'unknown'
+-- Rollup NULLs (aggregated away by GROUPING SETS) → ''
 
 create or replace function compute_market_stats(
   p_period_start date,
   p_period_end date,
-  p_period_type text,   -- 'monthly' or 'quarterly'
-  p_period_label text    -- '2026-04' or '2026-Q2'
+  p_period_type text,
+  p_period_label text
 )
 returns void
 language plpgsql
@@ -24,7 +28,6 @@ declare
   v_prev_start date;
   v_prev_end date;
 begin
-  -- Calculate previous period for change % computation
   if p_period_type = 'monthly' then
     v_prev_start := p_period_start - interval '1 month';
     v_prev_end := p_period_start;
@@ -34,14 +37,13 @@ begin
   end if;
 
   -- =========================================================================
-  -- Step 1: Current period — deduplicate, bucket bedrooms, filter outliers
+  -- Step 1: Deduplicate, bucket bedrooms, filter outliers
   -- =========================================================================
   with
   deduped as (
     select distinct on (listing_id)
       listing_id, price, city, state, property_type, bedrooms,
       area_sqm, price_per_sqm,
-      -- Bucket bedrooms: 1, 2, 3, 4+
       case
         when bedrooms is null then 'unknown'
         when bedrooms <= 1 then '1'
@@ -71,27 +73,24 @@ begin
   ),
 
   -- =========================================================================
-  -- Step 2: Aggregate at multiple granularity levels via GROUPING SETS
-  -- Now includes bedrooms_bucket as a stratification dimension
+  -- Step 2: Aggregate with GROUPING() to distinguish data NULLs from rollups
   -- =========================================================================
   aggregated as (
     select
-      coalesce(city, '') as city,
-      coalesce(state, '') as state,
-      coalesce(property_type, '') as property_type,
-      coalesce(bedrooms_bucket, '') as bedrooms_bucket,
+      -- Use GROUPING() to detect rollup NULLs (=1) vs data NULLs (=0)
+      case when grouping(city) = 1 then '' else coalesce(city, 'unknown') end as city,
+      case when grouping(state) = 1 then '' else coalesce(state, 'unknown') end as state,
+      case when grouping(property_type) = 1 then '' else coalesce(property_type, 'unknown') end as property_type,
+      case when grouping(bedrooms_bucket) = 1 then '' else coalesce(bedrooms_bucket, 'unknown') end as bedrooms_bucket,
       count(*)::integer as listing_count,
-      -- Primary metric: price per sqm
       percentile_cont(0.5) within group (order by price_per_sqm)
         filter (where price_per_sqm is not null and price_per_sqm > 0) as median_price_per_sqm,
       avg(price_per_sqm)
         filter (where price_per_sqm is not null and price_per_sqm > 0) as avg_price_per_sqm,
-      -- Secondary: raw price
       percentile_cont(0.5) within group (order by price) as median_price,
       avg(price) as avg_price,
       min(price) as min_price,
       max(price) as max_price,
-      -- Confidence classification
       case
         when count(*) >= 50 then 'high'
         when count(*) >= 20 then 'medium'
@@ -99,10 +98,8 @@ begin
       end as sample_confidence
     from filtered
     group by grouping sets (
-      -- With bedrooms stratification
       (city, state, property_type, bedrooms_bucket),
       (city, state, bedrooms_bucket),
-      -- Without bedrooms (all bedrooms)
       (city, state, property_type),
       (city, state),
       (state, property_type),
@@ -114,7 +111,7 @@ begin
   ),
 
   -- =========================================================================
-  -- Step 3: Previous period stats for change % calculation
+  -- Step 3: Previous period (same GROUPING() logic)
   -- =========================================================================
   prev_deduped as (
     select distinct on (listing_id)
@@ -149,10 +146,10 @@ begin
   ),
   prev_stats as (
     select
-      coalesce(city, '') as city,
-      coalesce(state, '') as state,
-      coalesce(property_type, '') as property_type,
-      coalesce(bedrooms_bucket, '') as bedrooms_bucket,
+      case when grouping(city) = 1 then '' else coalesce(city, 'unknown') end as city,
+      case when grouping(state) = 1 then '' else coalesce(state, 'unknown') end as state,
+      case when grouping(property_type) = 1 then '' else coalesce(property_type, 'unknown') end as property_type,
+      case when grouping(bedrooms_bucket) = 1 then '' else coalesce(bedrooms_bucket, 'unknown') end as bedrooms_bucket,
       percentile_cont(0.5) within group (order by price_per_sqm)
         filter (where price_per_sqm is not null and price_per_sqm > 0) as prev_median_psqm,
       percentile_cont(0.5) within group (order by price) as prev_median
@@ -171,8 +168,7 @@ begin
   )
 
   -- =========================================================================
-  -- Step 4: Insert/upsert into market_stats
-  -- price_change_pct is based on median $/sqm (the primary metric)
+  -- Step 4: Upsert into market_stats
   -- =========================================================================
   insert into market_stats (
     period_type, period_label, period_start,
@@ -198,7 +194,6 @@ begin
     round(a.max_price::numeric, 2),
     round(a.median_price_per_sqm::numeric, 2),
     round(a.avg_price_per_sqm::numeric, 2),
-    -- Change % based on median $/sqm (primary metric), falling back to raw median
     case
       when p.prev_median_psqm is not null and p.prev_median_psqm > 0
         and a.median_price_per_sqm is not null
@@ -233,8 +228,6 @@ $$;
 
 -- =========================================================================
 -- Supplementary: Repeat-listing price change
--- Measures asking price changes for listings present in BOTH current and
--- previous periods. Small sample but very clean signal of actual price movement.
 -- =========================================================================
 
 create or replace function compute_repeat_listing_stats(
