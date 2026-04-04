@@ -94,7 +94,8 @@ export function SaveButton({ listingId, size = 'sm' }: SaveButtonProps) {
           ? 'bg-red-500 text-white hover:bg-red-600 shadow-md'
           : 'bg-white/90 text-stone-500 hover:bg-white hover:text-red-500 hover:shadow-md'
       } shadow-sm backdrop-blur-sm cursor-pointer`}
-      aria-label={saved ? t('unsave') : t('save')}
+      aria-label={saved ? t('unsave') : t('saveToFavourites')}
+      title={saved ? t('unsave') : t('saveToFavourites')}
     >
       <Heart
         className={`${config.icon} ${saved ? 'fill-current' : ''} ${loading ? 'animate-pulse' : ''}`}

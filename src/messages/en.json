@@ -147,7 +147,8 @@
     "noImagesAvailable": "No images available",
     "save": "Save",
     "saved": "Saved",
-    "unsave": "Remove from saved"
+    "unsave": "Remove from saved",
+    "saveToFavourites": "Save to favourites"
   },
   "results": {
     "propertiesFound": "{count} Properties Found",

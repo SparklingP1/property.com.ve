@@ -147,7 +147,8 @@
     "noImagesAvailable": "No hay imágenes disponibles",
     "save": "Guardar",
     "saved": "Guardado",
-    "unsave": "Quitar de guardados"
+    "unsave": "Quitar de guardados",
+    "saveToFavourites": "Guardar en favoritos"
   },
   "results": {
     "propertiesFound": "{count} Inmuebles Encontrados",
