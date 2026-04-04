@@ -112,24 +112,7 @@ export function RegisterForm() {
           )}
         </div>
 
-        <div>
-          <Label htmlFor="confirmPassword" className="text-sm font-medium">{t('confirmPassword')}</Label>
-          <Input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            placeholder={t('confirmPasswordPlaceholder')}
-            required
-            minLength={8}
-            className="mt-1.5 h-11 rounded-xl"
-            aria-invalid={!!state.errors?.confirmPassword}
-            aria-describedby={state.errors?.confirmPassword ? 'confirm-password-error' : undefined}
-          />
-          {state.errors?.confirmPassword && (
-            <p id="confirm-password-error" className="text-sm text-red-500 mt-1" role="alert">{state.errors.confirmPassword[0]}</p>
-          )}
-        </div>
-
+        <input type="hidden" name="confirmPassword" value="" />
         <input type="hidden" name="locale" value={locale} />
 
         <Button

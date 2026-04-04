@@ -13,11 +13,7 @@ export type FormState = {
 const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
   locale: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
 });
 
 const signInSchema = z.object({
@@ -32,7 +28,6 @@ export async function signUp(
   const rawData = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
-    confirmPassword: formData.get('confirmPassword') as string,
     locale: formData.get('locale') as string || 'es',
   };
 
