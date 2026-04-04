@@ -1,0 +1,35 @@
+name: Daily Admin Summary
+
+on:
+  # 00:05 UTC daily (00:05 GMT winter / 01:05 BST summer)
+  schedule:
+    - cron: '5 0 * * *'
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  send-summary:
+    name: Send Daily Summary Email
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install supabase requests
+
+      - name: Send daily summary
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: python scraper/send_daily_summary.py

@@ -1065,7 +1065,7 @@ class SupabaseStorage:
         try:
             result = (
                 self.client.table("listings")
-                .update({"active": False})
+                .update({"active": False, "deactivated_at": datetime.utcnow().isoformat()})
                 .eq("source", source)
                 .eq("active", True)
                 .lt("last_seen_at", cutoff)
