@@ -1,0 +1,40 @@
+name: RE/MAX Test Scrape (10 listings)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-remax:
+    name: Scrape 10 RE/MAX Listings (Test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: Production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scraper/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scraper/requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium
+
+      - name: Run RE/MAX test scrape (10 listings)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "🔄 RE/MAX test scrape: 10 listings with full pipeline"
+          python scraper/run.py \
+            --source remax \
+            --max-listings 10 \
+            --run-type daily
