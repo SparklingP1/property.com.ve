@@ -42,6 +42,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'cdn.resize.sparkplatform.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.remax.com.ve',
+      },
+      {
+        protocol: 'https',
+        hostname: 'remax.com.ve',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.remax.com.ve',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],

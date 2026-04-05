@@ -32,16 +32,28 @@ jobs:
       - name: Install Playwright browsers
         run: playwright install chromium
 
-      - name: Run daily incremental scrape
+      - name: Run daily Rent-A-House scrape
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "🔄 Daily scrape: Pages 1-50 (newest listings)"
+          echo "🔄 Daily Rent-A-House scrape: Pages 1-50 (newest listings)"
           python scraper/run.py \
+            --source rentahouse \
             --start-page 1 \
             --end-page 50 \
+            --run-type daily
+
+      - name: Run daily RE/MAX scrape
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "🔄 Daily RE/MAX scrape: Full crawl (~500 listings)"
+          python scraper/run.py \
+            --source remax \
             --run-type daily
 
       - name: Send property alerts

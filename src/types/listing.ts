@@ -51,6 +51,19 @@ export interface Listing {
   reference_code: string | null;
   photo_count: number | null;
 
+  // Extended fields (multi-source)
+  latitude: number | null;
+  longitude: number | null;
+  construction_years: number | null;
+  price_per_sqm: number | null;
+  street_address: string | null;
+  postal_code: string | null;
+  has_360_tour: boolean | null;
+  has_video: boolean | null;
+  agent_phone: string | null;
+  agent_email: string | null;
+  agent_whatsapp: string | null;
+
   // English translations (for international buyers)
   title_en: string | null;
   description_short_en: string | null;

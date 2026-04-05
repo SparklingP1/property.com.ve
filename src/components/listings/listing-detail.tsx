@@ -128,6 +128,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
     'green-acres': 'Green-Acres',
     bienesonline: 'BienesOnline',
     rentahouse: 'Rent-A-House',
+    remax: 'RE/MAX Venezuela',
   };
 
   const images =

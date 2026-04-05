@@ -80,6 +80,19 @@ class PropertyListing(BaseModel):
     photo_count: Optional[int] = Field(None, ge=0)
     description_full: Optional[str] = Field(None)
 
+    # Extended fields (multi-source)
+    latitude: Optional[float] = Field(None)
+    longitude: Optional[float] = Field(None)
+    construction_years: Optional[int] = Field(None, ge=0)
+    price_per_sqm: Optional[float] = Field(None, ge=0)
+    street_address: Optional[str] = Field(None)
+    postal_code: Optional[str] = Field(None)
+    has_360_tour: Optional[bool] = Field(default=False)
+    has_video: Optional[bool] = Field(default=False)
+    agent_phone: Optional[str] = Field(None)
+    agent_email: Optional[str] = Field(None)
+    agent_whatsapp: Optional[str] = Field(None)
+
     # English translations (for international buyers)
     title_en: Optional[str] = Field(None)
     description_short_en: Optional[str] = Field(None)
@@ -122,6 +135,7 @@ class PlaywrightExtractor:
         self.playwright = None
         self.translator = None
         self.storage = storage
+        self.remax_seen_ids: set = set()  # Dedup RE/MAX listings across location queries
 
         # Initialize translator if enabled
         if TRANSLATION_ENABLED:
@@ -790,6 +804,30 @@ class PlaywrightExtractor:
                     data['description_full'] = desc_text
                     data['description'] = desc_text[:200] + '...' if len(desc_text) > 200 else desc_text
 
+            # --- Extended fields ---
+
+            # Agent phone from agent card
+            if agent_card:
+                phone_link = agent_card.find('a', href=re.compile(r'^tel:'))
+                if phone_link:
+                    data['agent_phone'] = phone_link['href'].replace('tel:', '').strip()
+
+                # Agent WhatsApp
+                wa_link = agent_card.find('a', href=re.compile(r'wa\.me'))
+                if wa_link:
+                    wa_match = re.search(r'wa\.me/(\d+)', wa_link['href'])
+                    if wa_match:
+                        data['agent_whatsapp'] = f"+{wa_match.group(1)}"
+
+                # Agent email
+                email_link = agent_card.find('a', href=re.compile(r'^mailto:'))
+                if email_link:
+                    data['agent_email'] = email_link['href'].replace('mailto:', '').strip()
+
+            # Price per sqm
+            if data.get('price') and data.get('area_sqm') and data['area_sqm'] > 0:
+                data['price_per_sqm'] = round(data['price'] / data['area_sqm'], 2)
+
             # Set region from state/city for compatibility
             if data.get('city'):
                 data['location'] = data['city']
@@ -800,6 +838,538 @@ class PlaywrightExtractor:
 
         except Exception as e:
             logger.error(f"Failed to parse Rent-A-House listing {url}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {}
+
+    # -------------------------------------------------------------------------
+    # RE/MAX Venezuela
+    # -------------------------------------------------------------------------
+
+    def extract_remax_listings(
+        self,
+        url: str,
+        base_url: str,
+        storage=None,
+        source_id: str = None
+    ) -> List[PropertyListing]:
+        """Extract listings from RE/MAX Venezuela via location-based search.
+
+        The search URL format is: /inmuebles/venta?ubi={location}&page={n}
+        Each page returns 26 listings, server-rendered with pagination.
+
+        This method:
+        1. Loads the first page to get total count and max pages
+        2. Paginates through all result pages
+        3. Extracts SEO-friendly listing URLs from rendered HTML
+        4. Visits each detail page (deduplicating by listing ID)
+
+        Args:
+            url: Search URL (e.g., /inmuebles/venta?ubi=Zulia%2C+Zulia%2C+VEN)
+            base_url: Base domain URL
+            storage: SupabaseStorage instance for batch uploads
+            source_id: Source identifier for database
+
+        Returns:
+            List of PropertyListing objects
+        """
+        logger.info(f"Scraping RE/MAX Venezuela: {url}")
+
+        all_listings = []
+        batch_size = 50  # Upload every 50 listings
+        total_uploaded = 0
+
+        try:
+            # --- Phase 1: Discover listing URLs via paginated search ---
+            listing_urls = self._discover_remax_urls_from_search(url, base_url)
+            logger.info(f"Search discovery: {len(listing_urls)} unique listing URLs")
+
+            # --- Phase 2: Visit each listing detail page ---
+            for i, listing_url in enumerate(listing_urls):
+                try:
+                    parse_start = time.time()
+                    raw_data = self._parse_remax_listing(listing_url, base_url)
+                    parse_time = time.time() - parse_start
+
+                    if raw_data and raw_data.get('title'):
+                        logger.info(f"⏱️  RE/MAX property parse: {parse_time:.2f}s")
+
+                        # Filter: Only residential properties
+                        property_type = raw_data.get('property_type', '').lower()
+                        if property_type in ['commercial', 'office', 'building']:
+                            logger.info(f"Skipping commercial property: {raw_data.get('title', '')[:60]}")
+                            continue
+
+                        # Smart translation
+                        if self.translator:
+                            try:
+                                title = raw_data.get('title', '')
+                                desc_full = raw_data.get('description_full', '')
+                                needs_trans, existing_trans = self.needs_translation(listing_url, title, desc_full)
+
+                                if needs_trans:
+                                    trans_start = time.time()
+                                    raw_data = self.translator.translate_listing(raw_data)
+                                    trans_time = time.time() - trans_start
+                                    logger.info(f"✅ Translated: {title[:60]}... ({trans_time:.2f}s)")
+                                else:
+                                    raw_data.update(existing_trans)
+                                    logger.debug(f"⏭️  Skipped translation (unchanged): {title[:60]}...")
+                            except Exception as e:
+                                logger.warning(f"Translation failed for {listing_url}: {e}")
+
+                        listing = PropertyListing(**raw_data)
+                        all_listings.append(listing)
+                        title_display = raw_data.get('title_en') or listing.title
+                        logger.info(f"Extracted [{i+1}/{len(listing_urls)}]: {title_display[:60]}...")
+                    else:
+                        logger.warning(f"No data extracted for {listing_url}")
+
+                except Exception as e:
+                    logger.warning(f"Failed to parse RE/MAX listing {listing_url}: {e}")
+                    continue
+
+                # Batch upload
+                if storage and source_id and len(all_listings) >= batch_size:
+                    logger.info(f"📦 Uploading batch of {len(all_listings)} RE/MAX listings...")
+                    upload_start = time.time()
+                    result = storage.upsert_listings(all_listings, source_id)
+                    upload_time = time.time() - upload_start
+                    total_uploaded += result.get('upserted', 0)
+                    logger.info(f"✅ Batch uploaded: {result.get('upserted', 0)} upserted, {result.get('errors', 0)} errors. Total: {total_uploaded} ({upload_time:.2f}s)")
+                    all_listings = []
+
+                # Rate limiting: 1-second delay per robots.txt crawl-delay
+                time.sleep(1)
+
+        except Exception as e:
+            logger.error(f"Failed to scrape RE/MAX search {url}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+        logger.info(f"Total RE/MAX listings extracted: {len(all_listings)} (plus {total_uploaded} already uploaded)")
+        return all_listings
+
+    def _discover_remax_urls_from_search(self, search_url: str, base_url: str) -> List[str]:
+        """Discover listing URLs by paginating through RE/MAX search results.
+
+        Each page has 26 listings and pagination links showing the last page number.
+        Returns deduplicated list of SEO-friendly listing URLs.
+        """
+        seen_ids = self.remax_seen_ids  # Shared across location queries for cross-dedup
+        urls = []
+
+        try:
+            # Load first page to get total count and max page
+            page = self.browser.new_page()
+            page.goto(search_url, wait_until="networkidle", timeout=60000)
+            time.sleep(4)
+
+            html = page.content()
+            soup = BeautifulSoup(html, 'lxml')
+
+            # Extract total count (e.g., "616 Inmuebles")
+            page_text = soup.get_text(' ', strip=True)
+            count_match = re.search(r'(\d+)\s+Inmueble', page_text)
+            total_count = int(count_match.group(1)) if count_match else 0
+            logger.info(f"RE/MAX search: {total_count} total listings")
+
+            if total_count == 0:
+                page.close()
+                return urls
+
+            # Find max page from pagination links
+            max_page = 1
+            for link in soup.find_all('a', href=True):
+                page_match = re.search(r'page=(\d+)', link['href'])
+                if page_match:
+                    max_page = max(max_page, int(page_match.group(1)))
+
+            logger.info(f"RE/MAX search: {max_page} pages to scrape")
+
+            # Extract listing URLs from first page
+            self._extract_remax_urls_from_page(soup, base_url, seen_ids, urls)
+            page.close()
+
+            # Paginate through remaining pages
+            for page_num in range(2, max_page + 1):
+                try:
+                    separator = '&' if '?' in search_url else '?'
+                    page_url = f"{search_url}{separator}page={page_num}"
+                    logger.info(f"RE/MAX search page {page_num}/{max_page}: {page_url}")
+
+                    page = self.browser.new_page()
+                    page.goto(page_url, wait_until="networkidle", timeout=30000)
+                    time.sleep(3)
+
+                    html = page.content()
+                    soup = BeautifulSoup(html, 'lxml')
+                    self._extract_remax_urls_from_page(soup, base_url, seen_ids, urls)
+                    page.close()
+
+                    # Rate limit between search pages
+                    time.sleep(1)
+
+                except Exception as e:
+                    logger.warning(f"Failed to scrape RE/MAX search page {page_num}: {e}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Failed RE/MAX search discovery: {e}")
+
+        logger.info(f"RE/MAX search: discovered {len(urls)} unique listing URLs")
+        return urls
+
+    def _extract_remax_urls_from_page(
+        self, soup: BeautifulSoup, base_url: str, seen_ids: set, urls: list
+    ) -> None:
+        """Extract listing URLs from a rendered RE/MAX search results page.
+
+        Modifies seen_ids and urls in place.
+        """
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            # Match SEO-friendly listing URLs: /inmuebles/{type}/{transaction}/{slug}-{id}
+            id_match = re.search(r'/inmuebles/[^/]+/[^/]+/.+-(\d{5,6})$', href)
+            if id_match:
+                listing_id = id_match.group(1)
+                if listing_id not in seen_ids:
+                    seen_ids.add(listing_id)
+                    if href.startswith('http'):
+                        urls.append(href)
+                    else:
+                        urls.append(f"{base_url.rstrip('/')}{href}")
+
+    def _parse_remax_listing(self, url: str, base_url: str) -> dict:
+        """Parse a single RE/MAX Venezuela listing page.
+
+        RE/MAX pages are fully client-rendered. Uses Playwright to render,
+        then extracts data from:
+        1. JSON-LD Product schema (title, description, price, rooms, area, address)
+        2. Meta tags (og:title, description, keywords with amenities)
+        3. Rendered body text (structured "Datos del inmueble" and "Ubicación" sections)
+        4. CDN images (full-size use 0_ prefix, thumbnails use P_ prefix)
+        5. Agent profile image alt text for agent name
+        """
+        try:
+            page = self.browser.new_page()
+            page.goto(url, wait_until="networkidle", timeout=30000)
+
+            # Wait for the page to actually render content
+            try:
+                page.wait_for_function(
+                    """() => {
+                        return document.querySelector('h1') !== null ||
+                               document.body.innerText.includes('no encontrado');
+                    }""",
+                    timeout=15000
+                )
+            except Exception:
+                logger.debug(f"Timeout waiting for content on {url}, proceeding")
+
+            html = page.content()
+            page.close()
+
+            soup = BeautifulSoup(html, 'lxml')
+            data = {"source_url": url}
+
+            # Check for "not found" page
+            page_text = soup.get_text()
+            if 'no encontrado' in page_text.lower() or 'no está disponible' in page_text.lower():
+                logger.info(f"RE/MAX listing not found (expired): {url}")
+                return {}
+
+            # --- 1. Extract from JSON-LD Product schema ---
+            import json as json_module
+            for script in soup.find_all('script', type='application/ld+json'):
+                try:
+                    ld = json_module.loads(script.string)
+                    if ld.get('@type') == 'Product':
+                        if ld.get('name'):
+                            data['title'] = ld['name'].strip()
+                        if ld.get('description'):
+                            desc = ld['description'].strip()
+                            data['description_full'] = desc
+                            data['description'] = desc[:200] + '...' if len(desc) > 200 else desc
+
+                        # Price from offers
+                        offers = ld.get('offers', {})
+                        if isinstance(offers, list):
+                            offers = offers[0] if offers else {}
+                        if offers.get('price'):
+                            try:
+                                data['price'] = float(str(offers['price']).replace(',', ''))
+                            except ValueError:
+                                pass
+                        if offers.get('priceCurrency'):
+                            data['currency'] = offers['priceCurrency']
+
+                        # Image from JSON-LD (OG size — single image)
+                        if ld.get('image'):
+                            # Don't use this as primary — we'll get full gallery from img tags
+
+                            pass
+
+                        # Related Apartment/House data
+                        related = ld.get('isRelatedTo', {})
+                        if related:
+                            if related.get('numberOfRooms'):
+                                data['bedrooms'] = int(related['numberOfRooms'])
+                            if related.get('numberOfBathroomsTotal'):
+                                data['bathrooms'] = int(related['numberOfBathroomsTotal'])
+
+                            floor_size = related.get('floorSize', {})
+                            if floor_size.get('value'):
+                                data['area_sqm'] = float(floor_size['value'])
+
+                            # Parking from amenityFeature
+                            for feat in related.get('amenityFeature', []):
+                                if 'estacionamiento' in feat.get('name', '').lower():
+                                    data['parking_spaces'] = int(feat.get('value', 0))
+
+                            # Address
+                            address = related.get('address', {})
+                            if address.get('postalCode'):
+                                data['postal_code'] = address['postalCode']
+                            if address.get('streetAddress'):
+                                data['street_address'] = address['streetAddress']
+                except (json_module.JSONDecodeError, Exception) as e:
+                    logger.debug(f"JSON-LD parse error: {e}")
+
+            # --- 2. Extract from meta tags ---
+            og_title = soup.find('meta', attrs={'property': 'og:title'})
+            if og_title and og_title.get('content') and not data.get('title'):
+                data['title'] = og_title['content'].strip()
+
+            meta_title = soup.find('meta', attrs={'name': 'title'})
+            if meta_title and meta_title.get('content') and not data.get('title'):
+                data['title'] = meta_title['content'].strip()
+
+            # Amenities from meta keywords
+            # e.g., "Apartamento, Venta, LOS CREPUSCULOS, Aire acondicionado,Jardín,Rejas,..."
+            meta_keywords = soup.find('meta', attrs={'name': 'keywords'})
+            if meta_keywords and meta_keywords.get('content'):
+                keywords_text = meta_keywords['content'].lower()
+                amenity_map = {
+                    'piscina': 'pool', 'gimnasio': 'gym', 'ascensor': 'elevator',
+                    'seguridad': 'security', 'vigilancia': 'security',
+                    'planta eléctrica': 'generator', 'planta electrica': 'generator',
+                    'aire acondicionado': 'ac', 'jacuzzi': 'jacuzzi', 'sauna': 'sauna',
+                    'jardín': 'garden', 'jardin': 'garden', 'terraza': 'terrace',
+                    'parrillera': 'grill', 'parque infantil': 'playground',
+                    'salón de fiestas': 'party_room', 'salon de fiestas': 'party_room',
+                    'portería': 'concierge', 'porteria': 'concierge',
+                    'lavandero': 'laundry', 'tanque de agua': 'water_tank',
+                }
+                amenities = []
+                for keyword, amenity in amenity_map.items():
+                    if keyword in keywords_text:
+                        amenities.append(amenity)
+                if amenities:
+                    data['amenities'] = list(set(amenities))
+
+            # --- 3. Extract property type and transaction from URL ---
+            url_lower = url.lower()
+            if '/apartamento/' in url_lower:
+                data['property_type'] = 'apartment'
+            elif '/casa-o-townhouse/' in url_lower or '/casa/' in url_lower:
+                data['property_type'] = 'house'
+            elif '/terreno' in url_lower:
+                data['property_type'] = 'land'
+            elif '/local-comercial/' in url_lower:
+                data['property_type'] = 'commercial'
+            elif '/oficina/' in url_lower:
+                data['property_type'] = 'office'
+            elif '/edificio/' in url_lower:
+                data['property_type'] = 'building'
+
+            if '/venta/' in url_lower or '/venta' in url_lower:
+                data['transaction_type'] = 'sale'
+            elif '/alquiler/' in url_lower:
+                data['transaction_type'] = 'rent'
+
+            # Reference code from URL (trailing ID)
+            ref_match = re.search(r'-(\d{5,6})$', url.rstrip('/'))
+            if ref_match:
+                data['reference_code'] = ref_match.group(1)
+
+            if not data.get('currency'):
+                data['currency'] = 'USD'  # RE/MAX VE defaults to USD
+
+            # --- 4. Extract structured details from rendered body text ---
+            # The rendered page has clear labeled sections:
+            # "Código RE/MAX: 322879"
+            # "Precio: USD $43.000"
+            # "Habitaciones: 3"
+            # "Baños: 1"
+            # "Estacionamiento: 1"
+            # "Área de Construcción: 76 m²"
+            # "Años de Construcción: 33"
+            # "Estado: Lara"
+            # "Ciudad: Barquisimeto"
+            # "Urbanización: Zona Industrial II"
+            body_text = soup.get_text(' ', strip=True)
+
+            # Reference code from text
+            if not data.get('reference_code'):
+                code_match = re.search(r'C[oó]digo\s+RE/?MAX\s*:\s*(\d+)', body_text, re.IGNORECASE)
+                if code_match:
+                    data['reference_code'] = code_match.group(1)
+
+            # Price from text (fallback)
+            if not data.get('price'):
+                price_match = re.search(r'Precio\s*:\s*USD\s*\$?\s*([\d.,]+)', body_text, re.IGNORECASE)
+                if price_match:
+                    try:
+                        price_str = price_match.group(1).replace('.', '').replace(',', '')
+                        data['price'] = float(price_str)
+                    except ValueError:
+                        pass
+
+            # Bedrooms
+            if not data.get('bedrooms'):
+                bed_match = re.search(r'Habitaciones\s*:\s*(\d+)', body_text, re.IGNORECASE)
+                if bed_match:
+                    data['bedrooms'] = int(bed_match.group(1))
+
+            # Bathrooms
+            if not data.get('bathrooms'):
+                bath_match = re.search(r'Ba[ñn]os?\s*:\s*(\d+)', body_text, re.IGNORECASE)
+                if bath_match:
+                    data['bathrooms'] = int(bath_match.group(1))
+
+            # Parking
+            if not data.get('parking_spaces'):
+                park_match = re.search(r'Estacionamiento\s*:\s*(\d+)', body_text, re.IGNORECASE)
+                if park_match:
+                    data['parking_spaces'] = int(park_match.group(1))
+
+            # Construction area
+            if not data.get('area_sqm'):
+                area_match = re.search(r'[AÁá]rea\s+de\s+Construcci[oó]n\s*:\s*(\d+(?:[.,]\d+)?)\s*m', body_text, re.IGNORECASE)
+                if area_match:
+                    data['area_sqm'] = float(area_match.group(1).replace(',', '.'))
+
+            # Location: State
+            state_match = re.search(r'Estado\s*:\s*([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?:\s+Ciudad|\s+$)', body_text)
+            if state_match:
+                data['state'] = state_match.group(1).strip()
+
+            # Location: City
+            city_match = re.search(r'Ciudad\s*:\s*([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?:\s+Urbanización|\s+Dirección|\s+$)', body_text)
+            if city_match:
+                data['city'] = city_match.group(1).strip()
+
+            # Location: Neighborhood
+            urb_match = re.search(r'Urbanizaci[oó]n\s*:\s*([A-ZÁÉÍÓÚÑa-záéíóúñ0-9\s]+?)(?:\s+Dirección|\s+Precio|\s+$)', body_text)
+            if urb_match:
+                data['neighborhood'] = urb_match.group(1).strip()
+
+            # --- 5. Images from CDN (full-size only, skip thumbnails) ---
+            images = []
+            seen_img_urls = set()
+            for img in soup.find_all('img'):
+                src = img.get('src', '')
+                if not src:
+                    continue
+                # Full-size images: cdn.remax.com.ve/.../0_{hash}.webp
+                # Thumbnails: cdn.remax.com.ve/.../P_0_{hash}.webp (skip)
+                if 'cdn.remax.com.ve' in src and '/inmuebles_usados/' in src:
+                    filename = src.split('/')[-1]
+                    if not filename.startswith('P_') and not filename.startswith('OG_'):
+                        if src not in seen_img_urls:
+                            seen_img_urls.add(src)
+                            images.append(src)
+            if images:
+                data['image_urls'] = images
+                data['photo_count'] = len(images)
+
+            # --- 6. Agent info ---
+            data['agent_office'] = 'RE/MAX Venezuela'
+            # Agent name from profile image alt text (e.g., alt="Marisol Fermin Mendoza")
+            for img in soup.find_all('img'):
+                src = img.get('src', '')
+                alt = img.get('alt', '')
+                if 'novus/perfil' in src and 'asesores' in src and alt:
+                    data['agent_name'] = alt.strip()
+                    break
+
+            # Agent phone (from tel: links)
+            for a_tag in soup.find_all('a', href=True):
+                href = a_tag['href']
+                if href.startswith('tel:'):
+                    phone = href.replace('tel:', '').strip()
+                    if phone and not data.get('agent_phone'):
+                        data['agent_phone'] = phone
+
+            # Agent WhatsApp (from wa.me links)
+            for a_tag in soup.find_all('a', href=True):
+                href = a_tag['href']
+                wa_match = re.search(r'wa\.me/(\d+)', href)
+                if wa_match and not data.get('agent_whatsapp'):
+                    data['agent_whatsapp'] = f"+{wa_match.group(1)}"
+
+            # Agent email
+            email_match = re.search(r'[\w.]+@[\w.]*remax[\w.]*\.ve', html)
+            if email_match:
+                data['agent_email'] = email_match.group(0)
+
+            # --- 7. Extended fields ---
+
+            # Construction years -> also set condition
+            age_match = re.search(r'A.os de Construcci.n:\s*(\d+)', body_text)
+            if age_match:
+                years = int(age_match.group(1))
+                data['construction_years'] = years
+                data['condition'] = 'new' if years <= 3 else 'used'
+
+            # Price per sqm
+            if data.get('price') and data.get('area_sqm') and data['area_sqm'] > 0:
+                data['price_per_sqm'] = round(data['price'] / data['area_sqm'], 2)
+
+            # Street address from "Dirección:" field
+            dir_match = re.search(r'Direcci.n:\s*([A-Z0-9].*?)(?:\s+Precio fijado|\s+share|\s+Compartir)', body_text)
+            if dir_match:
+                data['street_address'] = dir_match.group(1).strip()
+
+            # 360 tour and video flags
+            data['has_360_tour'] = '360' in body_text
+            data['has_video'] = 'videocam' in body_text.lower()
+
+            # Geo coordinates from Leaflet map data in HTML
+            lat_match = re.search(r'"lat(?:itude)?"\s*:\s*([\d.-]+)', html)
+            lon_match = re.search(r'"lng"\s*:\s*([\d.-]+)', html)
+            if lat_match and lon_match:
+                try:
+                    lat = float(lat_match.group(1))
+                    lon = float(lon_match.group(1))
+                    # Sanity check: Venezuela is roughly 1-12°N, 60-73°W
+                    if 1 <= lat <= 13 and -74 <= lon <= -59:
+                        data['latitude'] = lat
+                        data['longitude'] = lon
+                except (ValueError, TypeError):
+                    pass
+
+            # --- 8. Set region/location for compatibility ---
+            if data.get('city'):
+                data['location'] = data['city']
+            if data.get('state'):
+                data['region'] = data['state']
+
+            # Title fallback
+            if not data.get('title'):
+                h1 = soup.find('h1')
+                if h1:
+                    data['title'] = h1.get_text(strip=True)
+
+            if not data.get('title'):
+                logger.warning(f"No title found for RE/MAX listing: {url}")
+                return {}
+
+            return data
+
+        except Exception as e:
+            logger.error(f"Failed to parse RE/MAX listing {url}: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return {}
@@ -1018,11 +1588,30 @@ class SupabaseStorage:
                     # Translation metadata
                     "translation_model": getattr(listing, 'translation_model', None),
                     "translated_at": now if getattr(listing, 'title_en', None) else None,
+
+                    # Extended fields (multi-source)
+                    "latitude": getattr(listing, 'latitude', None),
+                    "longitude": getattr(listing, 'longitude', None),
+                    "construction_years": getattr(listing, 'construction_years', None),
+                    "price_per_sqm": getattr(listing, 'price_per_sqm', None),
+                    "street_address": getattr(listing, 'street_address', None),
+                    "postal_code": getattr(listing, 'postal_code', None),
+                    "has_360_tour": getattr(listing, 'has_360_tour', False),
+                    "has_video": getattr(listing, 'has_video', False),
+                    "agent_phone": getattr(listing, 'agent_phone', None),
+                    "agent_email": getattr(listing, 'agent_email', None),
+                    "agent_whatsapp": getattr(listing, 'agent_whatsapp', None),
                 }
 
-                result = self.client.table("listings").upsert(
-                    data, on_conflict="source_url"
-                ).select("id").execute()
+                try:
+                    result = self.client.table("listings").upsert(
+                        data, on_conflict="source_url"
+                    ).select("id").execute()
+                except AttributeError:
+                    # Newer supabase-py versions don't chain .select() after .upsert()
+                    result = self.client.table("listings").upsert(
+                        data, on_conflict="source_url"
+                    ).execute()
 
                 # Set url_slug only for new listings (where it's NULL)
                 # This prevents scraper runs from breaking existing URLs
@@ -1154,6 +1743,73 @@ def get_rentahouse_config() -> ScraperConfig:
     )
 
 
+def get_remax_config() -> ScraperConfig:
+    """RE/MAX Venezuela scraper config.
+
+    Discovery via location-based search:
+    /inmuebles/venta?ubi={location}&page={n}
+
+    Each search page returns 26 listings, server-rendered with pagination.
+    Uses state-level + major city queries for complete coverage.
+    Listings are deduplicated by the RE/MAX ID in the URL.
+
+    Total: ~7,000+ active listings across all locations.
+    """
+    base = "https://remax.com.ve"
+
+    # Location-based search queries for complete coverage.
+    #
+    # ubi format: "{place}, {municipality (optional)}, {state}, VEN"
+    # Do NOT duplicate the place name in the ubi string.
+    #
+    # Strategy: use the broadest query per state (state-level returns
+    # the most listings). Deduplication by RE/MAX listing ID handles
+    # any overlap. State-level queries use just "{state}, VEN" format.
+    #
+    # For Caracas metro, which spans Distrito Capital + Miranda states,
+    # we use both state-level queries plus city-level queries for
+    # municipalities that may not be captured at state level.
+    locations = [
+        # --- State-level queries (broadest) ---
+        "Zulia, VEN",                                                      # ~1256
+        "Táchira, VEN",                                                    # ~1179
+        "Carabobo, VEN",                                                   # ~973
+        "Aragua, VEN",                                                     # ~972
+        "Lara, VEN",                                                       # ~652
+        "Falcón, VEN",                                                     # ~420
+        "Nueva Esparta (Isla de Margarita), VEN",                          # ~337
+        "Portuguesa, VEN",                                                 # ~230
+        "Trujillo, VEN",                                                   # ~206
+        "Monagas, VEN",                                                    # ~187
+        "Anzoátegui, VEN",                                                 # ~179
+        "Mérida, VEN",                                                     # ~54
+        "La Guaira, VEN",                                                  # ~33
+        "Yaracuy, VEN",                                                    # ~16
+        "Bolívar, VEN",                                                    # ~12
+        "Sucre, VEN",                                                      # ~36
+        # --- Caracas metro (Distrito Capital + Miranda) ---
+        "Distrito Capital, VEN",                                           # ~336
+        "Miranda, VEN",                                                    # ~954
+        # City-level supplements to catch any listings not in state search
+        "Maracaibo, Zulia, VEN",                                           # ~987 (may exceed Zulia state)
+        "Caracas, Miranda, VEN",                                           # ~826
+        "Caracas, Distrito Capital, VEN",                                  # ~336
+    ]
+
+    import urllib.parse
+    urls = [
+        f"{base}/inmuebles/venta?ubi={urllib.parse.quote(loc, safe='')}"
+        for loc in locations
+    ]
+
+    return ScraperConfig(
+        name="RE/MAX Venezuela",
+        source_id="remax",
+        base_url=base,
+        page_urls=urls
+    )
+
+
 def scrape_source(
     config: ScraperConfig,
     extractor: PlaywrightExtractor,
@@ -1191,6 +1847,14 @@ def scrape_source(
                     max_pages=max_pages,
                     start_page=start_page,
                     end_page=end_page,
+                    storage=storage,
+                    source_id=config.source_id
+                )
+            elif config.source_id == "remax":
+                # RE/MAX uses client-rendered pages with its own extraction
+                listings = extractor.extract_remax_listings(
+                    url,
+                    config.base_url,
                     storage=storage,
                     source_id=config.source_id
                 )
@@ -1256,31 +1920,43 @@ def parse_args():
         default='full',
         help='Scrape run type for price history tagging (default: full)'
     )
+    parser.add_argument(
+        '--source',
+        type=str,
+        choices=['rentahouse', 'remax', 'all'],
+        default='all',
+        help='Which source to scrape (default: all)'
+    )
     return parser.parse_args()
 
 
 def main():
-    """Run the scraper with optional page range support for distributed scraping.
+    """Run the scraper with optional page range and source selection.
 
     Examples:
-        # Scrape all pages (single job):
+        # Scrape all sources (default):
         python scraper/run.py
 
-        # Scrape specific page range (distributed job):
-        python scraper/run.py --start-page 1 --end-page 150
+        # Scrape only RE/MAX:
+        python scraper/run.py --source remax
 
-        # Scrape first 100 pages:
-        python scraper/run.py --max-pages 100
+        # Scrape only Rent-A-House with page range:
+        python scraper/run.py --source rentahouse --start-page 1 --end-page 150
+
+        # Scrape first 100 pages of Rent-A-House:
+        python scraper/run.py --source rentahouse --max-pages 100
     """
     args = parse_args()
 
     logger.info("=" * 60)
     logger.info("Property.com.ve Scraper Starting")
     logger.info(f"Time: {datetime.now(timezone.utc).isoformat()}")
-    if args.end_page:
-        logger.info(f"📄 Page Range: {args.start_page} to {args.end_page}")
-    else:
-        logger.info(f"📄 Max Pages: {args.max_pages} (starting from page {args.start_page})")
+    logger.info(f"🎯 Source: {args.source}")
+    if args.source in ('rentahouse', 'all'):
+        if args.end_page:
+            logger.info(f"📄 Page Range: {args.start_page} to {args.end_page}")
+        else:
+            logger.info(f"📄 Max Pages: {args.max_pages} (starting from page {args.start_page})")
     logger.info(f"📊 Run Type: {args.run_type}")
     logger.info("=" * 60)
 
@@ -1290,32 +1966,40 @@ def main():
 
     # Use Playwright extractor as context manager (pass storage for smart translation)
     with PlaywrightExtractor(storage=storage) as extractor:
-        # Scrape BienesOnline - DISABLED FOR NOW
-        # try:
-        #     config = get_bienes_online_config()
-        #     result = scrape_source(config, extractor, storage)
-        #     results.append(result)
-        #     logger.info(f"BienesOnline result: {result}")
-        # except Exception as e:
-        #     logger.error(f"BienesOnline failed: {e}")
-        #     results.append({"source": "BienesOnline", "error": str(e)})
 
         # Scrape Rent-A-House (15,405 listings across 1,284 pages)
-        try:
-            config = get_rentahouse_config()
-            result = scrape_source(
-                config,
-                extractor,
-                storage,
-                max_pages=args.max_pages,
-                start_page=args.start_page,
-                end_page=args.end_page
-            )
-            results.append(result)
-            logger.info(f"Rent-A-House result: {result}")
-        except Exception as e:
-            logger.error(f"Rent-A-House failed: {e}")
-            results.append({"source": "Rent-A-House", "error": str(e)})
+        if args.source in ('rentahouse', 'all'):
+            try:
+                config = get_rentahouse_config()
+                result = scrape_source(
+                    config,
+                    extractor,
+                    storage,
+                    max_pages=args.max_pages,
+                    start_page=args.start_page,
+                    end_page=args.end_page
+                )
+                results.append(result)
+                logger.info(f"Rent-A-House result: {result}")
+            except Exception as e:
+                logger.error(f"Rent-A-House failed: {e}")
+                results.append({"source": "Rent-A-House", "error": str(e)})
+
+        # Scrape RE/MAX Venezuela (~400-500 listings, single job)
+        if args.source in ('remax', 'all'):
+            try:
+                config = get_remax_config()
+                result = scrape_source(
+                    config,
+                    extractor,
+                    storage,
+                    rate_limit=1.0,  # 1s per robots.txt crawl-delay
+                )
+                results.append(result)
+                logger.info(f"RE/MAX result: {result}")
+            except Exception as e:
+                logger.error(f"RE/MAX failed: {e}")
+                results.append({"source": "RE/MAX Venezuela", "error": str(e)})
 
     # Summary
     logger.info("=" * 60)
@@ -1325,7 +2009,7 @@ def main():
     logger.info("=" * 60)
 
     # Exit with error if all sources failed
-    if all("error" in r for r in results):
+    if results and all("error" in r for r in results):
         sys.exit(1)
 
 
