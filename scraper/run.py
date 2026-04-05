@@ -467,8 +467,8 @@ class PlaywrightExtractor:
 
                             # Filter: Only residential properties (apartment, house)
                             property_type = raw_data.get('property_type', '').lower()
-                            if property_type in ['commercial', 'office', 'building']:
-                                logger.info(f"Skipping commercial property: {raw_data.get('title', '')[:60]}")
+                            if property_type not in ('apartment', 'house'):
+                                logger.info(f"Skipping non-residential ({property_type}): {raw_data.get('title', '')[:60]}")
                                 continue
 
                             # Filter: Only for-sale properties (exclude rentals)
@@ -900,10 +900,10 @@ class PlaywrightExtractor:
                     if raw_data and raw_data.get('title'):
                         logger.info(f"⏱️  RE/MAX property parse: {parse_time:.2f}s")
 
-                        # Filter: Only residential properties
+                        # Filter: Only residential properties (apartment, house)
                         property_type = raw_data.get('property_type', '').lower()
-                        if property_type in ['commercial', 'office', 'building']:
-                            logger.info(f"Skipping commercial property: {raw_data.get('title', '')[:60]}")
+                        if property_type not in ('apartment', 'house'):
+                            logger.info(f"Skipping non-residential ({property_type}): {raw_data.get('title', '')[:60]}")
                             continue
 
                         # Smart translation
@@ -1176,18 +1176,24 @@ class PlaywrightExtractor:
 
             # --- 3. Extract property type and transaction from URL ---
             url_lower = url.lower()
-            if '/apartamento/' in url_lower:
-                data['property_type'] = 'apartment'
-            elif '/casa-o-townhouse/' in url_lower or '/casa/' in url_lower:
-                data['property_type'] = 'house'
-            elif '/terreno' in url_lower:
-                data['property_type'] = 'land'
-            elif '/local-comercial/' in url_lower:
-                data['property_type'] = 'commercial'
-            elif '/oficina/' in url_lower:
-                data['property_type'] = 'office'
-            elif '/edificio/' in url_lower:
-                data['property_type'] = 'building'
+            remax_type_map = {
+                '/apartamento/': 'apartment',
+                '/casa-o-townhouse/': 'house',
+                '/casa/': 'house',
+                '/terreno-y-parcela/': 'land',
+                '/terreno/': 'land',
+                '/local-comercial/': 'commercial',
+                '/oficina/': 'office',
+                '/edificio/': 'building',
+                '/local-industrial-y-galpon/': 'industrial',
+                '/posada-turistica/': 'tourism',
+                '/negocio/': 'commercial',
+                '/consultorio-medico/': 'commercial',
+            }
+            for url_pattern, prop_type in remax_type_map.items():
+                if url_pattern in url_lower:
+                    data['property_type'] = prop_type
+                    break
 
             if '/venta/' in url_lower or '/venta' in url_lower:
                 data['transaction_type'] = 'sale'
