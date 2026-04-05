@@ -851,7 +851,8 @@ class PlaywrightExtractor:
         url: str,
         base_url: str,
         storage=None,
-        source_id: str = None
+        source_id: str = None,
+        max_listings: Optional[int] = None
     ) -> List[PropertyListing]:
         """Extract listings from RE/MAX Venezuela via location-based search.
 
@@ -883,6 +884,11 @@ class PlaywrightExtractor:
             # --- Phase 1: Discover listing URLs via paginated search ---
             listing_urls = self._discover_remax_urls_from_search(url, base_url)
             logger.info(f"Search discovery: {len(listing_urls)} unique listing URLs")
+
+            # Apply max_listings limit if set (for testing)
+            if max_listings and len(listing_urls) > max_listings:
+                logger.info(f"⚠️  Limiting to {max_listings} listings (from {len(listing_urls)})")
+                listing_urls = listing_urls[:max_listings]
 
             # --- Phase 2: Visit each listing detail page ---
             for i, listing_url in enumerate(listing_urls):
@@ -1817,7 +1823,8 @@ def scrape_source(
     rate_limit: float = 10.0,
     max_pages: int = 5,
     start_page: int = 1,
-    end_page: Optional[int] = None
+    end_page: Optional[int] = None,
+    max_listings: Optional[int] = None
 ) -> dict:
     """Scrape a single source.
 
@@ -1829,11 +1836,14 @@ def scrape_source(
         max_pages: Maximum pages to scrape (if end_page not specified)
         start_page: Starting page number (for distributed scraping)
         end_page: Ending page number (for distributed scraping)
+        max_listings: Maximum listings to process (for testing, default: unlimited)
 
     Returns:
         Dictionary with scrape results and statistics
     """
     logger.info(f"Starting scrape: {config.name}")
+    if max_listings:
+        logger.info(f"⚠️  Limited to {max_listings} listings (test mode)")
 
     all_listings: List[PropertyListing] = []
 
@@ -1852,11 +1862,17 @@ def scrape_source(
                 )
             elif config.source_id == "remax":
                 # RE/MAX uses client-rendered pages with its own extraction
+                # Reduce max_listings by what we've already collected
+                remaining = max_listings - len(all_listings) if max_listings else None
+                if remaining is not None and remaining <= 0:
+                    logger.info(f"Reached max_listings={max_listings}, stopping")
+                    break
                 listings = extractor.extract_remax_listings(
                     url,
                     config.base_url,
                     storage=storage,
-                    source_id=config.source_id
+                    source_id=config.source_id,
+                    max_listings=remaining
                 )
             else:
                 # BienesOnline and others use standard extraction
@@ -1927,6 +1943,12 @@ def parse_args():
         default='all',
         help='Which source to scrape (default: all)'
     )
+    parser.add_argument(
+        '--max-listings',
+        type=int,
+        default=None,
+        help='Maximum number of listings to process per source (for testing, default: unlimited)'
+    )
     return parser.parse_args()
 
 
@@ -1994,6 +2016,7 @@ def main():
                     extractor,
                     storage,
                     rate_limit=1.0,  # 1s per robots.txt crawl-delay
+                    max_listings=args.max_listings,
                 )
                 results.append(result)
                 logger.info(f"RE/MAX result: {result}")
