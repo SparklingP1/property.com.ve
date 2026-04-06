@@ -1782,12 +1782,7 @@ def get_remax_config() -> ScraperConfig:
     # we use both state-level queries plus city-level queries for
     # municipalities that may not be captured at state level.
     locations = [
-        # --- State-level queries (broadest) ---
-        "Zulia, VEN",                                                      # ~1256
-        "Táchira, VEN",                                                    # ~1179
-        "Carabobo, VEN",                                                   # ~973
-        "Aragua, VEN",                                                     # ~972
-        "Lara, VEN",                                                       # ~652
+        # --- Not yet scraped (prioritise these) ---
         "Falcón, VEN",                                                     # ~420
         "Nueva Esparta (Isla de Margarita), VEN",                          # ~337
         "Portuguesa, VEN",                                                 # ~230
@@ -1803,9 +1798,15 @@ def get_remax_config() -> ScraperConfig:
         "Distrito Capital, VEN",                                           # ~336
         "Miranda, VEN",                                                    # ~954
         # City-level supplements to catch any listings not in state search
-        "Maracaibo, Zulia, VEN",                                           # ~987 (may exceed Zulia state)
         "Caracas, Miranda, VEN",                                           # ~826
         "Caracas, Distrito Capital, VEN",                                  # ~336
+        "Maracaibo, Zulia, VEN",                                           # ~987 (overlap with Zulia)
+        # --- Already scraped (will upsert/update existing) ---
+        "Lara, VEN",                                                       # ~652
+        "Zulia, VEN",                                                      # ~1256
+        "Táchira, VEN",                                                    # ~1179
+        "Carabobo, VEN",                                                   # ~973
+        "Aragua, VEN",                                                     # ~972
     ]
 
     import urllib.parse
