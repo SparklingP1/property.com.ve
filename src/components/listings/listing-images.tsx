@@ -37,7 +37,7 @@ export function ListingImages({ images, title }: ListingImagesProps) {
   return (
     <div className="mb-6">
       {/* Main Image */}
-      <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden rounded-xl bg-muted mb-4">
+      <div className="relative aspect-[4/3] md:aspect-[16/9] overflow-hidden rounded-xl bg-muted mb-4">
         <button
           onClick={() => setIsGalleryOpen(true)}
           className="absolute inset-0 z-0 cursor-pointer"
@@ -47,7 +47,7 @@ export function ListingImages({ images, title }: ListingImagesProps) {
             src={images[currentIndex]}
             alt={`${title} - Image ${currentIndex + 1}`}
             fill
-            className="object-cover"
+            className="object-cover object-center"
             priority
           />
         </button>

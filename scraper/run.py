@@ -1094,9 +1094,9 @@ class PlaywrightExtractor:
                         if ld.get('name'):
                             data['title'] = ld['name'].strip()
                         if ld.get('description'):
-                            desc = ld['description'].strip()
-                            data['description_full'] = desc
-                            data['description'] = desc[:200] + '...' if len(desc) > 200 else desc
+                            # JSON-LD description is often truncated by RE/MAX;
+                            # we'll try the rendered body text later for the full version
+                            data['_jsonld_description'] = ld['description'].strip()
 
                         # Price from offers
                         offers = ld.get('offers', {})
@@ -1221,6 +1221,26 @@ class PlaywrightExtractor:
             # "Ciudad: Barquisimeto"
             # "Urbanización: Zona Industrial II"
             body_text = soup.get_text(' ', strip=True)
+
+            # --- Full description from rendered body text ---
+            # The JSON-LD description is often truncated by RE/MAX (~650 chars).
+            # The full text lives between "Descripción" and "Datos del inmueble".
+            desc_match = re.search(
+                r'Descripci[oó]n\s+(.+?)\s+Datos del inmueble',
+                body_text, re.DOTALL
+            )
+            if desc_match:
+                body_desc = desc_match.group(1).strip()
+            else:
+                body_desc = ''
+
+            # Use whichever is longer: body text or JSON-LD
+            jsonld_desc = data.pop('_jsonld_description', '')
+            full_desc = body_desc if len(body_desc) >= len(jsonld_desc) else jsonld_desc
+
+            if full_desc:
+                data['description_full'] = full_desc
+                data['description'] = full_desc[:200] + '...' if len(full_desc) > 200 else full_desc
 
             # Reference code from text
             if not data.get('reference_code'):

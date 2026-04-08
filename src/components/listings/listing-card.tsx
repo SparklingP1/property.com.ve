@@ -48,13 +48,13 @@ export function ListingCard({ listing }: ListingCardProps) {
   return (
     <Link href={listingUrl}>
       <Card className="group card-hover overflow-hidden h-full transition-shadow duration-200 hover:shadow-lg hover:border-primary/30">
-        <div className="relative aspect-[3/2] overflow-hidden bg-muted">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {imageUrl ? (
             <Image
               src={imageUrl}
               alt={displayTitle}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               loading="lazy"
               quality={60}
