@@ -20,6 +20,7 @@ export async function Footer() {
     ],
     legal: [
       { href: '/disclaimer' as const, label: t('termsOfUse') },
+      { href: '/privacy-policy' as const, label: t('privacyPolicy') },
       { href: '/takedown' as const, label: t('takedownRequest') },
     ],
   };

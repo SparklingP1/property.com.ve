@@ -92,6 +92,16 @@ export default async function DisclaimerPage({ params }: DisclaimerPageProps) {
           {t('contactUsContent')}
         </p>
 
+        <hr className="my-8" />
+
+        <h2>{t('privacyPolicy')}</h2>
+        <p>
+          {t('privacyPolicyRedirect')}{' '}
+          <Link href="/privacy-policy" className="text-primary hover:underline">
+            {t('privacyPolicyLinkText')}
+          </Link>.
+        </p>
+
         <p className="text-sm text-muted-foreground mt-8">
           {t('lastUpdated')}
         </p>

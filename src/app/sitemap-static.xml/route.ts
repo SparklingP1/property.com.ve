@@ -18,6 +18,7 @@ export async function GET() {
     { url: '/list-your-property', changeFrequency: 'monthly' as const, priority: 0.7 },
     { url: '/about', changeFrequency: 'monthly' as const, priority: 0.5 },
     { url: '/disclaimer', changeFrequency: 'yearly' as const, priority: 0.3 },
+    { url: '/privacy-policy', changeFrequency: 'yearly' as const, priority: 0.3 },
     { url: '/takedown', changeFrequency: 'yearly' as const, priority: 0.3 },
   ];
 
