@@ -1514,6 +1514,30 @@ class SupabaseStorage:
             logger.warning(f"Failed to download/upload image {image_url}: {e}")
             return None
 
+    def _get_existing_images(self, source_urls: list) -> dict:
+        """Bulk-fetch existing image_urls and thumbnail_url for listings already in DB.
+        Returns dict mapping source_url -> (image_urls, thumbnail_url)."""
+        existing = {}
+        if not source_urls:
+            return existing
+        # Query in chunks of 100 to stay within URL length limits
+        for i in range(0, len(source_urls), 100):
+            chunk = source_urls[i:i+100]
+            try:
+                result = (
+                    self.client.table("listings")
+                    .select("source_url,image_urls,thumbnail_url")
+                    .in_("source_url", chunk)
+                    .execute()
+                )
+                for row in (result.data or []):
+                    imgs = row.get("image_urls") or []
+                    if imgs:  # Only cache if images exist
+                        existing[row["source_url"]] = (imgs, row.get("thumbnail_url"))
+            except Exception as e:
+                logger.warning(f"Failed to fetch existing images: {e}")
+        return existing
+
     def upsert_listings(self, listings: List[PropertyListing], source: str) -> dict:
         """Upsert listings to database."""
         if not listings:
@@ -1522,27 +1546,37 @@ class SupabaseStorage:
         now = datetime.now(timezone.utc).isoformat()
         upserted = 0
         errors = 0
+        images_skipped = 0
+
+        # Bulk-fetch existing images so we can skip re-uploading
+        existing_images = self._get_existing_images([l.source_url for l in listings])
 
         for listing in listings:
             try:
                 # Generate unique property ID from source URL
                 property_id = hashlib.md5(listing.source_url.encode()).hexdigest()[:12]
 
-                # Download and re-host images
-                original_image_urls = getattr(listing, 'image_urls', None) or []
-                hosted_image_urls = []
+                # Check if this listing already has images in the DB
+                cached = existing_images.get(listing.source_url)
+                if cached:
+                    hosted_image_urls = cached[0]
+                    thumbnail = cached[1] or (hosted_image_urls[0] if hosted_image_urls else None)
+                    images_skipped += 1
+                else:
+                    # New listing — download and re-host images
+                    original_image_urls = getattr(listing, 'image_urls', None) or []
+                    hosted_image_urls = []
 
-                images_start = time.time()
-                for idx, img_url in enumerate(original_image_urls):
-                    hosted_url = self.download_and_upload_image(img_url, property_id, idx)
-                    if hosted_url:
-                        hosted_image_urls.append(hosted_url)
-                images_time = time.time() - images_start
-                if original_image_urls:
-                    logger.debug(f"⏱️  Images ({len(original_image_urls)}): {images_time:.2f}s ({images_time/len(original_image_urls):.2f}s/image)")
+                    images_start = time.time()
+                    for idx, img_url in enumerate(original_image_urls):
+                        hosted_url = self.download_and_upload_image(img_url, property_id, idx)
+                        if hosted_url:
+                            hosted_image_urls.append(hosted_url)
+                    images_time = time.time() - images_start
+                    if original_image_urls:
+                        logger.debug(f"⏱️  Images ({len(original_image_urls)}): {images_time:.2f}s ({images_time/len(original_image_urls):.2f}s/image)")
 
-                # Use first hosted image as thumbnail
-                thumbnail = hosted_image_urls[0] if hosted_image_urls else None
+                    thumbnail = hosted_image_urls[0] if hosted_image_urls else None
 
                 # Generate SEO-friendly URL slugs (both English and Spanish)
                 # These are stored separately so upserts don't overwrite stable slugs
@@ -1659,6 +1693,8 @@ class SupabaseStorage:
                 logger.error(f"Upsert failed: {e}")
                 errors += 1
 
+        if images_skipped:
+            logger.info(f"⚡ Skipped image uploads for {images_skipped}/{len(listings)} existing listings")
         return {"upserted": upserted, "errors": errors}
 
     def mark_stale_listings(self, source: str, days: int = 14) -> int:
