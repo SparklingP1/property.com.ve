@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Property.com.ve is a real estate aggregation platform for Venezuela. It combines a Next.js frontend with a Python-based web scraper that runs on GitHub Actions weekly, storing data in Supabase.
+Property.com.ve is a real estate aggregation platform for Venezuela, built on an exact-match ccTLD. It combines a Next.js frontend with a Python-based web scraper that runs on GitHub Actions weekly, storing data in Supabase.
+
+**Strategic thesis:** 5-10 year asymmetric bet on Venezuela normalization. Content site → marketplace. Become the Rightmove of Venezuela. Content is the acquisition channel, not the product — the durable moats are the domain, the agent network (future), and proprietary listing data.
+
+**Current phase:** Phase 1 — Authority (2026). Goal is indexation, traffic, and early demand signals. Target: 300+ pages indexed, 5-10k monthly organic visits by year-end.
+
+**Bilingual strategy:** Spanish pages build authority and traffic volume. English pages generate high-value leads from diaspora and foreign investors.
 
 **Tech Stack:**
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript
@@ -65,33 +71,52 @@ src/components/
 
 ### Scraper Architecture
 
-**File**: `scraper/run.py` (~920 lines)
+**File**: `scraper/run.py` (~2000 lines)
 
 **Key Classes:**
-- `PropertyListing` (Pydantic): Data model with 30+ fields
+- `PropertyListing` (Pydantic): Data model with 40+ fields
 - `PlaywrightExtractor`: Browser automation for JavaScript-heavy sites
-- `SupabaseStorage`: Database operations with upsert logic
-- `ScraperConfig`: Source configuration (URL, source_id)
+- `SupabaseStorage`: Database operations with upsert logic and image caching
+- `ScraperConfig`: Source configuration (URL, source_id, page_urls)
 
 **Scraper Flow:**
 1. Initialize Playwright browser (Chromium)
-2. For each source (Rent-A-House, BienesOnline, etc.):
-   - Paginate through listing pages (83 pages for Rent-A-House)
-   - Extract individual listing URLs
-   - Visit each listing, parse with BeautifulSoup
+2. For each source (Rent-A-House, RE/MAX):
+   - Discover listing URLs (pagination for RAH, location search for RE/MAX)
+   - Visit each listing detail page, parse with BeautifulSoup
+   - Filter to residential only (whitelist: apartment, house)
+   - Skip image re-upload if listing already exists in DB (image cache)
+   - Skip translation if Spanish content unchanged
    - **Batch upload every 10 pages** (critical for progress visibility)
-3. Mark stale listings (not seen in current run) as inactive
+3. Mark stale listings (not seen in 14 days) as inactive
 
-**Batch Upload System:**
-- Uploads listings every 10 pages (not at the end)
-- Logs: `📦 Uploading batch of X listings...` and `✅ Batch uploaded: X upserted`
-- Prevents data loss if scraper is cancelled
-- Makes progress visible in Supabase during long runs
+**CLI Flags:**
+- `--source {rentahouse,remax,all}` — which source to scrape
+- `--new-only` — (RE/MAX) only process listings with ID > max already in DB
+- `--start-page N / --end-page N` — (RAH) page range for distributed scraping
+- `--max-listings N` — cap total listings processed (for testing)
+- `--run-type {full,daily}` — tags price history snapshots
 
 **Sources Supported:**
-- **Rent-A-House** (primary): Residential properties only, filters out commercial/office/building
-- **BienesOnline**: Currently disabled
-- **Green-Acres**: Legacy support
+- **Rent-A-House** (~15,400 listings): Paginated search `?tipo_negocio=venta&tipo_inmueble=Apartamento,Casa,Townhouse`
+- **RE/MAX Venezuela** (~3,600 residential listings): Location-based search `/inmuebles/venta?ubi={location}` across 21 Venezuelan states/cities, deduplicated by listing ID
+- **BienesOnline, Green-Acres**: Disabled/legacy
+
+### Refresh Schedule
+
+**Daily (6am UTC)** — `scrape-daily.yml`:
+- Rent-A-House: pages 1-50 (newest, ~650 listings, ~15-20 min)
+- RE/MAX: `--new-only` mode, only listings with ID > max in DB (~10-15 min)
+- Sends property alerts to users with saved searches
+- Sends daily admin summary email (separate workflow at 00:05 UTC)
+
+**Weekly (Sunday 3am UTC)** — `scrape-distributed.yml`:
+- Rent-A-House: all ~1,284 pages across 9 parallel jobs
+- RE/MAX: full re-scrape of all ~3,600 residential listings (single job, 6hr timeout) — refreshes prices on existing listings
+
+**Price updates:** Existing listings get price refreshes via the weekly full scrape. Daily runs only pick up brand-new listings (by ID).
+
+**Image caching:** `upsert_listings()` calls `_get_existing_images()` to bulk-fetch image URLs for listings already in the DB, then skips re-download/re-upload for those. Only new listings trigger image hosting to Supabase Storage.
 
 ### Database Schema
 
@@ -301,14 +326,68 @@ All env vars live in `.env.local` (gitignored). Shared keys like `ANTHROPIC_API_
 - `SUPABASE_URL` - Same as frontend
 - `SUPABASE_KEY` - Service role key (more permissions)
 
+## Strategic Roadmap
+
+See [property-com-ve-strategy.md](property-com-ve-strategy.md) for full detail. Summary of phases:
+
+### Phase 1: Authority (2026) — CURRENT
+
+**Technical priorities:**
+- Hreflang audit and fix (highest priority) — every page needs self-referencing hreflang + reciprocal alternate-language tags
+- GSC monitoring — 55 of 918 pages indexed as of March 2026, target 300+
+- Sitemap hygiene — all 918 pages correctly represented, no orphans
+
+**Content priorities:**
+- Fix Margarita guide CTR — position 6.2, 400 impressions, only 2 clicks (~0.5% CTR, should be 3-5%)
+- Build Falcón state hub — strongest cluster (Coro pos 1.8, Adicora 1.5, Punto Fijo 3.6, Paraguaná 7.3)
+- Strengthen /apartment-for-sale page — "apartment for sale near me" at position 1.5
+- Next hub candidates: Margarita Island, Caracas neighbourhoods, Valencia, Mérida
+
+**Lead capture (critical):**
+- "Register interest in [location]" form on every location page (name, email, buy/rent/invest, budget)
+- Email capture on guides (lighter touch)
+- Store all leads in Supabase — build demand database before content traffic window closes
+
+### Phase 2: Demand Proof (2027)
+
+- 20-50k monthly visits, 500+ registered buyer interests
+- Agent outreach via concierge model (manual, email-based — NOT a platform yet)
+- Convert traffic to owned assets (email list) before AI search erosion
+- Manually curate 50-100 listings from agents on location pages
+
+### Phase 3: Marketplace Build (2028-2029)
+
+- Agent self-serve portal, buyer accounts, saved searches
+- Revenue model TBD: freemium, subscription, lead gen, or hybrid
+- Only build if Phase 2 validates demand
+
+### Phase 4: Scale or Harvest (2030+)
+
+- Decision based on Venezuela normalization trajectory
+- If normalization: invest heavily, first-mover advantage
+- If not: domain retains value, site on minimal maintenance
+
+## Ongoing Principles
+
+1. **Low intensity until validated** — side bet, not the main event
+2. **Convert traffic to owned assets fast** — email list and registered buyers are durable value; SEO traffic is temporary scaffolding
+3. **Don't build marketplace features before you need them** — concierge first, platform second
+4. **Domain is the moat** — property.com.ve is irreplaceable, even if AI agents replace search
+5. **Email-first outreach for agents** — fits the operator's style and the Venezuelan market
+6. **Bilingual but English-monetises** — diaspora/foreign investors have the dollars
+
 ## Common Tasks
 
 **Adding a new property source:**
-1. Create `_parse_<source>_listing()` method in `PlaywrightExtractor`
-2. Add source configuration in `get_<source>_config()`
-3. Add source to `main()` function with error handling
-4. Update `sourceLabels` in `listing-detail.tsx`
-5. Add domain to `next.config.ts` image remotePatterns
+1. Create `extract_<source>_listings()` and `_parse_<source>_listing()` methods in `PlaywrightExtractor`
+2. Add source configuration in `get_<source>_config()` returning `ScraperConfig`
+3. Add source_id to `--source` CLI arg choices in `parse_args()`
+4. Add `elif config.source_id == "<source>"` branch in `scrape_source()`
+5. Add source to `main()` function with error handling
+6. Filter to residential only: `if property_type not in ('apartment', 'house'): skip`
+7. Update `sourceLabels` in `src/components/listings/listing-detail.tsx`
+8. Add domain(s) to `next.config.ts` image remotePatterns
+9. Add source to daily workflow (`scrape-daily.yml`) and weekly workflow (`scrape-distributed.yml`)
 
 **Adding a new filter:**
 1. Add state variable in `AdvancedSearchFilters` component
