@@ -852,7 +852,8 @@ class PlaywrightExtractor:
         base_url: str,
         storage=None,
         source_id: str = None,
-        max_listings: Optional[int] = None
+        max_listings: Optional[int] = None,
+        min_id: Optional[int] = None
     ) -> List[PropertyListing]:
         """Extract listings from RE/MAX Venezuela via location-based search.
 
@@ -884,6 +885,16 @@ class PlaywrightExtractor:
             # --- Phase 1: Discover listing URLs via paginated search ---
             listing_urls = self._discover_remax_urls_from_search(url, base_url)
             logger.info(f"Search discovery: {len(listing_urls)} unique listing URLs")
+
+            # Apply --new-only filter: drop URLs whose listing ID <= min_id
+            if min_id is not None and min_id > 0:
+                filtered = []
+                for u in listing_urls:
+                    id_match = re.search(r'-(\d{5,6})$', u.rstrip('/'))
+                    if id_match and int(id_match.group(1)) > min_id:
+                        filtered.append(u)
+                logger.info(f"🆕 --new-only: {len(filtered)} URLs with ID > {min_id} (from {len(listing_urls)})")
+                listing_urls = filtered
 
             # Apply max_listings limit if set (for testing)
             if max_listings and len(listing_urls) > max_listings:
@@ -1717,6 +1728,31 @@ class SupabaseStorage:
             logger.info(f"⚡ Skipped image uploads for {images_skipped}/{len(listings)} existing listings")
         return {"upserted": upserted, "errors": errors}
 
+    def get_max_remax_id(self) -> int:
+        """Return the highest RE/MAX reference_code currently in the DB.
+
+        Used by --new-only mode to skip listings we've already scraped.
+        Returns 0 if no RE/MAX listings exist yet.
+        """
+        try:
+            result = (
+                self.client.table("listings")
+                .select("reference_code")
+                .eq("source", "remax")
+                .order("reference_code", desc=True)
+                .limit(1)
+                .execute()
+            )
+            if result.data and result.data[0].get("reference_code"):
+                try:
+                    return int(result.data[0]["reference_code"])
+                except (ValueError, TypeError):
+                    return 0
+            return 0
+        except Exception as e:
+            logger.warning(f"Failed to fetch max RE/MAX ID: {e}")
+            return 0
+
     def mark_stale_listings(self, source: str, days: int = 14) -> int:
         """Mark old listings as inactive."""
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
@@ -1887,7 +1923,8 @@ def scrape_source(
     max_pages: int = 5,
     start_page: int = 1,
     end_page: Optional[int] = None,
-    max_listings: Optional[int] = None
+    max_listings: Optional[int] = None,
+    new_only: bool = False
 ) -> dict:
     """Scrape a single source.
 
@@ -1900,6 +1937,8 @@ def scrape_source(
         start_page: Starting page number (for distributed scraping)
         end_page: Ending page number (for distributed scraping)
         max_listings: Maximum listings to process (for testing, default: unlimited)
+        new_only: For RE/MAX, only process listings with IDs higher than the
+                  max already in the DB (fast daily refresh)
 
     Returns:
         Dictionary with scrape results and statistics
@@ -1907,6 +1946,8 @@ def scrape_source(
     logger.info(f"Starting scrape: {config.name}")
     if max_listings:
         logger.info(f"⚠️  Limited to {max_listings} listings (test mode)")
+    if new_only:
+        logger.info(f"🆕 --new-only mode: skipping listings already in DB")
 
     all_listings: List[PropertyListing] = []
 
@@ -1930,12 +1971,20 @@ def scrape_source(
                 if remaining is not None and remaining <= 0:
                     logger.info(f"Reached max_listings={max_listings}, stopping")
                     break
+
+                # For --new-only mode, skip listings with ID <= max in DB
+                min_id = None
+                if new_only:
+                    min_id = storage.get_max_remax_id()
+                    logger.info(f"🆕 Only processing listings with ID > {min_id}")
+
                 listings = extractor.extract_remax_listings(
                     url,
                     config.base_url,
                     storage=storage,
                     source_id=config.source_id,
-                    max_listings=remaining
+                    max_listings=remaining,
+                    min_id=min_id
                 )
             else:
                 # BienesOnline and others use standard extraction
@@ -2012,6 +2061,11 @@ def parse_args():
         default=None,
         help='Maximum number of listings to process per source (for testing, default: unlimited)'
     )
+    parser.add_argument(
+        '--new-only',
+        action='store_true',
+        help='Only process listings with IDs higher than the max already in the database (fast daily refresh)'
+    )
     return parser.parse_args()
 
 
@@ -2080,6 +2134,7 @@ def main():
                     storage,
                     rate_limit=1.0,  # 1s per robots.txt crawl-delay
                     max_listings=args.max_listings,
+                    new_only=args.new_only,
                 )
                 results.append(result)
                 logger.info(f"RE/MAX result: {result}")

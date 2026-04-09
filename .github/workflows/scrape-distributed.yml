@@ -120,7 +120,7 @@ jobs:
   scrape-remax:
     name: Scrape RE/MAX Venezuela (Full)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 360
     environment: Production
 
     steps:
@@ -140,13 +140,13 @@ jobs:
       - name: Install Playwright browsers
         run: playwright install chromium
 
-      - name: Run RE/MAX scraper
+      - name: Run RE/MAX full scraper (~3,600 residential listings)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "🔄 Full RE/MAX scrape (~500 listings)"
+          echo "🔄 Full RE/MAX scrape (~3,600 residential listings)"
           python scraper/run.py \
             --source remax \
             --run-type full

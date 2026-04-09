@@ -45,15 +45,16 @@ jobs:
             --end-page 50 \
             --run-type daily
 
-      - name: Run daily RE/MAX scrape
+      - name: Run daily RE/MAX scrape (new listings only)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "🔄 Daily RE/MAX scrape: Full crawl (~500 listings)"
+          echo "🔄 Daily RE/MAX scrape: only listings with ID > max in DB"
           python scraper/run.py \
             --source remax \
+            --new-only \
             --run-type daily
 
       - name: Send property alerts
