@@ -401,7 +401,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
                   : t('propertiesLabel')}{' '}
                 {t('inLocation', { location })}
               </h2>
-              <ListingGrid listings={listings as Listing[]} />
+              <ListingGrid listings={(listings as Listing[]) ?? []} />
 
               {totalListings >= 100 && (
                 <div className="text-center mt-8">
