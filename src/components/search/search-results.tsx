@@ -100,10 +100,14 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
     query = query.eq('furnished', normalizedSearchParams.furnished === 'true');
   }
 
-  // Apply sorting (nulls last for bedrooms and area)
+  // Apply sorting. nullslast prevents Postgres from using the btree index
+  // (a DESC index scan yields nulls first), forcing a full sort that hits the
+  // statement timeout — so only use it for nullable fields, where it matters.
   query = query.order(sortField, {
     ascending: sortDirection === 'asc',
-    nullsFirst: false // Always put NULL values at the end
+    ...(sortField === 'bedrooms' || sortField === 'area_sqm'
+      ? { nullsFirst: false }
+      : {}),
   });
 
   // Apply pagination - get first batch + count

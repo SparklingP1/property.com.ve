@@ -104,11 +104,15 @@ export function SearchResultsClient({
       query = query.eq('furnished', searchParams.furnished === 'true');
     }
 
-    // Apply sorting (nulls last for bedrooms and area)
+    // Apply sorting. nullslast prevents Postgres from using the btree index
+    // (a DESC index scan yields nulls first), forcing a full sort that hits
+    // the statement timeout — so only use it for nullable fields.
     const [field, direction] = sortBy.split('-');
     query = query.order(field, {
       ascending: direction === 'asc',
-      nullsFirst: false // Always put NULL values at the end
+      ...(field === 'bedrooms' || field === 'area_sqm'
+        ? { nullsFirst: false }
+        : {}),
     });
 
     // Fetch next batch
