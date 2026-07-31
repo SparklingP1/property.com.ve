@@ -49,7 +49,7 @@ export const getFeaturedListings = cache(async (params: {
 
   let query = supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'exact' })
+    .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'planned' })
     .eq('active', true)
     .order('scraped_at', { ascending: false })
     .limit(12);

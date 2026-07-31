@@ -68,7 +68,7 @@ export async function generateMetadata({
 
   if (seoContent) {
     // Get live listing count for this page's filters
-    let countQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('active', true);
+    let countQuery = supabase.from('listings').select('*', { count: 'planned', head: true }).eq('active', true);
     if (parsed.filters.city) countQuery = countQuery.ilike('city', parsed.filters.city);
     if (parsed.filters.state) countQuery = countQuery.ilike('state', parsed.filters.state);
     if (parsed.filters.property_type) countQuery = countQuery.eq('property_type', parsed.filters.property_type);
