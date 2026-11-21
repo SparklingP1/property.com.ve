@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ListingDetail } from '@/components/listings/listing-detail';
 import { ListingSchema } from '@/components/seo/listing-schema';
@@ -7,7 +7,11 @@ import { ListingGrid } from '@/components/listings/listing-grid';
 import { getListingUrlForLocale } from '@/lib/slug';
 import { Link } from '@/i18n/navigation';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
-import { getListingBySlugCached, getSimilarActiveListings } from '@/lib/supabase/listing-queries';
+import {
+  getListingBySlugCached,
+  getListingUrlFieldsById,
+  getSimilarActiveListings,
+} from '@/lib/supabase/listing-queries';
 import {
   formatListingDate,
   getInactiveSince,
@@ -36,6 +40,10 @@ async function resolveStatus(
 ): Promise<{ status: ListingStatus; listing: PublicListing }> {
   if (process.env.LISTING_STATUS_SIMULATION === '1') {
     const value = (await searchParams).simulate_status;
+    if (value === 'hidden') {
+      const simulated = { ...listing, active: false, deactivated_at: null };
+      return { status: getListingStatus(simulated), listing: simulated };
+    }
     if (value === 'inactive' || value === 'gone') {
       const days = value === 'gone' ? 45 : 5;
       const deactivated = new Date(Date.now() - days * 86_400_000).toISOString();
@@ -66,6 +74,9 @@ export async function generateMetadata({ params, searchParams }: PropertyPagePro
   }
 
   const { status, listing } = await resolveStatus(found, searchParams);
+  if (status === 'hidden') {
+    return { title: locale === 'es' ? 'Inmueble no encontrado' : 'Property not found' };
+  }
   const unavailable = status !== 'active';
   const baseTitle = getTitle(listing, locale);
   const title = unavailable
@@ -113,6 +124,15 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
     notFound();
   }
 
+  // Duplicates 301 in the middleware; this 308 is the fallback if its lookup was skipped.
+  if (found.duplicate_of && found.duplicate_of !== found.id) {
+    const canonical = await getListingUrlFieldsById(found.duplicate_of);
+    if (canonical) {
+      const target = getListingUrlForLocale(canonical, locale);
+      permanentRedirect(locale === 'en' ? `/en${target}` : target);
+    }
+  }
+
   const canonicalPath = getListingUrlForLocale(found, locale);
   const requestedPath = `/property/${state}/${city}/${slug}`;
 
@@ -122,9 +142,9 @@ export default async function PropertyPage({ params, searchParams }: PropertyPag
 
   const { status, listing } = await resolveStatus(found, searchParams);
 
-  // The middleware answers 410 for these; this is the fallback if its check
-  // was skipped (no service key, lookup timeout).
-  if (status === 'gone') {
+  // Hidden (stored rental, active=false with no deactivated_at): 404.
+  // Gone: the middleware answers 410; this 404 is the fallback if its lookup was skipped.
+  if (status === 'hidden' || status === 'gone') {
     notFound();
   }
 

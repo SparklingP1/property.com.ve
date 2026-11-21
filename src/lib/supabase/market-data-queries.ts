@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { createServiceClient } from './server';
+import { hasDuplicateOfColumn, saleStock } from './sale-stock';
 
 /** 12 hours: market_stats is rebuilt monthly, sample listings daily. */
 const MARKET_REVALIDATE_SECONDS = 43200;
@@ -160,10 +161,13 @@ export const getValidCities = cachedMarket('getValidCities', async (): Promise<A
  */
 export const getSampleListings = cachedMarket('getSampleListings', async (city: string, limit: number = 6) => {
   const supabase = createServiceClient();
-  const { data } = await supabase
-    .from('listings')
-    .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, state, bedrooms, bathrooms, area_sqm, url_slug, url_slug_es')
-    .eq('active', true)
+  const excludeDuplicates = await hasDuplicateOfColumn();
+  const { data } = await saleStock(
+    supabase
+      .from('listings')
+      .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, state, bedrooms, bathrooms, area_sqm, url_slug, url_slug_es'),
+    { excludeDuplicates }
+  )
     .ilike('city', city)
     .gt('price', 0)
     .not('thumbnail_url', 'is', null)

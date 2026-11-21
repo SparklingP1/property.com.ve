@@ -70,6 +70,7 @@ export function AlertForm({ mode, alertId, initialName = '', initialCriteria = {
       .from('listings')
       .select('state, city')
       .eq('active', true)
+      .eq('transaction_type', 'sale')
       .not('state', 'is', null)
       .then(({ data }) => {
         if (!data) return;
@@ -91,6 +92,7 @@ export function AlertForm({ mode, alertId, initialName = '', initialCriteria = {
       .from('listings')
       .select('city')
       .eq('active', true)
+      .eq('transaction_type', 'sale')
       .eq('state', state)
       .not('city', 'is', null)
       .then(({ data }) => {

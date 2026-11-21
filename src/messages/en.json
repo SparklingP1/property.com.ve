@@ -155,7 +155,8 @@
     "sourceLine": "Source: {source}",
     "lastSeenLine": "Last seen: {date}",
     "linkOutNote": "Property.com.ve gathers properties listed on other portals. The photos, full description and the advertiser's contact details are on the original listing on {source}.",
-    "opensInNewTab": "(opens in a new tab)"
+    "opensInNewTab": "(opens in a new tab)",
+    "viewPhotosOn": "See all {count} photos on {source}"
   },
   "results": {
     "propertiesFound": "{count} Properties Found",

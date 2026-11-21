@@ -21,6 +21,7 @@ export async function GET() {
       .from('listings')
       .select('state')
       .eq('active', true)
+      .eq('transaction_type', 'sale')
       .not('state', 'is', null);
 
     const uniqueStates = [...new Set(statesData?.map((s) => s.state) || [])];
@@ -36,6 +37,7 @@ export async function GET() {
       .from('listings')
       .select('city, state')
       .eq('active', true)
+      .eq('transaction_type', 'sale')
       .not('city', 'is', null);
 
     const uniqueCities = [

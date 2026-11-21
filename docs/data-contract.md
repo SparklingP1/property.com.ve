@@ -69,3 +69,18 @@ fill them with estimates.
 `scrape_runs` (migration 023; until then `…/runs/runs-YYYY-MM.jsonl` on the
 work server): per run per source `found`, `new`, `updated`, `seen`,
 `expired`, `reactivated`, `errors`, `fetched`, `status`, `notes`.
+
+## Web side (branch `pages-linkout`)
+
+- Anon key only; no service-role key in the app. Sale stock everywhere =
+  `active = true AND transaction_type = 'sale'` plus `duplicate_of IS NULL`
+  once migration 022 exists (`src/lib/supabase/sale-stock.ts` probes for the
+  column hourly).
+- Listing page states: live → page; `active=false, deactivated_at null` →
+  404 (hidden rental); expired ≤ 30 days → 200 noindex "ya no disponible" +
+  similar; > 30 days → 410 (middleware); `duplicate_of` set → 301 to the
+  canonical (middleware). Expired rows are only readable after migration 024;
+  before it they 404.
+- Listing text: `description_short_es/_en` only when it matches the
+  `facts.py` template, else the same template rendered from the facts.
+  `description_full*` and agent fields are never sent to the browser.

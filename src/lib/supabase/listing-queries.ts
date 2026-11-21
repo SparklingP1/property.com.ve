@@ -6,12 +6,14 @@
  * scraper runs daily, so 6 hours keeps pages fresh enough while cutting the
  * per-visit queries that starved the Micro instance in July 2026.
  *
- * Only the anon key is used here, except `getListingBySlugCached`, which needs
- * the service-role key (server side only) to read inactive rows hidden by RLS.
+ * Only the anon key is used. Expired rows become readable to it through the
+ * RLS policy in migration 024; before that they are simply not found (404).
+ * Sale-stock filters (active, sale, not a duplicate) live in ./sale-stock.
  */
 import 'server-only';
 import { unstable_cache } from 'next/cache';
-import { createServiceClient, createPrivilegedClient } from './server';
+import { createServiceClient } from './server';
+import { hasDuplicateOfColumn, saleStock } from './sale-stock';
 import { CARD_COLUMNS, isSafeSlug, toPublicListing, type PublicListing } from '@/lib/listing-public';
 import type { Listing } from '@/types/listing';
 
@@ -30,23 +32,19 @@ export interface LocationFilters {
   property_type?: string | null;
   bedrooms?: number | string | null;
   transaction_type?: 'sale' | 'rent';
+  /** Set internally from hasDuplicateOfColumn(); part of the cache key. */
+  exclude_duplicates?: boolean;
 }
 
 type Client = ReturnType<typeof createServiceClient>;
 
-function getPrivilegedClientOrNull() {
-  try {
-    return createPrivilegedClient();
-  } catch {
-    return null;
-  }
-}
-
 // Supabase query builders are awkward to type generically; keep it local.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyFilters<Q extends { eq: any; ilike: any }>(query: Q, filters: LocationFilters): Q {
-  let q = query.eq('active', true);
-  if (filters.transaction_type) q = q.eq('transaction_type', filters.transaction_type);
+function applyFilters<Q extends { eq: any; ilike: any; is: any }>(query: Q, filters: LocationFilters): Q {
+  let q = saleStock(query, {
+    excludeDuplicates: !!filters.exclude_duplicates,
+    transactionType: filters.transaction_type || 'sale',
+  });
   if (filters.city) q = q.ilike('city', filters.city);
   if (filters.state) q = q.ilike('state', filters.state);
   if (filters.property_type) q = q.eq('property_type', filters.property_type);
@@ -61,6 +59,7 @@ function filterKey(filters: LocationFilters): string {
     (filters.state || '').toLowerCase(),
     filters.property_type || '',
     filters.bedrooms ? String(filters.bedrooms) : '',
+    filters.exclude_duplicates ? 'nodup' : '',
   ]);
 }
 
@@ -110,7 +109,8 @@ export interface LocationStats {
  * Stats for a type × town page or a hub: exact count, median price and facet
  * values. Lean selects only; no full rows.
  */
-export function getLocationStats(filters: LocationFilters): Promise<LocationStats> {
+export async function getLocationStats(input: LocationFilters): Promise<LocationStats> {
+  const filters = { ...input, exclude_duplicates: await hasDuplicateOfColumn() };
   return unstable_cache(
     async (): Promise<LocationStats> => {
       const client = createServiceClient();
@@ -151,7 +151,8 @@ export function getLocationStats(filters: LocationFilters): Promise<LocationStat
 }
 
 /** Newest active listings for a grid, card columns only. */
-export function getLocationListings(filters: LocationFilters, limit = 50): Promise<Listing[]> {
+export async function getLocationListings(input: LocationFilters, limit = 50): Promise<Listing[]> {
+  const filters = { ...input, exclude_duplicates: await hasDuplicateOfColumn() };
   return unstable_cache(
     async () => {
       const client = createServiceClient();
@@ -170,7 +171,7 @@ export function getLocationListings(filters: LocationFilters, limit = 50): Promi
  * Up to `limit` active listings like this one: same town and type first, then
  * the same state and type to fill the grid.
  */
-export function getSimilarActiveListings(params: {
+export async function getSimilarActiveListings(params: {
   excludeId: string;
   city?: string | null;
   state?: string | null;
@@ -179,12 +180,14 @@ export function getSimilarActiveListings(params: {
   limit?: number;
 }): Promise<Listing[]> {
   const limit = params.limit ?? 6;
+  const excludeDuplicates = await hasDuplicateOfColumn();
   return unstable_cache(
     async () => {
       const client = createServiceClient();
       const base = {
         property_type: params.propertyType || null,
         transaction_type: params.transactionType || 'sale',
+        exclude_duplicates: excludeDuplicates,
       } as LocationFilters;
 
       const results: Listing[] = [];
@@ -216,6 +219,7 @@ export function getSimilarActiveListings(params: {
       params.propertyType || '',
       params.transactionType || '',
       String(limit),
+      excludeDuplicates ? 'nodup' : '',
     ],
     { revalidate: LISTINGS_REVALIDATE_SECONDS, tags: [LISTINGS_CACHE_TAG] }
   )();
@@ -229,9 +233,9 @@ export function getListingBySlugCached(slug: string): Promise<PublicListing | nu
   if (!isSafeSlug(slug)) return Promise.resolve(null);
   return unstable_cache(
     async () => {
-      // Inactive rows are hidden from the anon key by RLS, so prefer the
-      // service-role client (server side only) and fall back to anon.
-      const client = getPrivilegedClientOrNull() || createServiceClient();
+      // Anon key only. Live rows are readable (active = true); expired rows
+      // once migration 024 is applied; hidden rentals never. Unreadable → null → 404.
+      const client = createServiceClient();
       const { data, error } = await client
         .from('listings')
         .select('*')
@@ -263,6 +267,23 @@ export function getSeoPageContent(slug: string) {
       return data?.[0] ?? null;
     },
     ['seo-page-content-v1', slug],
+    { revalidate: LISTINGS_REVALIDATE_SECONDS, tags: [LISTINGS_CACHE_TAG] }
+  )();
+}
+
+/** URL fields of a listing by id (duplicate → canonical redirects). Anon key. */
+export function getListingUrlFieldsById(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return Promise.resolve(null);
+  return unstable_cache(
+    async () => {
+      const { data } = await createServiceClient()
+        .from('listings')
+        .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, url_slug_es')
+        .eq('id', id)
+        .limit(1);
+      return data?.[0] ?? null;
+    },
+    ['listing-url-by-id-v1', id],
     { revalidate: LISTINGS_REVALIDATE_SECONDS, tags: [LISTINGS_CACHE_TAG] }
   )();
 }

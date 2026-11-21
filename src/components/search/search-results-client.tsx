@@ -14,6 +14,8 @@ interface SearchResultsClientProps {
   totalCount: number;
   searchParams: NormalizedSearchParams;
   sortBy: string;
+  /** From the server: true once migration 022 (duplicate_of) is applied. */
+  excludeDuplicates?: boolean;
 }
 
 const RESULTS_PER_PAGE = 24;
@@ -23,6 +25,7 @@ export function SearchResultsClient({
   totalCount,
   searchParams,
   sortBy,
+  excludeDuplicates = false,
 }: SearchResultsClientProps) {
   const [listings, setListings] = useState<Listing[]>(initialListings);
   const [isPending, startTransition] = useTransition();
@@ -39,7 +42,11 @@ export function SearchResultsClient({
     let query = supabase
       .from('listings')
       .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type')
-      .eq('active', true);
+      .eq('active', true)
+      .eq('transaction_type', searchParams.transaction === 'rent' ? 'rent' : 'sale');
+    if (excludeDuplicates) {
+      query = query.is('duplicate_of', null);
+    }
 
     // Apply all the same filters
     if (searchParams.q) {
@@ -50,10 +57,6 @@ export function SearchResultsClient({
       query = query.or(
         `title.ilike.%${escapedQ}%,location.ilike.%${escapedQ}%,city.ilike.%${escapedQ}%,neighborhood.ilike.%${escapedQ}%`
       );
-    }
-
-    if (searchParams.transaction) {
-      query = query.eq('transaction_type', searchParams.transaction);
     }
 
     if (searchParams.type) {

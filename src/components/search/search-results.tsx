@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
+import { hasDuplicateOfColumn, saleStock } from '@/lib/supabase/sale-stock';
 import { SearchResultsClient } from './search-results-client';
 import { SortSelect } from './sort-select';
 import type { Listing } from '@/types/listing';
@@ -17,6 +18,7 @@ const RESULTS_PER_PAGE = 24;
 
 export async function SearchResults({ searchParams }: SearchResultsProps) {
   const supabase = await createClient();
+  const excludeDuplicates = await hasDuplicateOfColumn();
   const t = await getTranslations('results');
   const normalizedSearchParams = normalizeSearchParams(searchParams);
 
@@ -27,8 +29,13 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   // Build query - only select fields used in ListingCard
   let query = supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'planned' })
-    .eq('active', true);
+    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'planned' });
+  // Sale stock by default; rentals only when explicitly asked for (and once
+  // they are active). Duplicates excluded once migration 022 exists.
+  query = saleStock(query, {
+    excludeDuplicates,
+    transactionType: normalizedSearchParams.transaction === 'rent' ? 'rent' : 'sale',
+  });
 
   // Keyword search (title, location, city, neighborhood)
   if (normalizedSearchParams.q) {
@@ -44,10 +51,6 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   // Property type
   if (normalizedSearchParams.type) {
     query = query.eq('property_type', normalizedSearchParams.type);
-  }
-
-  if (normalizedSearchParams.transaction) {
-    query = query.eq('transaction_type', normalizedSearchParams.transaction);
   }
 
   // State
@@ -115,7 +118,8 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
 
   const typedListings = (listings as Listing[]) || [];
 
-  const resultCount = count || 0;
+  // Planned counts are estimates: never claim results when the page has none.
+  const resultCount = typedListings.length === 0 ? 0 : count || 0;
   const headerText = resultCount === 1
     ? t('onePropertyFound')
     : t('propertiesFound', { count: resultCount.toLocaleString() });
@@ -137,6 +141,7 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
         totalCount={count || 0}
         searchParams={normalizedSearchParams}
         sortBy={sortBy}
+        excludeDuplicates={excludeDuplicates}
       />
     </div>
   );

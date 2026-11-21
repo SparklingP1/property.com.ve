@@ -155,7 +155,8 @@
     "sourceLine": "Fuente: {source}",
     "lastSeenLine": "Visto por última vez: {date}",
     "linkOutNote": "Property.com.ve reúne inmuebles publicados en otros portales. Las fotos, la descripción completa y el contacto del anunciante están en el anuncio original en {source}.",
-    "opensInNewTab": "(se abre en una pestaña nueva)"
+    "opensInNewTab": "(se abre en una pestaña nueva)",
+    "viewPhotosOn": "Ver las {count} fotos en {source}"
   },
   "results": {
     "propertiesFound": "{count} Inmuebles Encontrados",

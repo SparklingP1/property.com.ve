@@ -3,10 +3,13 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from './i18n/routing';
 import {
+  duplicateRedirect,
+  fetchCanonical,
   getListingSlugFromPath,
+  getSimulatedDuplicateOf,
   getSimulatedStatus,
   goneResponse,
-  lookupListingStatus,
+  lookupListingRoute,
 } from './lib/listing-gone';
 
 const ENGLISH_SEO_KEYWORDS = [
@@ -148,13 +151,24 @@ export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const normalizedPathname = normalizePathname(pathname);
 
-  // Listings inactive for more than 30 days answer 410 Gone (pages cannot set it).
+  // Listing URLs: duplicates 301 to their canonical listing; listings expired
+  // more than 30 days ago answer 410 Gone (App Router pages cannot set either).
   const listingSlug = getListingSlugFromPath(pathname);
   if (listingSlug) {
-    const status =
-      getSimulatedStatus(request.nextUrl.searchParams) ?? (await lookupListingStatus(listingSlug));
-    if (status === 'gone') {
-      return goneResponse(pathname.startsWith('/en/') ? 'en' : 'es');
+    const listingLocale = pathname.startsWith('/en/') ? 'en' : 'es';
+    const simulatedStatus = getSimulatedStatus(request.nextUrl.searchParams);
+    const simulatedDuplicateOf = getSimulatedDuplicateOf(request.nextUrl.searchParams);
+    const decision = simulatedStatus
+      ? { status: simulatedStatus, canonical: null }
+      : simulatedDuplicateOf
+        ? { status: 'active' as const, canonical: await fetchCanonical(simulatedDuplicateOf) }
+        : await lookupListingRoute(listingSlug);
+    if (decision?.canonical) {
+      const redirectResponse = duplicateRedirect(request.nextUrl, decision.canonical, listingLocale);
+      if (redirectResponse) return redirectResponse;
+    }
+    if (decision?.status === 'gone') {
+      return goneResponse(listingLocale);
     }
   }
 

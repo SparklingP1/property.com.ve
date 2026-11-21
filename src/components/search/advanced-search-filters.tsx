@@ -103,6 +103,7 @@ function AdvancedSearchFiltersContent({
         .from('listings')
         .select('state')
         .eq('active', true)
+        .eq('transaction_type', 'sale')
         .not('state', 'is', null);
 
       if (data) {
@@ -129,6 +130,7 @@ function AdvancedSearchFiltersContent({
         .from('listings')
         .select('city')
         .eq('active', true)
+        .eq('transaction_type', 'sale')
         .not('city', 'is', null);
 
       if (normalizedSearchParams.state) {

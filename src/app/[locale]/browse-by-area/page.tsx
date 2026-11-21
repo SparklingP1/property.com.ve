@@ -2,7 +2,9 @@ import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Building2, Home, Map, MapPin } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { unstable_cache } from 'next/cache';
 import { createServiceClient } from '@/lib/supabase/server';
+import { hasDuplicateOfColumn, saleStock } from '@/lib/supabase/sale-stock';
 
 interface BrowseByAreaPageProps {
   params: Promise<{ locale: string }>;
@@ -145,50 +147,60 @@ export default async function BrowseByAreaPage({ params }: BrowseByAreaPageProps
 
   const seoPages = pages as SEOPage[];
 
-  let allListings: ListingCoverageRow[] = [];
-  let from = 0;
-  const pageSize = 1000;
+  // Reads every sale listing (paged), so cache the result for 6 hours instead
+  // of running ~27 queries per visit.
+  const excludeDuplicates = await hasDuplicateOfColumn();
+  const uniqueCount = await unstable_cache(
+    async () => {
+      let allListings: ListingCoverageRow[] = [];
+      let from = 0;
+      const pageSize = 1000;
 
-  while (true) {
-    const { data, error } = await supabase
-      .from('listings')
-      .select('id, city, state, property_type, bedrooms')
-      .eq('active', true)
-      .range(from, from + pageSize - 1);
+      while (true) {
+        const query = supabase
+          .from('listings')
+          .select('id, city, state, property_type, bedrooms');
+        const { data, error } = await saleStock(query, { excludeDuplicates })
+          .range(from, from + pageSize - 1);
 
-    if (error || !data || data.length === 0) {
-      break;
-    }
+        if (error || !data || data.length === 0) {
+          break;
+        }
 
-    allListings = allListings.concat(data);
+        allListings = allListings.concat(data);
 
-    if (data.length < pageSize) {
-      break;
-    }
+        if (data.length < pageSize) {
+          break;
+        }
 
-    from += pageSize;
-  }
+        from += pageSize;
+      }
 
-  const uniqueListingIds = new Set<string>();
+      const uniqueListingIds = new Set<string>();
 
-  allListings.forEach((listing) => {
-    const matchesAnyPage = seoPages.some((page) => {
-      const filters = page.filters;
+      allListings.forEach((listing) => {
+        const matchesAnyPage = seoPages.some((page) => {
+          const filters = page.filters;
 
-      if (filters.city && listing.city?.toLowerCase() !== filters.city.toLowerCase()) return false;
-      if (filters.state && listing.state?.toLowerCase() !== filters.state.toLowerCase()) return false;
-      if (filters.property_type && listing.property_type !== filters.property_type) return false;
-      if (filters.bedrooms && listing.bedrooms !== filters.bedrooms) return false;
+          if (filters.city && listing.city?.toLowerCase() !== filters.city.toLowerCase()) return false;
+          if (filters.state && listing.state?.toLowerCase() !== filters.state.toLowerCase()) return false;
+          if (filters.property_type && listing.property_type !== filters.property_type) return false;
+          if (filters.bedrooms && listing.bedrooms !== filters.bedrooms) return false;
 
-      return true;
-    });
+          return true;
+        });
 
-    if (matchesAnyPage) {
-      uniqueListingIds.add(listing.id);
-    }
-  });
+        if (matchesAnyPage) {
+          uniqueListingIds.add(listing.id);
+        }
+      });
 
-  const uniqueCount = uniqueListingIds.size;
+
+      return uniqueListingIds.size;
+    },
+    ['browse-by-area-covered-v1', String(seoPages.length), excludeDuplicates ? 'nodup' : ''],
+    { revalidate: 21600, tags: ['listings'] }
+  )();
   const cityGroups = buildLocationGroups(
     seoPages.filter((page) => Boolean(page.filters.city)),
     'city'

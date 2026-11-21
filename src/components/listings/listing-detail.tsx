@@ -151,6 +151,19 @@ export function ListingDetail({ listing, unavailable = false }: ListingDetailPro
           </div>
         )}
       </div>
+      {!unavailable && listing.photo_count && listing.photo_count > 1 && listing.source_url && (
+        <p className="-mt-4 mb-6 text-sm">
+          <a
+            href={listing.source_url}
+            target="_blank"
+            rel="nofollow noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+          >
+            {t('viewPhotosOn', { count: listing.photo_count, source: sourceName })}
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </p>
+      )}
 
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>

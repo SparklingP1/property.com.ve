@@ -1,29 +1,11 @@
 import { cache } from 'react';
-import { createClient, createPrivilegedClient } from './server';
+import { createClient } from './server';
+import { hasDuplicateOfColumn, saleStock } from './sale-stock';
+import { CARD_COLUMNS } from '@/lib/listing-public';
 import type { Listing } from '@/types/listing';
 
-type ListingClient =
-  | Awaited<ReturnType<typeof createClient>>
-  | ReturnType<typeof createPrivilegedClient>;
-
-async function fetchListingById(client: ListingClient, id: string) {
-  return client
-    .from('listings')
-    .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, url_slug_es')
-    .eq('id', id)
-    .single();
-}
-
-function getOptionalPrivilegedClient() {
-  try {
-    return createPrivilegedClient();
-  } catch {
-    return null;
-  }
-}
-
 /**
- * Cached query to get featured listings for homepage
+ * Cached query to get featured listings for homepage (sale stock only).
  * React cache() deduplicates requests during a single render
  */
 export const getFeaturedListings = cache(async (params: {
@@ -33,11 +15,12 @@ export const getFeaturedListings = cache(async (params: {
   price?: string;
 }) => {
   const supabase = await createClient();
+  const excludeDuplicates = await hasDuplicateOfColumn();
 
-  let query = supabase
-    .from('listings')
-    .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'planned' })
-    .eq('active', true)
+  let query = saleStock(
+    supabase.from('listings').select(CARD_COLUMNS, { count: 'planned' }),
+    { excludeDuplicates }
+  )
     .order('scraped_at', { ascending: false })
     .limit(12);
 
@@ -61,60 +44,19 @@ export const getFeaturedListings = cache(async (params: {
   }
 
   const { data: listings, count } = await query;
-  return { listings: (listings as Listing[]) || [], count: count || 0 };
+  return { listings: (listings as unknown as Listing[]) || [], count: count || 0 };
 });
 
 /**
- * Cached query to get a single listing by ID
- * Used in listing detail pages
+ * URL fields of a listing by id, for legacy /listing/{id} redirects.
+ * Anon key: live rows, and expired rows once migration 024 is applied.
  */
 export const getListingById = cache(async (id: string) => {
   const supabase = await createClient();
-
-  const { data: listing, error } = await fetchListingById(supabase, id);
-
-  if (listing) {
-    return { listing: listing as Listing, error: null };
-  }
-
-  const privilegedClient = getOptionalPrivilegedClient();
-  if (!privilegedClient) {
-    return { listing: null, error };
-  }
-
-  const {
-    data: privilegedListing,
-    error: privilegedError,
-  } = await fetchListingById(privilegedClient, id);
-
-  return { listing: (privilegedListing as Listing | null) || null, error: privilegedError };
-});
-
-/**
- * Cached query to get related listings
- */
-export const getRelatedListings = cache(async (params: {
-  excludeId: string;
-  region?: string | null;
-  propertyType?: string | null;
-  limit?: number;
-}) => {
-  const supabase = await createClient();
-
-  let query = supabase
+  const { data: listing, error } = await supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type')
-    .eq('active', true)
-    .neq('id', params.excludeId)
-    .limit(params.limit || 6);
-
-  if (params.region) {
-    query = query.eq('region', params.region);
-  }
-  if (params.propertyType) {
-    query = query.eq('property_type', params.propertyType);
-  }
-
-  const { data: listings } = await query;
-  return (listings as Listing[]) || [];
+    .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, url_slug_es')
+    .eq('id', id)
+    .maybeSingle();
+  return { listing: (listing as Listing | null) || null, error };
 });

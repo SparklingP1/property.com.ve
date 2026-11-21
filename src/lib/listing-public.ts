@@ -49,50 +49,72 @@ const PRIVATE_FIELDS = [
 ] as const;
 
 export type PublicListing = Listing & {
+  /** Our template summary (from description_short_* when it is ours), else null. */
   summary_es?: string | null;
   summary_en?: string | null;
   deactivated_at?: string | null;
+  /** Migration 022; undefined before it is applied. */
+  duplicate_of?: string | null;
 };
+
+/*
+ * The scraper (scraper/facts.py summary_es / summary_en) writes our own
+ * summary into description_short_es / description_short_en, e.g.
+ *   "Apartamento en venta en El Cafetal, Caracas: 3 habitaciones, 2 baños, 120 m², USD 85.000."
+ *   "Apartment for sale in El Cafetal, Caracas: 3 bedrooms, 2 bathrooms, 120 m², USD 85,000."
+ * Old rows still hold text copied from the source there until the backfill,
+ * so only text that matches the template is shown.
+ */
+const TEMPLATE_ES =
+  /^(Apartamento|Casa|Terreno|Anexo|Inmueble) en (venta|alquiler)( en [^:\n]{1,120})?: [^\n]{0,200}(precio a consultar|[A-Z]{3} [\d.]+)\.$/;
+const TEMPLATE_EN =
+  /^(Apartment|House|Plot of land|Annex|Property) for (sale|rent)( in [^:\n]{1,120})?: [^\n]{0,200}(price on request|[A-Z]{3} [\d,]+)\.$/;
+
+export function isTemplateSummary(text: unknown, locale: 'es' | 'en'): text is string {
+  if (typeof text !== 'string') return false;
+  return (locale === 'en' ? TEMPLATE_EN : TEMPLATE_ES).test(text.trim());
+}
 
 /**
  * Strip copied text, agent contacts and the photo gallery. Keeps one image
- * (thumbnail, else the first stored image) in `thumbnail_url`.
+ * (thumbnail, else the first stored image) in `thumbnail_url`, and our
+ * template summary (if present) in `summary_es` / `summary_en`.
  */
 export function toPublicListing(row: Record<string, unknown>): PublicListing {
   const copy: Record<string, unknown> = { ...row };
+  const es = [row.description_short_es, row.description_short].find((v) => isTemplateSummary(v, 'es'));
+  const en = [row.description_short_en].find((v) => isTemplateSummary(v, 'en'));
   for (const field of PRIVATE_FIELDS) copy[field] = null;
+  copy.summary_es = typeof es === 'string' ? es.trim() : null;
+  copy.summary_en = typeof en === 'string' ? en.trim() : null;
   const images = Array.isArray(row.image_urls) ? (row.image_urls as string[]) : [];
   copy.thumbnail_url = (row.thumbnail_url as string | null) || images[0] || null;
   copy.image_urls = null;
   return copy as unknown as PublicListing;
 }
 
-export type ListingStatus = 'active' | 'inactive' | 'gone';
+export type ListingStatus = 'active' | 'inactive' | 'gone' | 'hidden';
 
 /**
- * active   → normal page
- * inactive → 200, noindex, "ya no disponible" + similar listings
- * gone     → 410 (inactive for more than INACTIVE_GRACE_DAYS)
- *
- * `active = false` is the source of truth; `deactivated_at` (migration 019)
- * dates it, falling back to `last_seen_at` when the scraper did not set it.
+ * Per docs/data-contract.md:
+ * active   (active=true)                        → normal page
+ * hidden   (active=false, deactivated_at null)  → 404 (stored rental, not launched)
+ * inactive (active=false, deactivated_at ≤ 30 d) → 200, noindex, "ya no disponible" + similar
+ * gone     (active=false, deactivated_at > 30 d) → 410
  */
 export function getListingStatus(
-  listing: Pick<PublicListing, 'active' | 'last_seen_at'> & { deactivated_at?: string | null },
+  listing: { active?: boolean | null; deactivated_at?: string | null },
   now: number = Date.now()
 ): ListingStatus {
   if (listing.active !== false) return 'active';
   const since = getInactiveSince(listing);
-  if (!since) return 'inactive';
+  if (!since) return 'hidden';
   const days = (now - since.getTime()) / 86_400_000;
   return days > INACTIVE_GRACE_DAYS ? 'gone' : 'inactive';
 }
 
-export function getInactiveSince(listing: {
-  deactivated_at?: string | null;
-  last_seen_at?: string | null;
-}): Date | null {
-  const raw = listing.deactivated_at || listing.last_seen_at;
+export function getInactiveSince(listing: { deactivated_at?: string | null }): Date | null {
+  const raw = listing.deactivated_at;
   if (!raw) return null;
   const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -120,7 +142,7 @@ export function formatListingPrice(
   if (locale === 'en') {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(price);
   }
-  const amount = new Intl.NumberFormat('es-VE', { maximumFractionDigits: 0 }).format(price);
+  const amount = Math.round(price).toLocaleString('en-US').replace(/,/g, '.');
   const prefix = cur === 'USD' ? 'US$' : cur === 'VES' ? 'Bs.' : cur === 'EUR' ? '€' : cur;
   return `${prefix} ${amount}`;
 }
@@ -149,13 +171,10 @@ function plural(n: number, one: string, many: string) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-function joinList(items: string[], and: string): string {
-  if (items.length <= 1) return items.join('');
-  return `${items.slice(0, -1).join(', ')} ${and} ${items[items.length - 1]}`;
-}
-
+/** Matches scraper/facts.py fmt_int_es / fmt_int_en: "85.000" / "85,000" (also for 4 digits). */
 function formatNumber(value: number, locale: string) {
-  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-VE', { maximumFractionDigits: 0 }).format(value);
+  const grouped = Math.round(value).toLocaleString('en-US');
+  return locale === 'en' ? grouped : grouped.replace(/,/g, '.');
 }
 
 type SummaryFacts = Pick<
@@ -192,54 +211,53 @@ export function getListingSummary(
     return stored.trim();
   }
 
+  // Same template as scraper/facts.py (summary_es / summary_en), so rows
+  // rendered here read exactly like rows the scraper has already written.
   const en = locale === 'en';
   const type = listing.property_type || '';
-  const typeLabel = (en ? TYPE_EN[type] : TYPE_ES[type]) || (en ? 'Property' : 'Inmueble');
+  let text = (en ? TYPE_EN[type] : TYPE_ES[type]) || (en ? 'Property' : 'Inmueble');
   const rent = listing.transaction_type === 'rent';
-  const deal = en ? (rent ? 'for rent' : 'for sale') : rent ? 'en alquiler' : 'en venta';
+  text += en ? (rent ? ' for rent' : ' for sale') : rent ? ' en alquiler' : ' en venta';
 
-  const town = listing.city || listing.location || null;
-  const state = listing.state || listing.region || null;
-  const placeParts = [listing.neighborhood, town].filter(
-    (part, index, all): part is string => !!part && all.indexOf(part) === index
-  );
-  let place = placeParts.join(', ');
-  if (state && state !== town) place = place ? `${place} (${state})` : state;
-  if (!place) place = 'Venezuela';
+  const placeParts: string[] = [];
+  for (const part of [listing.neighborhood, listing.city || listing.location, listing.state || listing.region]) {
+    const clean = part?.trim();
+    if (clean && placeParts.every((p) => fold(p) !== fold(clean))) placeParts.push(clean);
+    if (placeParts.length === 2) break;
+  }
+  if (placeParts.length > 0) text += `${en ? ' in' : ' en'} ${placeParts.join(', ')}`;
 
-  const facts: string[] = [];
-  if (listing.bedrooms && listing.bedrooms > 0) {
-    facts.push(en ? plural(listing.bedrooms, 'bedroom', 'bedrooms') : plural(listing.bedrooms, 'habitación', 'habitaciones'));
+  const bits: string[] = [];
+  const isLand = type === 'land';
+  if (!isLand && listing.bedrooms && listing.bedrooms > 0) {
+    bits.push(en ? plural(listing.bedrooms, 'bedroom', 'bedrooms') : plural(listing.bedrooms, 'habitación', 'habitaciones'));
   }
-  if (listing.bathrooms && listing.bathrooms > 0) {
-    facts.push(en ? plural(listing.bathrooms, 'bathroom', 'bathrooms') : plural(listing.bathrooms, 'baño', 'baños'));
+  if (!isLand && listing.bathrooms && listing.bathrooms > 0) {
+    bits.push(en ? plural(listing.bathrooms, 'bathroom', 'bathrooms') : plural(listing.bathrooms, 'baño', 'baños'));
   }
-  const area = listing.area_sqm || (type === 'land' ? listing.land_area_sqm : null);
-  if (area && area > 0) {
-    facts.push(`${formatNumber(area, locale)} m²`);
-  }
-  if (listing.parking_spaces && listing.parking_spaces > 0) {
-    facts.push(
+  const area = listing.area_sqm || (isLand ? listing.land_area_sqm : null);
+  if (area && area > 0) bits.push(`${formatNumber(area, locale)} m²`);
+  if (!isLand && listing.parking_spaces && listing.parking_spaces > 0) {
+    bits.push(
       en
         ? plural(listing.parking_spaces, 'parking space', 'parking spaces')
         : plural(listing.parking_spaces, 'puesto de estacionamiento', 'puestos de estacionamiento')
     );
   }
-
-  let text = `${typeLabel} ${deal} ${en ? 'in' : 'en'} ${place}`;
-  text += facts.length > 0 ? `: ${joinList(facts, en ? 'and' : 'y')}.` : '.';
-
   if (includePrice) {
-    const price = formatListingPrice(listing.price, listing.currency, locale);
-    text += price
-      ? en
-        ? ` Asking price: ${price}.`
-        : ` Precio publicado: ${price}.`
-      : en
-        ? ' Price on request.'
-        : ' Precio a consultar.';
+    bits.push(
+      listing.price && listing.price > 0
+        ? `${listing.currency || 'USD'} ${formatNumber(listing.price, locale)}`
+        : en
+          ? 'price on request'
+          : 'precio a consultar'
+    );
   }
-  return text;
+  return bits.length > 0 ? `${text}: ${bits.join(', ')}.` : `${text}.`;
+}
+
+function fold(value: string) {
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
 /** Lowercase letters, digits and dashes only: safe to put in a PostgREST filter. */

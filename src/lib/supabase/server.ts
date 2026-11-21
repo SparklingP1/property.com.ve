@@ -55,27 +55,7 @@ export function createServiceClient() {
   );
 }
 
-/**
- * Create a privileged client that bypasses RLS using the service role key.
- * Use ONLY for scripts, cron jobs, and operations on private tables (e.g., price_history).
- * NEVER expose this client to the browser — the key must stay server-side.
- * Requires SUPABASE_SERVICE_ROLE_KEY env var (not NEXT_PUBLIC_).
- */
-export function createPrivilegedClient() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
-    throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY is not set. This client requires the service role key.'
-    );
-  }
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  );
-}
+// No service-role client here on purpose: the web app runs with the public
+// anon key only (Vercel has no SUPABASE_SERVICE_ROLE_KEY). Expired listings
+// are readable through the RLS policy in migration 024. Scripts and the
+// scraper use their own clients.
