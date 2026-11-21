@@ -9,12 +9,22 @@
  * Only the anon key is used. Expired rows become readable to it through the
  * RLS policy in migration 024; before that they are simply not found (404).
  * Sale-stock filters (active, sale, not a duplicate) live in ./sale-stock.
+ *
+ * Errors THROW (never return null/[]): unstable_cache does not store a thrown
+ * call, so a short Supabase outage gives a few 500s instead of hours of cached
+ * 404s or empty pages. Pages let the error propagate (Next answers 500).
  */
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { createServiceClient } from './server';
 import { hasDuplicateOfColumn, saleStock } from './sale-stock';
-import { CARD_COLUMNS, isSafeSlug, toPublicListing, type PublicListing } from '@/lib/listing-public';
+import {
+  CARD_COLUMNS,
+  LISTING_PAGE_COLUMNS,
+  isSafeSlug,
+  toPublicListing,
+  type PublicListing,
+} from '@/lib/listing-public';
 import type { Listing } from '@/types/listing';
 
 /** 6 hours. Type × town pages, hubs, grids and listing pages. */
@@ -37,6 +47,13 @@ export interface LocationFilters {
 }
 
 type Client = ReturnType<typeof createServiceClient>;
+
+/** Throw a Supabase/PostgREST error so it is never cached as "no data". */
+export function raise(where: string, error: { message: string; code?: string } | null): void {
+  if (error) {
+    throw new Error(`listing-queries ${where}: ${error.code ?? ''} ${error.message}`);
+  }
+}
 
 // Supabase query builders are awkward to type generically; keep it local.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,16 +80,13 @@ function filterKey(filters: LocationFilters): string {
   ]);
 }
 
-async function exactCount(client: Client, filters: LocationFilters, priced = false): Promise<number | null> {
+async function exactCount(client: Client, filters: LocationFilters, priced = false): Promise<number> {
   let query = applyFilters(client.from('listings').select('id', { count: 'exact', head: true }), filters);
   if (priced) {
     query = query.eq('currency', 'USD').gte('price', MEDIAN_MIN_PRICE).lte('price', MEDIAN_MAX_PRICE);
   }
   const { count, error } = await query;
-  if (error) {
-    console.error('listing-queries: count failed', error.message);
-    return null;
-  }
+  raise('count', error);
   return count ?? 0;
 }
 
@@ -88,7 +102,8 @@ async function medianPrice(client: Client, filters: LocationFilters): Promise<{ 
     .lte('price', MEDIAN_MAX_PRICE)
     .order('price', { ascending: true })
     .range(mid, mid + take - 1);
-  if (error || !data || data.length === 0) return { median: null, sample };
+  raise('median', error);
+  if (!data || data.length === 0) return { median: null, sample };
   const prices = data.map((row) => Number(row.price));
   return { median: prices.reduce((a, b) => a + b, 0) / prices.length, sample };
 }
@@ -126,6 +141,7 @@ export async function getLocationStats(input: LocationFilters): Promise<Location
       const bedrooms = new Set<number>();
       const neighborhoods = new Map<string, number>();
       const cities = new Map<string, number>();
+      raise('facets', facets.error);
       for (const row of facets.data || []) {
         if (row.property_type) propertyTypes[row.property_type] = (propertyTypes[row.property_type] || 0) + 1;
         if (row.bedrooms) bedrooms.add(row.bedrooms);
@@ -159,7 +175,7 @@ export async function getLocationListings(input: LocationFilters, limit = 50): P
       const { data, error } = await applyFilters(client.from('listings').select(CARD_COLUMNS), filters)
         .order('last_seen_at', { ascending: false })
         .limit(limit);
-      if (error) console.error('listing-queries: grid failed', error.message);
+      raise('grid', error);
       return (data as unknown as Listing[]) || [];
     },
     ['location-listings-v1', filterKey(filters), String(limit)],
@@ -198,10 +214,11 @@ export async function getSimilarActiveListings(params: {
 
       for (const filters of passes) {
         if (results.length >= limit) break;
-        const { data } = await applyFilters(client.from('listings').select(CARD_COLUMNS), filters)
+        const { data, error } = await applyFilters(client.from('listings').select(CARD_COLUMNS), filters)
           .neq('id', params.excludeId)
           .order('last_seen_at', { ascending: false })
           .limit(limit + 6);
+        raise('similar', error);
         for (const row of (data as unknown as Listing[]) || []) {
           if (results.length >= limit) break;
           if (seen.has(row.id)) continue;
@@ -229,8 +246,9 @@ export async function getSimilarActiveListings(params: {
  * One listing by English or Spanish slug, active or not, already stripped of
  * copied text and agent contacts (see toPublicListing).
  */
-export function getListingBySlugCached(slug: string): Promise<PublicListing | null> {
-  if (!isSafeSlug(slug)) return Promise.resolve(null);
+export async function getListingBySlugCached(slug: string): Promise<PublicListing | null> {
+  if (!isSafeSlug(slug)) return null;
+  const withDuplicateOf = await hasDuplicateOfColumn();
   return unstable_cache(
     async () => {
       // Anon key only. Live rows are readable (active = true); expired rows
@@ -238,17 +256,14 @@ export function getListingBySlugCached(slug: string): Promise<PublicListing | nu
       const client = createServiceClient();
       const { data, error } = await client
         .from('listings')
-        .select('*')
+        .select(withDuplicateOf ? `${LISTING_PAGE_COLUMNS}, duplicate_of` : LISTING_PAGE_COLUMNS)
         .or(`url_slug.eq.${slug},url_slug_es.eq.${slug}`)
         .limit(1);
-      if (error) {
-        console.error('listing-queries: listing lookup failed', error.message);
-        return null;
-      }
-      const row = data?.[0];
+      raise('listing', error);
+      const row = data?.[0] as Record<string, unknown> | undefined;
       return row ? toPublicListing(row) : null;
     },
-    ['listing-by-slug-v1', slug],
+    ['listing-by-slug-v2', slug, withDuplicateOf ? 'dup' : ''],
     { revalidate: LISTINGS_REVALIDATE_SECONDS, tags: [LISTINGS_CACHE_TAG] }
   )();
 }
@@ -259,11 +274,12 @@ export function getSeoPageContent(slug: string) {
   return unstable_cache(
     async () => {
       const client = createServiceClient();
-      const { data } = await client
+      const { data, error } = await client
         .from('seo_page_content')
         .select('*')
         .or(`page_slug.eq."/${slug}",page_slug_es.eq."/${slug}"`)
         .limit(1);
+      raise('seo_page_content', error);
       return data?.[0] ?? null;
     },
     ['seo-page-content-v1', slug],
@@ -276,11 +292,12 @@ export function getListingUrlFieldsById(id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return Promise.resolve(null);
   return unstable_cache(
     async () => {
-      const { data } = await createServiceClient()
+      const { data, error } = await createServiceClient()
         .from('listings')
         .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, url_slug_es')
         .eq('id', id)
         .limit(1);
+      raise('listing-by-id', error);
       return data?.[0] ?? null;
     },
     ['listing-url-by-id-v1', id],

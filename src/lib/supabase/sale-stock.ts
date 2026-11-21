@@ -20,12 +20,12 @@ import { createServiceClient } from './server';
 export const hasDuplicateOfColumn = cache(
   unstable_cache(
     async (): Promise<boolean> => {
-      try {
-        const { error } = await createServiceClient().from('listings').select('duplicate_of').limit(1);
-        return !error;
-      } catch {
-        return false;
-      }
+      const { error } = await createServiceClient().from('listings').select('duplicate_of').limit(1);
+      if (!error) return true;
+      // 42703 = undefined column: migration 022 not applied yet.
+      if (error.code === '42703') return false;
+      // Anything else (outage, timeout): throw so nothing is cached for an hour.
+      throw new Error(`sale-stock probe: ${error.code ?? ''} ${error.message}`);
     },
     ['schema-has-duplicate-of-v1'],
     { revalidate: 3600, tags: ['schema'] }

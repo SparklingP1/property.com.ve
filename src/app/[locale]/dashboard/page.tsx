@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { CARD_COLUMNS } from '@/lib/listing-public';
 import { getTranslations } from 'next-intl/server';
 import { getUser } from '@/lib/supabase/server';
 import { createClient } from '@/lib/supabase/server';
@@ -53,13 +54,13 @@ export default async function DashboardPage({
       .order('created_at', { ascending: false }),
     supabase
       .from('saved_properties')
-      .select('listing_id, listings(*)')
+      .select(`listing_id, listings(${CARD_COLUMNS})`)
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false })
       .limit(6),
     supabase
       .from('recently_viewed')
-      .select('listing_id, listings(*)')
+      .select(`listing_id, listings(${CARD_COLUMNS})`)
       .eq('user_id', user!.id)
       .order('viewed_at', { ascending: false })
       .limit(6),

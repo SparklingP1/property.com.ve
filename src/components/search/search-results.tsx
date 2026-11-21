@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { hasDuplicateOfColumn, saleStock } from '@/lib/supabase/sale-stock';
+import { CARD_COLUMNS } from '@/lib/listing-public';
 import { SearchResultsClient } from './search-results-client';
 import { SortSelect } from './sort-select';
 import type { Listing } from '@/types/listing';
@@ -29,7 +30,7 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   // Build query - only select fields used in ListingCard
   let query = supabase
     .from('listings')
-    .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type', { count: 'planned' });
+    .select(`${CARD_COLUMNS}, image_urls`, { count: 'planned' });
   // Sale stock by default; rentals only when explicitly asked for (and once
   // they are active). Duplicates excluded once migration 022 exists.
   query = saleStock(query, {
@@ -116,7 +117,13 @@ export async function SearchResults({ searchParams }: SearchResultsProps) {
   // Apply pagination - get first batch + count
   const { data: listings, count } = await query.range(0, RESULTS_PER_PAGE - 1);
 
-  const typedListings = (listings as Listing[]) || [];
+  // One image per card: thumbnail, else the first stored image (old rows).
+  // The image list itself never goes to the browser.
+  const typedListings = ((listings as unknown as Array<Listing>) || []).map((row) => ({
+    ...row,
+    thumbnail_url: row.thumbnail_url || row.image_urls?.[0] || null,
+    image_urls: null,
+  }));
 
   // Planned counts are estimates: never claim results when the page has none.
   const resultCount = typedListings.length === 0 ? 0 : count || 0;

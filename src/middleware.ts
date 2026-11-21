@@ -154,7 +154,14 @@ export default async function middleware(request: NextRequest) {
   // Listing URLs: duplicates 301 to their canonical listing; listings expired
   // more than 30 days ago answer 410 Gone (App Router pages cannot set either).
   const listingSlug = getListingSlugFromPath(pathname);
-  if (listingSlug) {
+  // Browser prefetches (Purpose / Sec-Purpose: prefetch) go straight through:
+  // no DB lookup for links the user may never open. Next strips its own
+  // Next-Router-Prefetch header before middleware runs, so router prefetches
+  // can't be seen here; listing cards set prefetch={false} instead.
+  const isPrefetch =
+    request.headers.get('purpose') === 'prefetch' ||
+    (request.headers.get('sec-purpose') ?? '').includes('prefetch');
+  if (listingSlug && !isPrefetch) {
     const listingLocale = pathname.startsWith('/en/') ? 'en' : 'es';
     const simulatedStatus = getSimulatedStatus(request.nextUrl.searchParams);
     const simulatedDuplicateOf = getSimulatedDuplicateOf(request.nextUrl.searchParams);

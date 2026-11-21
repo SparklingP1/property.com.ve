@@ -17,12 +17,14 @@ export async function GET() {
     const supabase = createServiceClient();
 
     // Get unique states with active listings
-    const { data: statesData } = await supabase
+    const { data: statesData, error: statesError } = await supabase
       .from('listings')
       .select('state')
       .eq('active', true)
       .eq('transaction_type', 'sale')
       .not('state', 'is', null);
+
+    if (statesError) throw new Error(statesError.message);
 
     const uniqueStates = [...new Set(statesData?.map((s) => s.state) || [])];
 
@@ -33,12 +35,14 @@ export async function GET() {
     });
 
     // Get unique cities with active listings
-    const { data: citiesData } = await supabase
+    const { data: citiesData, error: citiesError } = await supabase
       .from('listings')
       .select('city, state')
       .eq('active', true)
       .eq('transaction_type', 'sale')
       .not('city', 'is', null);
+
+    if (citiesError) throw new Error(citiesError.message);
 
     const uniqueCities = [
       ...new Set(
@@ -53,7 +57,10 @@ export async function GET() {
       }
     });
   } catch (error) {
+    // Throw: on revalidation Next keeps serving the previous sitemap instead
+    // of caching an empty one for 6 h.
     console.error('Sitemap: Unable to fetch locations from Supabase', error);
+    throw error;
   }
 
   const now = new Date().toISOString();

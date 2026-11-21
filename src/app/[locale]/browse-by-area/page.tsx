@@ -163,7 +163,11 @@ export default async function BrowseByAreaPage({ params }: BrowseByAreaPageProps
         const { data, error } = await saleStock(query, { excludeDuplicates })
           .range(from, from + pageSize - 1);
 
-        if (error || !data || data.length === 0) {
+        if (error) {
+          // Throw so a partial count is never cached for 6 hours.
+          throw new Error(`browse-by-area: ${error.message}`);
+        }
+        if (!data || data.length === 0) {
           break;
         }
 

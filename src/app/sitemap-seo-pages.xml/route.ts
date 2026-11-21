@@ -23,7 +23,9 @@ export async function GET() {
       .order('listing_count', { ascending: false });
 
     if (error) {
-      console.error('Sitemap SEO Pages: Error fetching from database', error);
+      // Throw: on revalidation Next keeps serving the previous sitemap instead
+      // of caching an empty one for 24 h.
+      throw new Error(`Sitemap SEO Pages: ${error.message}`);
     } else if (pages) {
       pages.forEach((page) => {
         const lastMod = new Date(page.updated_at).toISOString();
@@ -58,6 +60,7 @@ export async function GET() {
     }
   } catch (error) {
     console.error('Sitemap SEO Pages: Unexpected error', error);
+    throw error;
   }
 
   if (urls.length === 0) {

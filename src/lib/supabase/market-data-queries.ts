@@ -3,6 +3,11 @@ import { unstable_cache } from 'next/cache';
 import { createServiceClient } from './server';
 import { hasDuplicateOfColumn, saleStock } from './sale-stock';
 
+/** Throw so a failed query is never cached as "no data" (unstable_cache skips throws). */
+function throwIfError(where: string, error: { message: string; code?: string } | null) {
+  if (error) throw new Error(`market-data ${where}: ${error.code ?? ''} ${error.message}`);
+}
+
 /** 12 hours: market_stats is rebuilt monthly, sample listings daily. */
 const MARKET_REVALIDATE_SECONDS = 43200;
 
@@ -47,12 +52,13 @@ export interface MarketStat {
  */
 export const getLatestPeriod = cachedMarket('getLatestPeriod', async (): Promise<string | null> => {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('market_stats')
     .select('period_start')
     .eq('period_type', 'monthly')
     .order('period_start', { ascending: false })
     .limit(1);
+  throwIfError('market', error);
 
   return data?.[0]?.period_start ?? null;
 });
@@ -62,7 +68,7 @@ export const getLatestPeriod = cachedMarket('getLatestPeriod', async (): Promise
  */
 export const getMarketOverview = cachedMarket('getMarketOverview', async (periodStart: string): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('market_stats')
     .select('*')
     .eq('period_type', 'monthly')
@@ -70,6 +76,7 @@ export const getMarketOverview = cachedMarket('getMarketOverview', async (period
     .eq('city', '')
     .eq('state', '')
     .order('listing_count', { ascending: false });
+  throwIfError('market', error);
 
   return (data ?? []) as MarketStat[];
 });
@@ -79,7 +86,7 @@ export const getMarketOverview = cachedMarket('getMarketOverview', async (period
  */
 export const getCityComparison = cachedMarket('getCityComparison', async (periodStart: string): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('market_stats')
     .select('*')
     .eq('period_type', 'monthly')
@@ -88,6 +95,7 @@ export const getCityComparison = cachedMarket('getCityComparison', async (period
     .eq('property_type', '')
     .eq('bedrooms_bucket', '')
     .order('listing_count', { ascending: false });
+  throwIfError('market', error);
 
   return (data ?? []) as MarketStat[];
 });
@@ -97,13 +105,14 @@ export const getCityComparison = cachedMarket('getCityComparison', async (period
  */
 export const getCityStats = cachedMarket('getCityStats', async (city: string, periodStart: string): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('market_stats')
     .select('*')
     .eq('period_type', 'monthly')
     .eq('period_start', periodStart)
     .eq('city', city)
     .order('listing_count', { ascending: false });
+  throwIfError('market', error);
 
   return (data ?? []) as MarketStat[];
 });
@@ -113,7 +122,7 @@ export const getCityStats = cachedMarket('getCityStats', async (city: string, pe
  */
 export const getTimeSeries = cachedMarket('getTimeSeries', async (city: string, months: number = 12): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('market_stats')
     .select('*')
     .eq('period_type', 'monthly')
@@ -122,6 +131,7 @@ export const getTimeSeries = cachedMarket('getTimeSeries', async (city: string, 
     .eq('bedrooms_bucket', '')
     .order('period_start', { ascending: true })
     .limit(months);
+  throwIfError('market', error);
 
   return (data ?? []) as MarketStat[];
 });
@@ -134,16 +144,17 @@ export const getValidCities = cachedMarket('getValidCities', async (): Promise<A
   const supabase = createServiceClient();
 
   // Get latest period first
-  const { data: latest } = await supabase
+  const { data: latest, error: latestError } = await supabase
     .from('market_stats')
     .select('period_start')
     .eq('period_type', 'monthly')
     .order('period_start', { ascending: false })
     .limit(1);
 
+  throwIfError('latest period', latestError);
   if (!latest?.[0]) return [];
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('market_stats')
     .select('city, state, listing_count')
     .eq('period_type', 'monthly')
@@ -152,6 +163,7 @@ export const getValidCities = cachedMarket('getValidCities', async (): Promise<A
     .eq('property_type', '')
     .eq('bedrooms_bucket', '')
     .order('listing_count', { ascending: false });
+  throwIfError('market', error);
 
   return (data ?? []) as Array<{ city: string; state: string; listing_count: number }>;
 });
@@ -162,7 +174,7 @@ export const getValidCities = cachedMarket('getValidCities', async (): Promise<A
 export const getSampleListings = cachedMarket('getSampleListings', async (city: string, limit: number = 6) => {
   const supabase = createServiceClient();
   const excludeDuplicates = await hasDuplicateOfColumn();
-  const { data } = await saleStock(
+  const { data, error } = await saleStock(
     supabase
       .from('listings')
       .select('id, title, title_en, thumbnail_url, price, currency, property_type, city, state, bedrooms, bathrooms, area_sqm, url_slug, url_slug_es'),
@@ -173,6 +185,7 @@ export const getSampleListings = cachedMarket('getSampleListings', async (city: 
     .not('thumbnail_url', 'is', null)
     .order('scraped_at', { ascending: false })
     .limit(limit);
+  throwIfError('market', error);
 
   return data ?? [];
 });

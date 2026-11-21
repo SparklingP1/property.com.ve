@@ -9,13 +9,15 @@ import re
 import time
 from dataclasses import dataclass
 from typing import Optional
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
 USER_AGENT = "Mozilla/5.0 (compatible; PropertyComVeBot/1.0; +https://property.com.ve/about)"
+MAX_REDIRECTS = 5
+REDIRECT_STATUSES = (301, 302, 303, 307, 308)
 
 
 class RobotsRules:
@@ -108,7 +110,9 @@ class PoliteFetcher:
     def __init__(self, min_delay: dict = None, timeout: float = 30.0):
         """min_delay: {host: seconds}; the larger of this and robots' crawl-delay applies."""
         self.client = httpx.Client(
-            timeout=timeout, follow_redirects=True,
+            # Redirects are followed by hand in get(), so every hop gets the
+            # robots.txt check and the crawl-delay of the host it lands on.
+            timeout=timeout, follow_redirects=False,
             headers={"User-Agent": USER_AGENT, "Accept-Language": "es-VE,es;q=0.9,en;q=0.5"},
         )
         self.min_delay = min_delay or {}
@@ -126,7 +130,7 @@ class PoliteFetcher:
         if host not in self.robots:
             scheme = urlsplit(url).scheme or "https"
             robots_url = f"{scheme}://{host}/robots.txt"
-            # Through get() so 429/5xx get the same backoff; redirects are followed
+            # Through get() so 429/5xx get the same backoff; redirects are followed (no robots check on robots.txt itself)
             r = self.get(robots_url, check_robots=False)
             if r.status == 200:
                 text = r.text
@@ -152,6 +156,27 @@ class PoliteFetcher:
                 time.sleep(delay - gap)
 
     def get(self, url: str, binary: bool = False, check_robots: bool = True) -> FetchResult:
+        """Fetch url, following up to MAX_REDIRECTS redirects by hand: each
+        target is robots-checked (when check_robots) and waits its own host's
+        delay. The result's `url` is the final URL."""
+        current = url
+        res = self._get_one(current, binary, check_robots)
+        for _ in range(MAX_REDIRECTS):
+            location = (res.headers or {}).get("location")
+            if res.status not in REDIRECT_STATUSES or not location:
+                return res
+            target = urljoin(current, location)
+            if target == current:
+                break
+            logger.debug(f"redirect {res.status}: {current} -> {target}")
+            current = target
+            res = self._get_one(current, binary, check_robots)
+        if res.status in REDIRECT_STATUSES:
+            res.error = res.error or f"too many redirects (> {MAX_REDIRECTS})"
+        return res
+
+    def _get_one(self, url: str, binary: bool, check_robots: bool) -> FetchResult:
+        """One request (with 429/5xx retries), no redirect following."""
         host = self._host(url)
         if check_robots:
             rules = self.rules_for(url)

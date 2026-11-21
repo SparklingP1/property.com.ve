@@ -15,6 +15,8 @@ import { getListingStatus, isSafeSlug, type ListingStatus } from './listing-publ
 import { getListingUrlForLocale } from './slug';
 
 const MEMO_TTL_MS = 10 * 60 * 1000;
+/** Failed/timed-out lookups are remembered briefly so a slow DB doesn't add 1.5 s to every request. */
+const FAILURE_TTL_MS = 60 * 1000;
 const MEMO_MAX = 5000;
 
 export interface ListingRouteDecision {
@@ -35,7 +37,13 @@ interface CanonicalFields {
   url_slug_es: string | null;
 }
 
-const memo = new Map<string, { decision: ListingRouteDecision; at: number }>();
+const memo = new Map<string, { decision: ListingRouteDecision | null; at: number; ttl: number }>();
+let lastFailureAt = 0;
+
+function remember(slug: string, decision: ListingRouteDecision | null, ttl: number) {
+  if (memo.size >= MEMO_MAX) memo.clear();
+  memo.set(slug, { decision, at: Date.now(), ttl });
+}
 /** null = unknown yet; false = migration 022 not applied (select without it). */
 let duplicateColumn: { exists: boolean; at: number } | null = null;
 
@@ -84,7 +92,9 @@ export async function fetchCanonical(id: string): Promise<CanonicalFields | null
 
 export async function lookupListingRoute(slug: string): Promise<ListingRouteDecision | null> {
   const cached = memo.get(slug);
-  if (cached && Date.now() - cached.at < MEMO_TTL_MS) return cached.decision;
+  if (cached && Date.now() - cached.at < cached.ttl) return cached.decision;
+  // After any failure, skip lookups for a minute (DB slow or down): pages render as usual.
+  if (Date.now() - lastFailureAt < FAILURE_TTL_MS) return null;
 
   try {
     const withDup = !duplicateColumn || Date.now() - duplicateColumn.at > MEMO_TTL_MS || duplicateColumn.exists;
@@ -98,17 +108,24 @@ export async function lookupListingRoute(slug: string): Promise<ListingRouteDeci
     } else if (result.ok && withDup) {
       duplicateColumn = { exists: true, at: Date.now() };
     }
-    if (!result.ok) return null;
+    if (!result.ok) {
+      lastFailureAt = Date.now();
+      remember(slug, null, FAILURE_TTL_MS);
+      return null;
+    }
 
     const row = result.rows[0];
     const decision: ListingRouteDecision = row
       ? { status: getListingStatus(row), canonical: row.duplicate_of ? await fetchCanonical(row.duplicate_of) : null }
       : { status: 'missing' };
-    if (memo.size >= MEMO_MAX) memo.clear();
-    memo.set(slug, { decision, at: Date.now() });
+    // A duplicate whose canonical could not be fetched: retry soon (the page's 308 covers it meanwhile).
+    remember(slug, decision, row?.duplicate_of && !decision.canonical ? FAILURE_TTL_MS : MEMO_TTL_MS);
     return decision;
   } catch {
-    return null; // Never block a page on this check.
+    // Timeout or network error. Never block a page on this check.
+    lastFailureAt = Date.now();
+    remember(slug, null, FAILURE_TTL_MS);
+    return null;
   }
 }
 
@@ -156,7 +173,8 @@ export function goneResponse(locale: 'es' | 'en'): NextResponse {
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'x-robots-tag': 'noindex',
-      'cache-control': 'public, max-age=3600, s-maxage=86400',
+      // Short: a relisted property (reactivated by the scraper) recovers within the hour.
+      'cache-control': 'public, max-age=600, s-maxage=3600',
     },
   });
 }

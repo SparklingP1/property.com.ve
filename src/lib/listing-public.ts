@@ -16,6 +16,14 @@ export const INACTIVE_GRACE_DAYS = 30;
 export const CARD_COLUMNS =
   'id, title, title_en, thumbnail_url, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type';
 
+/**
+ * Columns a listing page reads. Explicit on purpose: migration 025 revokes
+ * anon SELECT on copied text and contact columns, so `select('*')` would fail.
+ * `duplicate_of` (migration 022) is appended only when the column exists.
+ */
+export const LISTING_PAGE_COLUMNS =
+  'id, source, source_url, title, title_en, title_es, price, currency, location, region, bedrooms, bathrooms, area_sqm, total_area_sqm, land_area_sqm, parking_spaces, thumbnail_url, image_urls, photo_count, description_short, description_short_es, description_short_en, property_type, transaction_type, condition, furnished, city, neighborhood, state, amenities, reference_code, scraped_at, last_seen_at, created_at, active, deactivated_at, url_slug, url_slug_es';
+
 const SOURCE_LABELS: Record<string, string> = {
   rentahouse: 'Rent-A-House',
   remax: 'RE/MAX',

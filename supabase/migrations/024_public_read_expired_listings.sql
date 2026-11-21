@@ -6,9 +6,9 @@
 -- (migration 001, "Public can read active listings") only exposes
 -- active = true, so without this policy those URLs answer 404.
 --
--- What stays hidden: rentals stored while rental pages are off the site
--- (active = false, deactivated_at IS NULL, docs/data-contract.md) — they do
--- not match this policy and keep answering 404.
+-- What stays hidden: rentals. Hidden rentals (active = false, deactivated_at
+-- IS NULL, docs/data-contract.md) and expired rentals do not match this
+-- policy and keep answering 404. Widen to rentals when rental pages launch.
 --
 -- PRECONDITION — apply only AFTER the link-out backfill has run with
 -- --clear-descriptions (scraper/maintenance/backfill_linkout.py), so that no
@@ -30,4 +30,4 @@ CREATE POLICY "Public can read expired listings"
   ON public.listings
   FOR SELECT
   TO anon, authenticated
-  USING (deactivated_at IS NOT NULL);
+  USING (deactivated_at IS NOT NULL AND transaction_type = 'sale');

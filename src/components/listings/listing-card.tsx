@@ -46,7 +46,8 @@ export function ListingCard({ listing }: ListingCardProps) {
   const listingUrl = getListingUrlForLocale(listing, locale);
 
   return (
-    <Link href={listingUrl}>
+    // No router prefetch: each prefetch would cost a listing lookup in the middleware.
+    <Link href={listingUrl} prefetch={false}>
       <Card className="group card-hover overflow-hidden h-full transition-shadow duration-200 hover:shadow-lg hover:border-primary/30">
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {imageUrl ? (

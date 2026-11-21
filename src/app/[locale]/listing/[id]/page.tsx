@@ -13,7 +13,11 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
   const { listing, error } = await getListingById(id);
 
-  if (error || !listing) {
+  // A database error must not look like a missing page (no 404 on outages).
+  if (error) {
+    throw new Error(`listing ${id}: ${error.message}`);
+  }
+  if (!listing) {
     notFound();
   }
 

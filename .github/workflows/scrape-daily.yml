@@ -1,7 +1,9 @@
 name: Daily Scrape (New Listings)
 
 # Link-out scraper (scraper/run.py): Rent-A-House from its sitemap at a 10 s
-# crawl-delay, RE/MAX from its national search at 2 s. Fetches new listings
+# crawl-delay, RE/MAX from its national search at 20 s per request
+# (PROPERTY_REMAX_DELAY; its robots.txt says 1 s but it answers 429 above
+# ~100 requests per half hour). Fetches new listings
 # plus a rolling batch of the oldest-checked ones, expires listings that left
 # the source, takes the weekly price snapshot.
 # SUPABASE_KEY must be the service-role key: run.py refuses any other key.

@@ -7,6 +7,7 @@ import { ListingCard } from '@/components/listings/listing-card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { Listing } from '@/types/listing';
+import { CARD_COLUMNS } from '@/lib/listing-public';
 import type { NormalizedSearchParams } from '@/lib/search-params';
 
 interface SearchResultsClientProps {
@@ -41,7 +42,7 @@ export function SearchResultsClient({
     // Build the same query as server-side
     let query = supabase
       .from('listings')
-      .select('id, title, title_en, thumbnail_url, image_urls, price, currency, property_type, city, location, neighborhood, state, region, bedrooms, bathrooms, area_sqm, parking_spaces, url_slug, url_slug_es, transaction_type')
+      .select(CARD_COLUMNS)
       .eq('active', true)
       .eq('transaction_type', searchParams.transaction === 'rent' ? 'rent' : 'sale');
     if (excludeDuplicates) {
