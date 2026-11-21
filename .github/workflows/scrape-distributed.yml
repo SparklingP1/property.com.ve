@@ -43,6 +43,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          python scraper/run.py --source all \
+          python scraper/run.py --source all --remax-full \
             --refresh ${{ inputs.refresh || '1000' }} \
             --time-budget 150

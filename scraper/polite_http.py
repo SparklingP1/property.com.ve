@@ -126,21 +126,15 @@ class PoliteFetcher:
         if host not in self.robots:
             scheme = urlsplit(url).scheme or "https"
             robots_url = f"{scheme}://{host}/robots.txt"
-            text = ""
-            try:
-                self._wait(host, 1.0)
-                r = self.client.get(robots_url)
-                self.requests += 1
-                self.last_hit[host] = time.monotonic()
-                # A redirect to another host's robots.txt: follow it (httpx did)
-                if r.status_code == 200:
-                    text = r.text
-                elif 400 <= r.status_code < 500:
-                    text = ""   # no robots file: everything allowed
-                else:
-                    raise RuntimeError(f"robots.txt {robots_url} returned {r.status_code}")
-            except httpx.HTTPError as e:
-                raise RuntimeError(f"robots.txt {robots_url} unreachable: {e}")
+            # Through get() so 429/5xx get the same backoff; redirects are followed
+            r = self.get(robots_url, check_robots=False)
+            if r.status == 200:
+                text = r.text
+            elif r.status in (401, 403, 404, 410):
+                text = ""   # no robots file: everything allowed (Google's reading)
+            else:
+                # Rate-limited or down: don't guess the rules, fail the source
+                raise RuntimeError(f"robots.txt {robots_url} failed: {r.status} {r.error}")
             self.robots[host] = RobotsRules(text)
             logger.info(f"robots.txt {host}: crawl-delay={self.robots[host].crawl_delay} "
                         f"disallow={self.robots[host].disallow}")

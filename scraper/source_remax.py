@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from typing import Optional
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 SOURCE_ID = "remax"
 BRAND = "RE/MAX Venezuela"
 BASE = "https://www.remax.com.ve"
-MIN_DELAY = 2.0   # robots.txt says 1 s; its search pages answer 429 after ~200 requests at 1 s
+MIN_DELAY = float(os.environ.get("PROPERTY_REMAX_DELAY", "5"))   # robots.txt says 1 s, but it answers 429 (Retry-After 1800) after ~100-200 requests at 1-4 s
 OPERATIONS = {"venta": "sale", "alquiler": "rent"}
 
 URL_TYPE = {
@@ -79,9 +80,16 @@ def _search_page(fetcher: PoliteFetcher, op: str, page: int):
     return links, total, max_page
 
 
-def discover(fetcher: PoliteFetcher, operations=("venta", "alquiler"), max_pages: Optional[int] = None) -> dict:
-    """Walk the national search for each operation. Returns
-    {'urls': [...], 'total': reported_total, 'complete': bool}."""
+def discover(fetcher: PoliteFetcher, operations=("venta", "alquiler"), max_pages: Optional[int] = None,
+             known_ids: Optional[set] = None, stop_after_known_pages: int = 3) -> dict:
+    """Walk the national search for each operation (newest first). Returns
+    {'urls': [...], 'total': reported_total, 'complete': bool}.
+
+    RE/MAX answers 429 with Retry-After: 1800 after ~100-200 search requests,
+    so a full walk (~520 pages) only fits in a weekly run at a slow pace.
+    With known_ids, stop an operation after `stop_after_known_pages`
+    consecutive pages holding no unknown id ("new listings" mode); the result
+    is then marked incomplete, so absence-based expiry is skipped."""
     urls, seen_ids = [], set()
     reported, complete = 0, True
     for op in operations:
@@ -92,7 +100,7 @@ def discover(fetcher: PoliteFetcher, operations=("venta", "alquiler"), max_pages
         pages = min(last, max_pages) if max_pages else last
         if max_pages:
             complete = False
-        failures = 0
+        failures = known_streak = 0
         for page in range(1, pages + 1):
             if page > 1:
                 links, _, last2 = _search_page(fetcher, op, page)
@@ -100,11 +108,21 @@ def discover(fetcher: PoliteFetcher, operations=("venta", "alquiler"), max_pages
                     failures += 1
                     logger.warning(f"RE/MAX search {op} page {page} failed")
                     continue
+            fresh = 0
             for u in links:
                 lid = listing_id(u)
                 if lid and lid not in seen_ids:
                     seen_ids.add(lid)
                     urls.append(u)
+                    if known_ids is not None and lid not in known_ids:
+                        fresh += 1
+            if known_ids is not None:
+                known_streak = 0 if fresh else known_streak + 1
+                if known_streak >= stop_after_known_pages:
+                    complete = False
+                    logger.info(f"RE/MAX {op}: {known_streak} pages with nothing new, stopping at page {page}")
+                    pages = page
+                    break
         if failures > max(3, pages // 50):
             complete = False
         logger.info(f"RE/MAX {op}: reported {total}, pages {pages}, collected so far {len(urls)}, failed pages {failures}")

@@ -115,12 +115,14 @@ class Store:
 
     def previous_run(self, source: str) -> Optional[dict]:
         """{'started_at': datetime, 'found': int} of the last successful live
-        run for a source (scrape_runs table, else the local JSON run log)."""
+        run for a source whose discovery was complete (scrape_runs table, else
+        the local JSON run log). Partial runs (RE/MAX new-only) don't count:
+        absence must be seen on two complete walks."""
         best = None
         if self.has_scrape_runs:
             try:
                 res = (self.client.table("scrape_runs").select("started_at,found")
-                       .eq("source", source).eq("status", "ok")
+                       .eq("source", source).eq("status", "ok").eq("notes->>complete", "true")
                        .order("started_at", desc=True).limit(1).execute())
                 if res.data:
                     best = {"started_at": datetime.fromisoformat(res.data[0]["started_at"]),
@@ -134,7 +136,8 @@ class Store:
                         rec = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    if rec.get("source") == source and rec.get("status") == "ok" and not rec.get("dry_run"):
+                    if (rec.get("source") == source and rec.get("status") == "ok" and not rec.get("dry_run")
+                            and (rec.get("notes") or {}).get("complete")):
                         t = datetime.fromisoformat(rec["started_at"])
                         if best is None or t > best["started_at"]:
                             best = {"started_at": t, "found": rec.get("found") or 0}

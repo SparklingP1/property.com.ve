@@ -54,7 +54,7 @@ SOURCES = {
 DEFAULTS = {
     #               max new, refresh, time budget (min)
     "rentahouse": dict(max_new=500, refresh=100, budget=120),
-    "remax": dict(max_new=1500, refresh=300, budget=90),
+    "remax": dict(max_new=600, refresh=150, budget=60),
 }
 # Absence-based expiry is skipped when discovery looks broken
 MIN_FOUND_RATIO = 0.7
@@ -79,7 +79,10 @@ def scrape_one(name: str, mod, store: Store, fetcher: PoliteFetcher, args) -> di
     # 1. discovery
     try:
         if name == "remax":
-            disc = mod.discover(fetcher, max_pages=args.remax_max_pages)
+            known = None
+            if not args.remax_full:
+                known = {source_remax.listing_id(u) for u in store.load_index(name)}
+            disc = mod.discover(fetcher, max_pages=args.remax_max_pages, known_ids=known)
         else:
             disc = mod.discover(fetcher)
             disc["complete"] = True
@@ -93,6 +96,7 @@ def scrape_one(name: str, mod, store: Store, fetcher: PoliteFetcher, args) -> di
     disc_set = set(discovered)
     rec["found"] = len(discovered)
     rec["notes"]["reported_total"] = disc.get("total")
+    rec["notes"]["complete"] = bool(disc.get("complete", True)) and not args.remax_max_pages and args.max_fetch is None
     logger.info(f"[{name}] discovered {len(discovered)} listing URLs (source reports {disc.get('total')})")
 
     # 2. what we already have
@@ -265,6 +269,9 @@ def parse_args():
     p.add_argument("--max-fetch", type=int, default=None, help="hard cap on detail fetches per source (tests)")
     p.add_argument("--time-budget", type=int, default=None, help="minutes of detail fetching per source")
     p.add_argument("--remax-max-pages", type=int, default=None, help="limit RE/MAX search pages (tests)")
+    p.add_argument("--remax-full", action="store_true",
+                   help="walk every RE/MAX search page (weekly; enables absence expiry for RE/MAX). "
+                        "Default: new listings only (stops after 3 pages with nothing new)")
     p.add_argument("--rentals-active", action="store_true",
                    default=os.environ.get("PROPERTY_RENTALS_ACTIVE") == "1",
                    help="store rentals as active (default: stored hidden until the site filters by transaction_type)")

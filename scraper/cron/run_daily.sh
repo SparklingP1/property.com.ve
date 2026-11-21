@@ -59,7 +59,10 @@ fi
 
 # --- scrape -----------------------------------------------------------------
 status=0
-"$VENV/bin/python" "$REPO/scraper/run.py" --source all "$@"
+extra=()
+# Sundays: walk every RE/MAX search page (slow; enables absence expiry for RE/MAX)
+[ "$(date -u +%u)" = "7" ] && extra+=(--remax-full)
+"$VENV/bin/python" "$REPO/scraper/run.py" --source all "${extra[@]}" "$@"
 rc=$?
 echo "run.py exit $rc"
 [ $rc -ne 0 ] && status=$rc
