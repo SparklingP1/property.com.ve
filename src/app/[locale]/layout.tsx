@@ -5,6 +5,8 @@ import { getMessages } from "next-intl/server";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { notFound } from "next/navigation";
+import { routing } from "@/i18n/routing";
 import "../globals.css";
 
 const dmSans = DM_Sans({
@@ -86,6 +88,12 @@ export default async function LocaleLayout({
   params,
 }: LocaleLayoutProps) {
   const { locale } = await params;
+  // Any first segment that is not a locale (e.g. /sitemap.xml, /ads.txt,
+  // /wp-login.php, which skip the middleware because they contain a dot)
+  // used to render the homepage with a 200. They are not pages: 404.
+  if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
+    notFound();
+  }
   const messages = await getMessages();
   const skipToContentLabel = locale === "es" ? "Saltar al contenido" : "Skip to content";
 
