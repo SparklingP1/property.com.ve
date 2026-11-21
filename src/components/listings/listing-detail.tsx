@@ -1,7 +1,7 @@
 'use client';
 
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Bed,
   Bath,
@@ -11,14 +11,21 @@ import {
   Car,
   Home,
   CheckCircle2,
-  User,
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import type { Listing } from '@/types/listing';
-import { ListingImages } from './listing-images';
+import {
+  formatListingDate,
+  formatListingPrice,
+  getListingSummary,
+  getSourceName,
+  type PublicListing,
+} from '@/lib/listing-public';
 
 interface ListingDetailProps {
-  listing: Listing;
+  /** Already passed through toPublicListing(): no description, gallery or agent contacts. */
+  listing: PublicListing;
+  /** Inactive listings: no link-out button, price shown as the last listed price. */
+  unavailable?: boolean;
 }
 
 function normalizePhrase(value: string) {
@@ -99,22 +106,10 @@ function formatAmenity(amenity: string, locale: string) {
 
   return labels[normalized]?.[localeKey] || toTitleCase(normalized);
 }
-
-export function ListingDetail({ listing }: ListingDetailProps) {
+export function ListingDetail({ listing, unavailable = false }: ListingDetailProps) {
   const t = useTranslations('listing');
+  const tDetail = useTranslations('propertyDetail');
   const locale = useLocale();
-
-  const formatPrice = (price: number | null, currency: string) => {
-    if (!price) {
-      return t('priceOnRequest');
-    }
-
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
 
   const propertyTypeLabels: Record<string, string> = {
     apartment: t('apartment'),
@@ -124,33 +119,12 @@ export function ListingDetail({ listing }: ListingDetailProps) {
     office: t('office'),
   };
 
-  const sourceLabels: Record<string, string> = {
-    'green-acres': 'Green-Acres',
-    bienesonline: 'BienesOnline',
-    rentahouse: 'Rent-A-House',
-    remax: 'RE/MAX Venezuela',
-  };
-
-  const images =
-    listing.image_urls && listing.image_urls.length > 0
-      ? listing.image_urls
-      : listing.thumbnail_url
-        ? [listing.thumbnail_url]
-        : [];
-
-  const displayTitle = locale === 'en' ? listing.title_en || listing.title : listing.title;
-  const displayDescription =
-    locale === 'en'
-      ? listing.description_full_en ||
-        listing.description_full ||
-        listing.description_short_en ||
-        listing.description_short
-      : listing.description_full ||
-        listing.description_full_en ||
-        listing.description_short ||
-        listing.description_short_en;
-
-  const sourceName = sourceLabels[listing.source] || listing.source;
+  const image = listing.thumbnail_url;
+  const displayTitle = (locale === 'en' ? listing.title_en || listing.title : listing.title) || '';
+  const summary = getListingSummary(listing, locale, { includePrice: !unavailable });
+  const sourceName = getSourceName(listing.source);
+  const lastSeen = formatListingDate(listing.last_seen_at, locale);
+  const price = formatListingPrice(listing.price, listing.currency, locale);
   const displayStyle = listing.property_style
     ? toTitleCase(
         locale === 'en'
@@ -161,7 +135,22 @@ export function ListingDetail({ listing }: ListingDetailProps) {
 
   return (
     <div>
-      <ListingImages images={images} title={displayTitle} />
+      <div className="relative aspect-[4/3] md:aspect-[16/9] overflow-hidden rounded-xl bg-muted mb-6">
+        {image ? (
+          <Image
+            src={image}
+            alt={displayTitle}
+            fill
+            className="object-cover object-center"
+            sizes="(max-width: 1024px) 100vw, 66vw"
+            priority
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-muted-foreground">{t('noImagesAvailable')}</span>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
@@ -173,9 +162,11 @@ export function ListingDetail({ listing }: ListingDetailProps) {
             )}
             <Badge variant="outline">{sourceName}</Badge>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-            {displayTitle}
-          </h1>
+          {unavailable ? (
+            <p className="text-2xl md:text-3xl font-bold text-foreground mb-2">{displayTitle}</p>
+          ) : (
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{displayTitle}</h1>
+          )}
           <p className="text-muted-foreground flex items-center gap-1">
             <MapPin className="h-4 w-4" />
             {[
@@ -188,13 +179,27 @@ export function ListingDetail({ listing }: ListingDetailProps) {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-3xl md:text-4xl font-bold text-primary">
-            {formatPrice(listing.price, listing.currency)}
-          </p>
-          {listing.transaction_type && (
-            <Badge variant="secondary" className="mt-2">
-              {listing.transaction_type === 'sale' ? t('forSale') : t('forRent')}
-            </Badge>
+          {unavailable ? (
+            price && (
+              <div>
+                <p className="text-sm text-muted-foreground">{tDetail('lastListedPrice')}</p>
+                <p className="text-2xl font-semibold text-muted-foreground line-through decoration-1">
+                  {price}
+                </p>
+                <p className="text-xs text-muted-foreground max-w-[16rem] mt-1">
+                  {tDetail('lastListedPriceNote')}
+                </p>
+              </div>
+            )
+          ) : (
+            <>
+              <p className="text-3xl md:text-4xl font-bold text-primary">{price || t('priceOnRequest')}</p>
+              {listing.transaction_type && (
+                <Badge variant="secondary" className="mt-2">
+                  {listing.transaction_type === 'sale' ? t('forSale') : t('forRent')}
+                </Badge>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -220,7 +225,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
           <div className="flex items-center gap-2">
             <Maximize className="h-5 w-5 text-muted-foreground" />
             <span className="text-lg">
-              <strong>{listing.area_sqm}</strong> m{'\u00B2'}
+              <strong>{listing.area_sqm}</strong> m{'²'}
             </span>
           </div>
         )}
@@ -232,6 +237,11 @@ export function ListingDetail({ listing }: ListingDetailProps) {
             </span>
           </div>
         )}
+      </div>
+
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-3">{t('summary')}</h2>
+        <p className="text-muted-foreground leading-relaxed">{summary}</p>
       </div>
 
       {(displayStyle ||
@@ -270,7 +280,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
                 <Maximize className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">{t('totalArea')}</span>
                 <span className="font-medium">
-                  {listing.total_area_sqm} m{'\u00B2'}
+                  {listing.total_area_sqm} m{'²'}
                 </span>
               </div>
             )}
@@ -297,42 +307,33 @@ export function ListingDetail({ listing }: ListingDetailProps) {
         </div>
       )}
 
-      {listing.agent_name && (
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-3">{t('listedBy')}</h2>
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{listing.agent_name}</span>
-            {listing.agent_office && (
-              <span className="text-muted-foreground">
-                {' \u00B7 '}
-                {listing.agent_office}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {displayDescription && (
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-3">{t('description')}</h2>
-          <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-            {displayDescription}
-          </p>
-        </div>
-      )}
-
       <div className="bg-primary-50 rounded-xl p-6">
-        <h3 className="font-semibold mb-2">{t('viewFullListing')}</h3>
-        <p className="text-muted-foreground text-sm mb-4">
-          {t('sourceDescription', { source: sourceName })}
+        {!unavailable && (
+          <>
+            <p className="text-muted-foreground text-sm mb-4">
+              {t('linkOutNote', { source: sourceName })}
+            </p>
+            <a
+              href={listing.source_url}
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+            >
+              {t('viewOriginalOn', { source: sourceName })}
+              <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" />
+              <span className="sr-only"> {t('opensInNewTab')}</span>
+            </a>
+          </>
+        )}
+        <p className={`text-sm text-muted-foreground ${unavailable ? '' : 'mt-4'}`}>
+          {t('sourceLine', { source: sourceName })}
+          {lastSeen && (
+            <>
+              {' · '}
+              {t('lastSeenLine', { date: lastSeen })}
+            </>
+          )}
         </p>
-        <Button asChild className="bg-primary hover:bg-primary-700">
-          <a href={listing.source_url} target="_blank" rel="noopener noreferrer">
-            {t('viewOnSource', { source: sourceName })}
-            <ExternalLink className="ml-2 h-4 w-4" />
-          </a>
-        </Button>
       </div>
     </div>
   );

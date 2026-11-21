@@ -2,6 +2,12 @@ import createMiddleware from 'next-intl/middleware';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from './i18n/routing';
+import {
+  getListingSlugFromPath,
+  getSimulatedStatus,
+  goneResponse,
+  lookupListingStatus,
+} from './lib/listing-gone';
 
 const ENGLISH_SEO_KEYWORDS = [
   'apartments',
@@ -141,6 +147,16 @@ const intlMiddleware = createMiddleware(routing);
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const normalizedPathname = normalizePathname(pathname);
+
+  // Listings inactive for more than 30 days answer 410 Gone (pages cannot set it).
+  const listingSlug = getListingSlugFromPath(pathname);
+  if (listingSlug) {
+    const status =
+      getSimulatedStatus(request.nextUrl.searchParams) ?? (await lookupListingStatus(listingSlug));
+    if (status === 'gone') {
+      return goneResponse(pathname.startsWith('/en/') ? 'en' : 'es');
+    }
+  }
 
   const authCookiesToSet: Array<{
     name: string;

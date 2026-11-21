@@ -9,22 +9,9 @@ type ListingClient =
 async function fetchListingById(client: ListingClient, id: string) {
   return client
     .from('listings')
-    .select('*')
+    .select('id, state, city, bedrooms, property_type, neighborhood, transaction_type, url_slug, url_slug_es')
     .eq('id', id)
     .single();
-}
-
-async function fetchListingBySlug(client: ListingClient, slug: string) {
-  const [{ data: byEnSlug, error: enError }, { data: byEsSlug, error: esError }] =
-    await Promise.all([
-      client.from('listings').select('*').eq('url_slug', slug).single(),
-      client.from('listings').select('*').eq('url_slug_es', slug).single(),
-    ]);
-
-  return {
-    listing: (byEnSlug || byEsSlug) as Listing | null,
-    error: enError || esError,
-  };
 }
 
 function getOptionalPrivilegedClient() {
@@ -101,26 +88,6 @@ export const getListingById = cache(async (id: string) => {
   } = await fetchListingById(privilegedClient, id);
 
   return { listing: (privilegedListing as Listing | null) || null, error: privilegedError };
-});
-
-/**
- * Cached query to get a single listing by slug, including inactive listings
- * for server-rendered redirects and "no longer available" pages.
- */
-export const getListingBySlug = cache(async (slug: string) => {
-  const supabase = await createClient();
-  const { listing, error } = await fetchListingBySlug(supabase, slug);
-
-  if (listing) {
-    return { listing, error: null };
-  }
-
-  const privilegedClient = getOptionalPrivilegedClient();
-  if (!privilegedClient) {
-    return { listing: null, error };
-  }
-
-  return fetchListingBySlug(privilegedClient, slug);
 });
 
 /**

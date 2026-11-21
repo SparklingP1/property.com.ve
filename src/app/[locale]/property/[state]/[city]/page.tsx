@@ -1,9 +1,8 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { getLocationListings, getLocationStats } from '@/lib/supabase/listing-queries';
 import { ListingGrid } from '@/components/listings/listing-grid';
-import type { Listing } from '@/types/listing';
 import { Link } from '@/i18n/navigation';
 import { MapPin, Home, TrendingUp, Bed } from 'lucide-react';
 import { RegisterCTA } from '@/components/common/register-cta';
@@ -47,52 +46,32 @@ export async function generateMetadata({
 }
 
 export default async function CityPage({ params }: CityPageProps) {
-  const { state: stateSlug, city: citySlug } = await params;
+  const { locale, state: stateSlug, city: citySlug } = await params;
   const t = await getTranslations('aggregate');
   const tNav = await getTranslations('nav');
-  const supabase = createServiceClient();
-
-  // Fetch aggregate stats separately from the featured listing sample so the
-  // summary cards reflect the full matching inventory, not just the first page.
-  const [{ data: statsRows }, { data: listings }] = await Promise.all([
-    supabase
-      .from('listings')
-      .select('price, property_type, bedrooms, neighborhood')
-      .eq('active', true)
-      .ilike('state', stateSlug.replace(/-/g, ' '))
-      .ilike('city', citySlug.replace(/-/g, ' ')),
-    supabase
-      .from('listings')
-      .select('*')
-      .eq('active', true)
-      .ilike('state', stateSlug.replace(/-/g, ' '))
-      .ilike('city', citySlug.replace(/-/g, ' '))
-      .order('last_seen_at', { ascending: false })
-      .limit(100),
+  // Cached, lean stats (exact count, median USD price, facets) and a capped
+  // card-columns grid. Only active sale listings.
+  const filters = {
+    state: stateSlug.replace(/-/g, ' '),
+    city: citySlug.replace(/-/g, ' '),
+    transaction_type: 'sale' as const,
+  };
+  const [stats, listings] = await Promise.all([
+    getLocationStats(filters),
+    getLocationListings(filters, 50),
   ]);
 
-  if (!listings || listings.length === 0) {
+  if (listings.length === 0) {
     notFound();
   }
 
-  // Calculate stats
   const cityName = listings[0].city || citySlug.replace(/-/g, ' ');
   const stateName = listings[0].state || stateSlug.replace(/-/g, ' ');
-  const totalListings = statsRows?.length || 0;
-
-  let priceSum = 0, priceCount = 0;
-  const propertyTypes: Record<string, number> = {};
-  const bedroomSet = new Set<number>();
-  const neighborhoodSet = new Set<string>();
-  for (const l of statsRows || []) {
-    if (l.price) { priceSum += l.price; priceCount++; }
-    if (l.property_type) { propertyTypes[l.property_type] = (propertyTypes[l.property_type] || 0) + 1; }
-    if (l.bedrooms) bedroomSet.add(l.bedrooms);
-    if (l.neighborhood) neighborhoodSet.add(l.neighborhood);
-  }
-  const avgPrice = priceCount > 0 ? priceSum / priceCount : 0;
-  const bedroomOptions = [...bedroomSet].sort((a, b) => a - b);
-  const neighborhoods = [...neighborhoodSet];
+  const totalListings = stats.total ?? listings.length;
+  const medianPrice = stats.medianPrice ?? 0;
+  const propertyTypes = stats.propertyTypes;
+  const bedroomOptions = stats.bedroomOptions;
+  const neighborhoods = stats.neighborhoods;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -132,19 +111,19 @@ export default async function CityPage({ params }: CityPageProps) {
               <Home className="h-6 w-6 text-primary" />
               <h3 className="font-semibold text-stone-900">{t('totalProperties')}</h3>
             </div>
-            <p className="text-3xl font-bold text-primary">{totalListings}+</p>
+            <p className="text-3xl font-bold text-primary">{totalListings.toLocaleString(locale === 'en' ? 'en-US' : 'es-VE')}</p>
             <p className="text-sm text-stone-600 mt-1">{t('activeListings')}</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
             <div className="flex items-center gap-3 mb-2">
               <TrendingUp className="h-6 w-6 text-primary" />
-              <h3 className="font-semibold text-stone-900">{t('averagePrice')}</h3>
+              <h3 className="font-semibold text-stone-900">{t('medianPrice')}</h3>
             </div>
             <p className="text-3xl font-bold text-primary">
-              {avgPrice > 0 ? formatPrice(avgPrice) : t('priceVaries')}
+              {medianPrice > 0 ? formatPrice(medianPrice) : t('priceVaries')}
             </p>
-            <p className="text-sm text-stone-600 mt-1">{t('acrossAllProperties')}</p>
+            <p className="text-sm text-stone-600 mt-1">{t('medianPriceNote')}</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
@@ -223,7 +202,7 @@ export default async function CityPage({ params }: CityPageProps) {
           <h2 className="text-2xl font-bold mb-6 text-stone-900">
             {t('propertiesForSaleIn', { location: cityName }).replace(' →', '')}
           </h2>
-          <ListingGrid listings={listings.slice(0, 50) as Listing[]} />
+          <ListingGrid listings={listings} />
 
           <div className="text-center mt-8">
             <Link

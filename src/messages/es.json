@@ -149,7 +149,13 @@
     "save": "Guardar",
     "saved": "Guardado",
     "unsave": "Quitar de guardados",
-    "saveToFavourites": "Guardar en favoritos"
+    "saveToFavourites": "Guardar en favoritos",
+    "summary": "Resumen",
+    "viewOriginalOn": "Ver el anuncio original en {source}",
+    "sourceLine": "Fuente: {source}",
+    "lastSeenLine": "Visto por última vez: {date}",
+    "linkOutNote": "Property.com.ve reúne inmuebles publicados en otros portales. Las fotos, la descripción completa y el contacto del anunciante están en el anuncio original en {source}.",
+    "opensInNewTab": "(se abre en una pestaña nueva)"
   },
   "results": {
     "propertiesFound": "{count} Inmuebles Encontrados",
@@ -345,7 +351,9 @@
     "bedrooms": "Habitaciones",
     "listings": "inmuebles",
     "popularNeighborhoods": "Urbanizaciones Populares",
-    "priceVaries": "Varía"
+    "priceVaries": "Varía",
+    "medianPrice": "Precio mediano",
+    "medianPriceNote": "La mitad de los inmuebles con precio en US$ cuesta menos"
   },
   "propertyDetail": {
     "noLongerAvailable": "Inmueble Ya No Disponible",
@@ -361,7 +369,14 @@
     "tellUsWhatYoureLooking": "Cuéntanos qué estás buscando",
     "viewAllType": "Ver todos los {type} en {location} →",
     "backToSearch": "Volver a la búsqueda",
-    "searchSimilarIn": "Buscar inmuebles similares en {location}"
+    "searchSimilarIn": "Buscar inmuebles similares en {location}",
+    "unavailableBanner": "Este inmueble ya no está disponible",
+    "unavailableText": "El anuncio dejó de aparecer en {source} el {date}. Lo dejamos aquí como referencia; más abajo tienes inmuebles parecidos que sí están disponibles.",
+    "unavailableTextNoDate": "El anuncio ya no aparece en {source}. Lo dejamos aquí como referencia; más abajo tienes inmuebles parecidos que sí están disponibles.",
+    "lastListedPrice": "Último precio publicado",
+    "lastListedPriceNote": "Es el precio que tenía el anuncio cuando estaba activo, no una oferta vigente.",
+    "similarInTown": "Inmuebles parecidos disponibles en {location}",
+    "contactViaSource": "Para ver más fotos, la descripción completa o contactar al anunciante, abre el anuncio original en {source}."
   },
   "seoPage": {
     "noPropertiesAvailable": "No Hay Inmuebles Disponibles Actualmente",

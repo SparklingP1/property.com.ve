@@ -1,5 +1,23 @@
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { createServiceClient } from './server';
+
+/** 12 hours: market_stats is rebuilt monthly, sample listings daily. */
+const MARKET_REVALIDATE_SECONDS = 43200;
+
+/**
+ * React cache() dedupes within a render; unstable_cache keeps the result
+ * across requests so price index pages stop querying Supabase on every view.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function cachedMarket<A extends any[], R>(name: string, fn: (...args: A) => Promise<R>) {
+  return cache((...args: A) =>
+    unstable_cache(() => fn(...args), ['market-data-v1', name, ...args.map((a) => String(a))], {
+      revalidate: MARKET_REVALIDATE_SECONDS,
+      tags: ['market-data'],
+    })()
+  );
+}
 
 export interface MarketStat {
   id: number;
@@ -26,7 +44,7 @@ export interface MarketStat {
  * Get the most recent period that has market_stats data.
  * Uses anon key — RLS auto-filters to medium/high confidence.
  */
-export const getLatestPeriod = cache(async (): Promise<string | null> => {
+export const getLatestPeriod = cachedMarket('getLatestPeriod', async (): Promise<string | null> => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
@@ -41,7 +59,7 @@ export const getLatestPeriod = cache(async (): Promise<string | null> => {
 /**
  * National overview: rollup rows (city='', state='') for the latest period.
  */
-export const getMarketOverview = cache(async (periodStart: string): Promise<MarketStat[]> => {
+export const getMarketOverview = cachedMarket('getMarketOverview', async (periodStart: string): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
@@ -58,7 +76,7 @@ export const getMarketOverview = cache(async (periodStart: string): Promise<Mark
 /**
  * City comparison: one row per city (all property types, all bedrooms).
  */
-export const getCityComparison = cache(async (periodStart: string): Promise<MarketStat[]> => {
+export const getCityComparison = cachedMarket('getCityComparison', async (periodStart: string): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
@@ -76,7 +94,7 @@ export const getCityComparison = cache(async (periodStart: string): Promise<Mark
 /**
  * All stats for a specific city (by type, by bedrooms, rollups).
  */
-export const getCityStats = cache(async (city: string, periodStart: string): Promise<MarketStat[]> => {
+export const getCityStats = cachedMarket('getCityStats', async (city: string, periodStart: string): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
@@ -92,7 +110,7 @@ export const getCityStats = cache(async (city: string, periodStart: string): Pro
 /**
  * Time series: multiple periods for a city (for charts).
  */
-export const getTimeSeries = cache(async (city: string, months: number = 12): Promise<MarketStat[]> => {
+export const getTimeSeries = cachedMarket('getTimeSeries', async (city: string, months: number = 12): Promise<MarketStat[]> => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('market_stats')
@@ -111,7 +129,7 @@ export const getTimeSeries = cache(async (city: string, months: number = 12): Pr
  * Cities with medium+ confidence data (for route validation and sitemap).
  * Returns unique city names with their state.
  */
-export const getValidCities = cache(async (): Promise<Array<{ city: string; state: string; listing_count: number }>> => {
+export const getValidCities = cachedMarket('getValidCities', async (): Promise<Array<{ city: string; state: string; listing_count: number }>> => {
   const supabase = createServiceClient();
 
   // Get latest period first
@@ -140,7 +158,7 @@ export const getValidCities = cache(async (): Promise<Array<{ city: string; stat
 /**
  * Sample listings from a city for display on market data pages.
  */
-export const getSampleListings = cache(async (city: string, limit: number = 6) => {
+export const getSampleListings = cachedMarket('getSampleListings', async (city: string, limit: number = 6) => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('listings')

@@ -149,7 +149,13 @@
     "save": "Save",
     "saved": "Saved",
     "unsave": "Remove from saved",
-    "saveToFavourites": "Save to favourites"
+    "saveToFavourites": "Save to favourites",
+    "summary": "Summary",
+    "viewOriginalOn": "View the original listing on {source}",
+    "sourceLine": "Source: {source}",
+    "lastSeenLine": "Last seen: {date}",
+    "linkOutNote": "Property.com.ve gathers properties listed on other portals. The photos, full description and the advertiser's contact details are on the original listing on {source}.",
+    "opensInNewTab": "(opens in a new tab)"
   },
   "results": {
     "propertiesFound": "{count} Properties Found",
@@ -345,7 +351,9 @@
     "bedrooms": "Bedrooms",
     "listings": "listings",
     "popularNeighborhoods": "Popular Neighborhoods",
-    "priceVaries": "Varies"
+    "priceVaries": "Varies",
+    "medianPrice": "Median price",
+    "medianPriceNote": "Half of the listings priced in USD cost less"
   },
   "propertyDetail": {
     "noLongerAvailable": "Property No Longer Available",
@@ -361,7 +369,14 @@
     "tellUsWhatYoureLooking": "Tell us what you're looking for",
     "viewAllType": "View all {type} {location} →",
     "backToSearch": "Back to search",
-    "searchSimilarIn": "Search similar properties in {location}"
+    "searchSimilarIn": "Search similar properties in {location}",
+    "unavailableBanner": "This property is no longer available",
+    "unavailableText": "The listing stopped appearing on {source} on {date}. We keep it here for reference; below are similar properties that are still available.",
+    "unavailableTextNoDate": "The listing no longer appears on {source}. We keep it here for reference; below are similar properties that are still available.",
+    "lastListedPrice": "Last listed price",
+    "lastListedPriceNote": "This was the asking price while the listing was active, not a current offer.",
+    "similarInTown": "Similar properties available in {location}",
+    "contactViaSource": "For more photos, the full description or to contact the advertiser, open the original listing on {source}."
   },
   "seoPage": {
     "noPropertiesAvailable": "No Properties Currently Available",

@@ -1,14 +1,13 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { getLocationListings, getLocationStats, getSeoPageContent } from '@/lib/supabase/listing-queries';
 import { ListingGrid } from '@/components/listings/listing-grid';
 import CityMarketDataPage, {
   generateMetadata as generateCityMarketMetadata,
 } from '../precios-de-casas-en-venezuela/[city]/page';
 import { parseMarketDataCitySlug } from '@/lib/market-data';
 import { parseSEOUrl, getPageTitleForLocale, getMetaDescriptionForLocale } from '@/lib/seo-url-parser';
-import type { Listing } from '@/types/listing';
 import { Link } from '@/i18n/navigation';
 import { MapPin, Home, TrendingUp, Bed, Search } from 'lucide-react';
 
@@ -28,8 +27,6 @@ export async function generateMetadata({
     });
   }
 
-  const supabase = createServiceClient();
-
   // Parse URL to extract filters
   const parsed = parseSEOUrl(slug);
 
@@ -39,20 +36,8 @@ export async function generateMetadata({
     };
   }
 
-  // Try to fetch pre-generated SEO content (try both English slug and Spanish slug in parallel)
-  const [{ data: byEnSlug }, { data: byEsSlug }] = await Promise.all([
-    supabase
-      .from('seo_page_content')
-      .select('*')
-      .eq('page_slug', `/${slug}`)
-      .single(),
-    supabase
-      .from('seo_page_content')
-      .select('*')
-      .eq('page_slug_es', `/${slug}`)
-      .single(),
-  ]);
-  const seoContent = byEnSlug || byEsSlug;
+  // Pre-generated SEO content (English or Spanish slug), cached
+  const seoContent = await getSeoPageContent(slug);
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property.com.ve';
   // Use locale-specific slugs for canonical and hreflang
@@ -67,21 +52,18 @@ export async function generateMetadata({
   };
 
   if (seoContent) {
-    // Get live listing count for this page's filters
-    let countQuery = supabase.from('listings').select('*', { count: 'planned', head: true }).eq('active', true);
-    if (parsed.filters.city) countQuery = countQuery.ilike('city', parsed.filters.city);
-    if (parsed.filters.state) countQuery = countQuery.ilike('state', parsed.filters.state);
-    if (parsed.filters.property_type) countQuery = countQuery.eq('property_type', parsed.filters.property_type);
-    if (parsed.filters.bedrooms) countQuery = countQuery.eq('bedrooms', parsed.filters.bedrooms);
-    const { count: liveCount } = await countQuery;
+    // Exact live count for this page's filters (cached, shared with the page body)
+    const { total: liveCount } = await getLocationStats({ ...parsed.filters, transaction_type: 'sale' });
 
     // Use locale-appropriate content, replacing stale counts with live count
     const rawTitle = (locale === 'es' && seoContent.meta_title_es) ? seoContent.meta_title_es : seoContent.meta_title;
     const titleNoSuffix = rawTitle?.replace(/ \| Property\.com\.ve$/i, '') || rawTitle;
     // Replace stale number in title (e.g., "252 Listings" → "3432 Listings")
+    // ("24 Listados" also becomes "27 Inmuebles": "listados" is not the word searchers use.)
     const metaTitle = liveCount
-      ? titleNoSuffix?.replace(/\d+\s*(Listings|Inmuebles|Available|Disponibles)/i,
-          `${liveCount.toLocaleString()} $1`)
+      ? titleNoSuffix?.replace(/\d[\d,.]*\s*(Listings|Listados|Inmuebles|Available|Disponibles)/i,
+          (_match: string, word: string) =>
+            `${liveCount.toLocaleString(locale === 'es' ? 'es-VE' : 'en-US')} ${/^listados$/i.test(word) ? 'Inmuebles' : word}`)
       : titleNoSuffix;
     const metaDesc = (locale === 'es' && seoContent.meta_description_es) ? seoContent.meta_description_es : seoContent.meta_description;
     return {
@@ -129,7 +111,6 @@ export default async function SEOPage({ params }: SEOPageProps) {
   const tAgg = await getTranslations('aggregate');
   const tListing = await getTranslations('listing');
   const tNav = await getTranslations('nav');
-  const supabase = createServiceClient();
 
   // Parse URL to extract filters (handles both English and Spanish slugs)
   const parsed = parseSEOUrl(slug);
@@ -140,71 +121,26 @@ export default async function SEOPage({ params }: SEOPageProps) {
 
   const { filters } = parsed;
 
-  // Fetch pre-generated SEO content (try English slug and Spanish slug in parallel)
-  const [{ data: byEnSlug2 }, { data: byEsSlug2 }] = await Promise.all([
-    supabase
-      .from('seo_page_content')
-      .select('*')
-      .eq('page_slug', `/${slug}`)
-      .single(),
-    supabase
-      .from('seo_page_content')
-      .select('*')
-      .eq('page_slug_es', `/${slug}`)
-      .single(),
-  ]);
-  const seoContent = byEnSlug2 || byEsSlug2;
+  // Pre-generated SEO content (English or Spanish slug), cached
+  const seoContent = await getSeoPageContent(slug);
 
   // If no SEO content exists, this page shouldn't exist
   if (!seoContent) {
     notFound();
   }
 
-  // Build a full stats query plus a capped listing query so the hero metrics
-  // reflect the entire matching inventory while the grid stays lightweight.
-  let statsQuery = supabase
-    .from('listings')
-    .select('price, property_type, bedrooms')
-    .eq('active', true);
-  let listQuery = supabase.from('listings').select('*').eq('active', true);
-
-  if (filters.city) { statsQuery = statsQuery.ilike('city', filters.city); listQuery = listQuery.ilike('city', filters.city); }
-  if (filters.state) { statsQuery = statsQuery.ilike('state', filters.state); listQuery = listQuery.ilike('state', filters.state); }
-  if (filters.property_type) { statsQuery = statsQuery.eq('property_type', filters.property_type); listQuery = listQuery.eq('property_type', filters.property_type); }
-  if (filters.bedrooms) { statsQuery = statsQuery.eq('bedrooms', filters.bedrooms); listQuery = listQuery.eq('bedrooms', filters.bedrooms); }
-
-  const [{ data: statsRows }, { data: listings }] = await Promise.all([
-    statsQuery,
-    listQuery.order('last_seen_at', { ascending: false }).limit(100),
+  // Cached, lean stats (exact count, median USD price, facets) plus a capped
+  // card-columns grid. Inactive listings are excluded (active = true).
+  const locationFilters = { ...filters, transaction_type: 'sale' as const };
+  const [stats, listings] = await Promise.all([
+    getLocationStats(locationFilters),
+    getLocationListings(locationFilters, 100),
   ]);
 
-  const totalListings = statsRows?.length || 0;
-
-  // Calculate stats (only if listings exist)
-  const pricedStatsRows = (statsRows || []).filter((l) => l.price);
-  const avgPrice =
-    pricedStatsRows.length > 0
-      ? pricedStatsRows.reduce((sum, l) => sum + (l.price || 0), 0) / pricedStatsRows.length
-      : 0;
-
-  const propertyTypes =
-    totalListings > 0
-      ? statsRows!.reduce((acc, l) => {
-          if (l.property_type) {
-            acc[l.property_type] = (acc[l.property_type] || 0) + 1;
-          }
-          return acc;
-        }, {} as Record<string, number>)
-      : {};
-
-  const bedroomOptions =
-    totalListings > 0
-      ? [
-          ...new Set(
-            statsRows!.map((l) => l.bedrooms).filter((b): b is number => b !== null && b !== undefined)
-          ),
-        ].sort((a, b) => a - b)
-      : [];
+  const totalListings = stats.total ?? listings.length;
+  const medianPrice = stats.medianPrice ?? 0;
+  const propertyTypes = stats.propertyTypes;
+  const bedroomOptions = stats.bedroomOptions;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -325,12 +261,12 @@ export default async function SEOPage({ params }: SEOPageProps) {
               <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
                 <div className="flex items-center gap-3 mb-2">
                   <TrendingUp className="h-6 w-6 text-primary" />
-                  <h3 className="font-semibold text-stone-900">{tAgg('averagePrice')}</h3>
+                  <h3 className="font-semibold text-stone-900">{tAgg('medianPrice')}</h3>
                 </div>
                 <p className="text-3xl font-bold text-primary">
-                  {avgPrice > 0 ? formatPrice(avgPrice) : tAgg('priceVaries')}
+                  {medianPrice > 0 ? formatPrice(medianPrice) : tAgg('priceVaries')}
                 </p>
-                <p className="text-sm text-stone-600 mt-1">{tAgg('acrossAllProperties')}</p>
+                <p className="text-sm text-stone-600 mt-1">{tAgg('medianPriceNote')}</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
@@ -401,7 +337,7 @@ export default async function SEOPage({ params }: SEOPageProps) {
                   : t('propertiesLabel')}{' '}
                 {t('inLocation', { location })}
               </h2>
-              <ListingGrid listings={(listings as Listing[]) ?? []} />
+              <ListingGrid listings={listings} />
 
               {totalListings >= 100 && (
                 <div className="text-center mt-8">
