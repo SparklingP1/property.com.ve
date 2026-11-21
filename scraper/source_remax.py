@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 SOURCE_ID = "remax"
 BRAND = "RE/MAX Venezuela"
 BASE = "https://www.remax.com.ve"
-MIN_DELAY = float(os.environ.get("PROPERTY_REMAX_DELAY", "5"))   # robots.txt says 1 s, but it answers 429 (Retry-After 1800) after ~100-200 requests at 1-4 s
+MIN_DELAY = float(os.environ.get("PROPERTY_REMAX_DELAY", "20"))   # robots.txt says 1 s, but it answers 429 (Retry-After 1800) after ~100 requests in a half hour at any pace (seen at 1, 4 and 8 s)
 OPERATIONS = {"venta": "sale", "alquiler": "rent"}
 
 URL_TYPE = {

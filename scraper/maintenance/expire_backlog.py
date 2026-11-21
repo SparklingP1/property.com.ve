@@ -46,6 +46,8 @@ def main():
     ap.add_argument("--sample", type=int, default=10, help="candidates to confirm by HTTP per source")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--save-discovery", default=None, help="write the discovered URL lists to this JSON file")
+    ap.add_argument("--remax-sample-only", type=int, default=0,
+                    help="RE/MAX: skip the full walk (rate-limited) and HTTP-check N random active rows instead")
     args = ap.parse_args()
 
     store = Store(dry_run=not args.apply)
@@ -55,6 +57,27 @@ def main():
     report, saved = {}, {}
     for name, mod in (("rentahouse", source_rentahouse), ("remax", source_remax)):
         if args.source not in (name, "all"):
+            continue
+        if name == "remax" and args.remax_sample_only:
+            index = store.load_index(name)
+            active = [u for u, r in index.items() if r.get("active")]
+            sample = random.Random(42).sample(sorted(active), min(args.remax_sample_only, len(active)))
+            status = Counter()
+            for u in sample:
+                r = fetcher.get(u)
+                if r.gone or (r.ok and source_remax.is_not_found(r.text)):
+                    status["gone"] += 1
+                elif r.ok:
+                    status["live"] += 1
+                else:
+                    status[str(r.status or r.error)] += 1
+            checked = status["gone"] + status["live"]
+            share = status["gone"] / checked if checked else None
+            report[name] = {"active_rows": len(active), "sampled": len(sample), "http_check_sample": dict(status),
+                            "estimated_dead_share": round(share, 3) if share is not None else None,
+                            "estimated_to_expire": round(share * len(active)) if share is not None else None,
+                            "note": "estimate only; the weekly full walk (--remax-full) expires them for real"}
+            log.info(f"{name}: {json.dumps(report[name])}")
             continue
         disc = mod.discover(fetcher)
         if not disc.get("complete", True):

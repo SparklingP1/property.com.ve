@@ -54,7 +54,7 @@ SOURCES = {
 DEFAULTS = {
     #               max new, refresh, time budget (min)
     "rentahouse": dict(max_new=500, refresh=100, budget=120),
-    "remax": dict(max_new=600, refresh=150, budget=60),
+    "remax": dict(max_new=150, refresh=40, budget=75),
 }
 # Absence-based expiry is skipped when discovery looks broken
 MIN_FOUND_RATIO = 0.7

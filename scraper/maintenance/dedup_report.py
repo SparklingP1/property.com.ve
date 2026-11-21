@@ -47,11 +47,12 @@ def main():
     scope = "all active rows"
     if args.live_urls:
         live = json.loads(Path(args.live_urls).read_text())
-        rah = set(live.get("rentahouse", []))
-        rmx = {source_remax.listing_id(u) for u in live.get("remax", [])}
-        rows = [r for r in rows if (r["source"] == "rentahouse" and r["source_url"] in rah)
-                or (r["source"] == "remax" and source_remax.listing_id(r["source_url"]) in rmx)]
-        scope = "active rows still listed at their source"
+        # a source missing from the file is kept unfiltered
+        rah = set(live["rentahouse"]) if "rentahouse" in live else None
+        rmx = {source_remax.listing_id(u) for u in live["remax"]} if "remax" in live else None
+        rows = [r for r in rows if (r["source"] == "rentahouse" and (rah is None or r["source_url"] in rah))
+                or (r["source"] == "remax" and (rmx is None or source_remax.listing_id(r["source_url"]) in rmx))]
+        scope = f"active rows still listed at their source (filtered: {sorted(live)})"
 
     groups = dedup.find_groups(rows)
     out = {"scope": scope, "rows_considered": len(rows), **dedup.summarise(groups)}
