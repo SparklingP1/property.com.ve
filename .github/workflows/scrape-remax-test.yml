@@ -1,11 +1,13 @@
 name: RE/MAX Full Scrape
 
+# Manual: re-check every RE/MAX listing we hold (20 s between requests: ~900 listings per 5 h run; RE/MAX rate-limits hard).
+
 on:
   workflow_dispatch:
 
 jobs:
   scrape-remax-full:
-    name: Scrape All RE/MAX Listings (~3,500 residential)
+    name: Re-check all RE/MAX listings
     runs-on: ubuntu-latest
     timeout-minutes: 360
     environment: Production
@@ -24,16 +26,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r scraper/requirements.txt
 
-      - name: Install Playwright browsers
-        run: playwright install chromium
-
-      - name: Run RE/MAX full scrape
+      - name: Run RE/MAX full refresh
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "🔄 RE/MAX full scrape: all residential listings"
-          python scraper/run.py \
-            --source remax \
-            --run-type full
+          python scraper/run.py --source remax --refresh 900 --time-budget 300

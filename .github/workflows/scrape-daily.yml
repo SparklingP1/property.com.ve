@@ -1,18 +1,29 @@
 name: Daily Scrape (New Listings)
 
+# Link-out scraper (scraper/run.py): Rent-A-House from its sitemap at a 10 s
+# crawl-delay, RE/MAX from its national search at 2 s. Fetches new listings
+# plus a rolling batch of the oldest-checked ones, expires listings that left
+# the source, takes the weekly price snapshot.
+# SUPABASE_KEY must be the service-role key: run.py refuses any other key.
+# The work server runs the same thing from cron (scraper/cron/run_daily.sh);
+# don't run both, or every source is crawled twice a day.
+
 on:
-  # Run daily at 6am UTC (early morning)
   schedule:
     - cron: '0 6 * * *'
-
-  # Allow manual trigger
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (fetch and parse, write nothing)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  scrape-new:
-    name: Scrape New Listings (Pages 1-50)
+  scrape:
+    name: Scrape all sources
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 300
     environment: Production
 
     steps:
@@ -29,36 +40,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r scraper/requirements.txt
 
-      - name: Install Playwright browsers
-        run: playwright install chromium
-
-      - name: Run daily Rent-A-House scrape
+      - name: Run scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "🔄 Daily Rent-A-House scrape: Pages 1-50 (newest listings)"
-          python scraper/run.py \
-            --source rentahouse \
-            --start-page 1 \
-            --end-page 50 \
-            --run-type daily
-
-      - name: Run daily RE/MAX scrape (new listings only)
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          echo "🔄 Daily RE/MAX scrape: only listings with ID > max in DB"
-          python scraper/run.py \
-            --source remax \
-            --new-only \
-            --run-type daily
+          python scraper/run.py --source all ${{ inputs.dry_run && '--dry-run' || '' }}
 
       - name: Send property alerts
-        if: success()
+        if: success() && !inputs.dry_run
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
@@ -67,13 +57,3 @@ jobs:
         run: |
           echo "📬 Sending property alert emails..."
           python scraper/send_alerts.py
-
-      - name: Report completion
-        if: always()
-        run: |
-          echo "=============================================="
-          echo "✅ Daily scrape completed"
-          echo "   Pages: 1-50 (newest listings)"
-          echo "   Status: ${{ job.status }}"
-          echo "   Next full scrape: Sunday 3am UTC"
-          echo "=============================================="

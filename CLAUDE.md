@@ -16,7 +16,7 @@ Property.com.ve is a real estate aggregation platform for Venezuela, built on an
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript
 - **Styling**: Tailwind CSS v4, Radix UI primitives
 - **Database**: Supabase (PostgreSQL with Row Level Security)
-- **Scraper**: Python 3.11, Playwright, BeautifulSoup4
+- **Scraper**: Python 3.11+, httpx, BeautifulSoup4 (no browser)
 - **Deployment**: Vercel (frontend), GitHub Actions (scraper)
 
 ## Development Commands
@@ -27,11 +27,10 @@ npm run dev          # Start dev server on localhost:3000
 npm run build        # Production build (may fail on ARM Windows due to Tailwind v4)
 npm run lint         # Run ESLint
 
-# Scraper (local testing)
-cd scraper
-pip install -r requirements.txt
-playwright install chromium
-python run.py        # Requires SUPABASE_URL and SUPABASE_KEY env vars
+# Scraper (local testing; no browser needed)
+pip install -r scraper/requirements.txt
+python scraper/run.py --dry-run --max-fetch 3 --remax-max-pages 2 --print-records
+# Requires SUPABASE_URL and SUPABASE_KEY (service-role key for live runs)
 
 # Database migrations
 # Apply via Supabase dashboard SQL editor in order:
@@ -69,54 +68,55 @@ src/components/
 - `src/lib/supabase/client.ts` - Client-side client (minimal usage)
 - **Row Level Security (RLS)**: Public can read active listings, anonymous can submit forms
 
-### Scraper Architecture
+### Scraper Architecture (link-out, Nov 2026)
 
-**File**: `scraper/run.py` (~2000 lines)
+Owner decision 21 Nov 2026: aggregator ("link-out") style. Store facts, one
+thumbnail and our own template summary; link to the source; no copied
+descriptions, no agent names/phones/e-mails. Field contract for the pages:
+`docs/data-contract.md`.
 
-**Key Classes:**
-- `PropertyListing` (Pydantic): Data model with 40+ fields
-- `PlaywrightExtractor`: Browser automation for JavaScript-heavy sites
-- `SupabaseStorage`: Database operations with upsert logic and image caching
-- `ScraperConfig`: Source configuration (URL, source_id, page_urls)
+**Files** (`scraper/`): `run.py` (CLI/orchestration), `source_rentahouse.py`,
+`source_remax.py` (discovery + parsing, plain HTTP, no browser),
+`polite_http.py` (robots.txt incl. wildcards, crawl-delay, one request at a
+time), `facts.py` (facts model, template titles/summaries, fingerprint,
+slugs), `store.py` (all Supabase writes; `--dry-run` writes nothing),
+`dedup.py`, `compute_stats.py` (monthly index), `cron/run_daily.sh`
+(work-server cron), `maintenance/` (one-off expiry, backfill, dedup report,
+photo storage report; all dry-run by default).
 
-**Scraper Flow:**
-1. Initialize Playwright browser (Chromium)
-2. For each source (Rent-A-House, RE/MAX):
-   - Discover listing URLs (pagination for RAH, location search for RE/MAX)
-   - Visit each listing detail page, parse with BeautifulSoup
-   - Filter to residential only (whitelist: apartment, house)
-   - Skip image re-upload if listing already exists in DB (image cache)
-   - Skip translation if Spanish content unchanged
-   - **Batch upload every 10 pages** (critical for progress visibility)
-3. Mark stale listings (not seen in 14 days) as inactive
+**Sources:**
+- **Rent-A-House**: every live listing is in `sitemap-rentahouse.com.ve-property-details.xml`.
+  robots.txt: `Crawl-delay: 10`, `Disallow: /*?` (never fetch a URL with a query string).
+  Its `lastmod` is today's date for every URL, so it can't flag changes: we fetch
+  new URLs, plus the N oldest-checked existing ones per run (`--refresh`).
+- **RE/MAX**: sitemap.xml is stale; discovery walks `/inmuebles/{venta|alquiler}?ubi=VEN&page=N`
+  (27 a page, server-rendered, newest first), 20 s apart (`PROPERTY_REMAX_DELAY`; robots says 1 s, but it answers 429 with Retry-After 1800 after ~100 requests in a half hour at any pace; the fetcher honours it). Daily runs read only until 3 pages hold nothing new; Sundays (`--remax-full`) walk all ~520 pages, and only complete walks count for absence-expiry. Matched to DB rows by the trailing listing id.
+- Stored types: apartment, house (incl. townhouse/quinta), land, annex; sale and rent.
+  Commercial/office/business skipped.
 
-**CLI Flags:**
-- `--source {rentahouse,remax,all}` — which source to scrape
-- `--new-only` — (RE/MAX) only process listings with ID > max already in DB
-- `--start-page N / --end-page N` — (RAH) page range for distributed scraping
-- `--max-listings N` — cap total listings processed (for testing)
-- `--run-type {full,daily}` — tags price history snapshots
+**Per run, per source:** discover → fetch new + refresh batch → upsert facts →
+bump `last_seen_at` for listings still listed → expire (active=false,
+deactivated_at=now) rows missing on this run and the previous one, or that
+answer 404/410 → log to `scrape_runs` (or the local JSON log). Then a weekly
+`price_history` snapshot (`run_type='full'`, live for-sale USD rows) and the
+dedup pass (needs migration 022). Absence-expiry is skipped on the first run,
+on test runs, and when discovery finds < 70% of the previous run.
 
-**Sources Supported:**
-- **Rent-A-House** (~15,400 listings): Paginated search `?tipo_negocio=venta&tipo_inmueble=Apartamento,Casa,Townhouse`
-- **RE/MAX Venezuela** (~3,600 residential listings): Location-based search `/inmuebles/venta?ubi={location}` across 21 Venezuelan states/cities, deduplicated by listing ID
-- **BienesOnline, Green-Acres**: Disabled/legacy
+**Rentals** are stored hidden (`active=false`, `deactivated_at null`) until the
+pages filter by `transaction_type`; then run with `--rentals-active`.
+
+**Key rule:** live runs need the **service-role** key; `run.py` and
+`compute_stats.py` refuse any other. (The old scraper ran with a key that RLS
+blocked from `price_history`: the price index silently stopped after 3 Apr 2026.)
 
 ### Refresh Schedule
 
-**Daily (6am UTC)** — `scrape-daily.yml`:
-- Rent-A-House: pages 1-50 (newest, ~650 listings, ~15-20 min)
-- RE/MAX: `--new-only` mode, only listings with ID > max in DB (~10-15 min)
-- Sends property alerts to users with saved searches
-- Sends daily admin summary email (separate workflow at 00:05 UTC)
-
-**Weekly (Sunday 3am UTC)** — `scrape-distributed.yml`:
-- Rent-A-House: all ~1,284 pages across 9 parallel jobs
-- RE/MAX: full re-scrape of all ~3,600 residential listings (single job, 6hr timeout) — refreshes prices on existing listings
-
-**Price updates:** Existing listings get price refreshes via the weekly full scrape. Daily runs only pick up brand-new listings (by ID).
-
-**Image caching:** `upsert_listings()` calls `_get_existing_images()` to bulk-fetch image URLs for listings already in the DB, then skips re-download/re-upload for those. Only new listings trigger image hosting to Supabase Storage.
+- **Work server cron** (GitHub Actions were switched off for inactivity ~30 Sep 2026):
+  `scraper/cron/run_daily.sh` daily; on the 1st it also computes the previous
+  month's market index. Logs: `/home/dan/VE/logs/property-scraper/`.
+- GitHub workflows (if re-enabled; don't run both): `scrape-daily.yml` (daily, +
+  user alerts), `scrape-distributed.yml` (weekly deeper refresh, single job),
+  `scrape-remax-test.yml` (manual full RE/MAX re-check), `compute-stats.yml` (monthly).
 
 ### Database Schema
 
@@ -197,28 +197,11 @@ if (searchParams.minPrice) query = query.gte('price', Number(searchParams.minPri
 
 ### Scraper Patterns
 
-**Always use batch uploads when modifying scraper:**
-```python
-# In extract_rentahouse_listings(), after each page:
-if storage and source_id and page_num % batch_size == 0 and all_listings:
-    result = storage.upsert_listings(all_listings, source_id)
-    total_uploaded += result.get('upserted', 0)
-    logger.info(f"✅ Batch uploaded: {result.get('upserted', 0)} upserted")
-    all_listings = []  # Clear batch
-```
-
-**Filtering commercial properties:**
-```python
-property_type = raw_data.get('property_type', '').lower()
-if property_type in ['commercial', 'office', 'building']:
-    logger.info(f"Skipping commercial property: {raw_data.get('title', '')[:60]}")
-    continue
-```
-
-**Image quality extraction:**
-- Rent-A-House uses lazy-loading: Extract from `data-src` and `data-srcset`
-- Always get highest resolution: `2048x1600` from srcset
-- Pattern: `https://cdn.resize.sparkplatform.com/ven/2048x1600/true/{img_id}-o.jpg`
+- Everything that writes goes through `store.Store`; keep `--dry-run` truthful.
+- Never add copied source text, extra photos or personal contact data to rows.
+- Obey each source's robots.txt via `PoliteFetcher` (never bypass `check_robots`
+  for listing hosts); one request at a time per host.
+- Test with: `python scraper/run.py --dry-run --max-fetch 3 --remax-max-pages 2 --print-records`.
 
 ### Frontend Patterns
 
@@ -279,11 +262,11 @@ curl -X POST \
 ## Data Flow
 
 **Scraper → Database:**
-1. Playwright extracts raw HTML from property sites
-2. BeautifulSoup parses HTML into structured data
-3. Pydantic validates and normalizes data
-4. Supabase storage upserts listings (batch every 10 pages)
-5. Stale listings marked inactive at end
+1. Discovery from each source's sitemap / national search (robots.txt obeyed)
+2. Plain-HTTP fetch of new + oldest-checked listings, parsed with BeautifulSoup into facts
+3. Template titles/summaries; one thumbnail to Supabase Storage
+4. Upsert in batches; last_seen_at bumped; missing/404 listings expired
+5. Run logged to scrape_runs; weekly price snapshot; dedup marking
 
 **Database → Frontend:**
 1. User visits page (e.g., `/search`)
@@ -379,15 +362,12 @@ See [property-com-ve-strategy.md](property-com-ve-strategy.md) for full detail. 
 ## Common Tasks
 
 **Adding a new property source:**
-1. Create `extract_<source>_listings()` and `_parse_<source>_listing()` methods in `PlaywrightExtractor`
-2. Add source configuration in `get_<source>_config()` returning `ScraperConfig`
-3. Add source_id to `--source` CLI arg choices in `parse_args()`
-4. Add `elif config.source_id == "<source>"` branch in `scrape_source()`
-5. Add source to `main()` function with error handling
-6. Filter to residential only: `if property_type not in ('apartment', 'house'): skip`
-7. Update `sourceLabels` in `src/components/listings/listing-detail.tsx`
-8. Add domain(s) to `next.config.ts` image remotePatterns
-9. Add source to daily workflow (`scrape-daily.yml`) and weekly workflow (`scrape-distributed.yml`)
+1. Read its robots.txt and terms; prefer a sitemap; plain HTTP if pages are server-rendered
+2. Create `scraper/source_<name>.py` with `SOURCE_ID`, `MIN_DELAY`, `classify_url(url)`,
+   `discover(fetcher) -> {'urls', 'total'}` and `parse(url, html) -> ListingFacts | None`
+3. Register it in `SOURCES` / `DEFAULTS` / `MIN_FOUND_FLOOR` in `scraper/run.py` and the `--source` choices
+4. Add its brand to `agent_office` in `store.build_row()` and `sourceLabels` in `src/components/listings/listing-detail.tsx`
+5. Dry-run with `--source <name> --dry-run --max-fetch 3 --print-records`
 
 **Adding a new filter:**
 1. Add state variable in `AdvancedSearchFilters` component
