@@ -1,6 +1,6 @@
 name: RE/MAX Full Scrape
 
-# Manual: re-check every RE/MAX listing we hold (1 s crawl-delay, ~2-3 h).
+# Manual: re-check every RE/MAX listing we hold (2 s between requests, ~6 h; may need two runs).
 
 on:
   workflow_dispatch:
@@ -31,4 +31,4 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          python scraper/run.py --source remax --refresh 20000 --time-budget 330
+          python scraper/run.py --source remax --refresh 20000 --time-budget 300

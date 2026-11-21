@@ -49,7 +49,8 @@ def main():
     args = ap.parse_args()
 
     store = Store(dry_run=not args.apply)
-    fetcher = PoliteFetcher(min_delay={"rentahouse.com.ve": 10.0, "www.remax.com.ve": 1.0})
+    fetcher = PoliteFetcher(min_delay={"rentahouse.com.ve": source_rentahouse.MIN_DELAY,
+                                       "www.remax.com.ve": source_remax.MIN_DELAY})
     walk_started = datetime.now(timezone.utc)
     report, saved = {}, {}
     for name, mod in (("rentahouse", source_rentahouse), ("remax", source_remax)):

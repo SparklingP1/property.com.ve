@@ -90,7 +90,7 @@ photo storage report; all dry-run by default).
   Its `lastmod` is today's date for every URL, so it can't flag changes: we fetch
   new URLs, plus the N oldest-checked existing ones per run (`--refresh`).
 - **RE/MAX**: sitemap.xml is stale; discovery walks `/inmuebles/{venta|alquiler}?ubi=VEN&page=N`
-  (27 a page, server-rendered), crawl-delay 1. Matched to DB rows by the trailing listing id.
+  (27 a page, server-rendered), 2 s apart (robots says 1 s, but it answers 429 at that rate; the fetcher backs off on 429). Matched to DB rows by the trailing listing id.
 - Stored types: apartment, house (incl. townhouse/quinta), land, annex; sale and rent.
   Commercial/office/business skipped.
 

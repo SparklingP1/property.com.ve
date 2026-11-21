@@ -3,7 +3,7 @@
 robots.txt allows everything with `Crawl-delay: 1`. Its sitemap.xml is a
 stale static file (2025), so discovery walks the server-rendered search
 results for the whole country (`/inmuebles/{venta|alquiler}?ubi=VEN&page=N`,
-27 listings a page), one request a second. Detail pages are server-rendered
+27 listings a page), one request every 2 s. Detail pages are server-rendered
 too (JSON-LD + a "Datos del inmueble" block): plain HTTP, no browser.
 """
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 SOURCE_ID = "remax"
 BRAND = "RE/MAX Venezuela"
 BASE = "https://www.remax.com.ve"
-MIN_DELAY = 1.0
+MIN_DELAY = 2.0   # robots.txt says 1 s; its search pages answer 429 after ~200 requests at 1 s
 OPERATIONS = {"venta": "sale", "alquiler": "rent"}
 
 URL_TYPE = {

@@ -115,6 +115,8 @@ class PoliteFetcher:
         self.robots: dict = {}
         self.last_hit: dict = {}
         self.requests = 0
+        self.slowdown: dict = {}     # host -> multiplier after a 429
+        self.max_retries = 3
 
     def _host(self, url: str) -> str:
         return urlsplit(url).netloc.lower()
@@ -164,19 +166,39 @@ class PoliteFetcher:
             delay = self.delay_for(url)
         else:
             delay = self.min_delay.get(host, 1.0)
-        self._wait(host, delay)
-        try:
-            r = self.client.get(url)
-            res = FetchResult(url, r.status_code, headers=dict(r.headers))
-            if binary:
-                res.content = r.content
-            else:
-                res.text = r.text
-            if r.status_code >= 400 and r.status_code not in (404, 410):
-                res.error = f"HTTP {r.status_code}"
-        except httpx.HTTPError as e:
-            res = FetchResult(url, 0, error=f"{type(e).__name__}: {e}")
-        finally:
-            self.requests += 1
-            self.last_hit[host] = time.monotonic()
+        delay *= self.slowdown.get(host, 1.0)
+        for attempt in range(self.max_retries + 1):
+            self._wait(host, delay)
+            try:
+                r = self.client.get(url)
+                res = FetchResult(url, r.status_code, headers=dict(r.headers))
+                if binary:
+                    res.content = r.content
+                else:
+                    res.text = r.text
+                if r.status_code >= 400 and r.status_code not in (404, 410):
+                    res.error = f"HTTP {r.status_code}"
+            except httpx.HTTPError as e:
+                res = FetchResult(url, 0, error=f"{type(e).__name__}: {e}")
+            finally:
+                self.requests += 1
+                self.last_hit[host] = time.monotonic()
+            # Rate-limited or server trouble: back off, and slow down for the rest of the run
+            if res.status in (429, 503) or (res.status >= 500) or res.status == 0:
+                if attempt == self.max_retries:
+                    break
+                retry_after = 0.0
+                try:
+                    retry_after = float((res.headers or {}).get("retry-after", 0))
+                except ValueError:
+                    pass
+                wait = max(retry_after, 30.0 * (2 ** attempt))
+                if res.status == 429:
+                    self.slowdown[host] = min(8.0, self.slowdown.get(host, 1.0) * 2)
+                    delay = max(delay, (self.min_delay.get(host, 1.0)) * self.slowdown[host])
+                logger.warning(f"{host}: {res.status or res.error}; waiting {wait:.0f}s "
+                               f"(attempt {attempt + 1}/{self.max_retries}, delay now {delay:.1f}s)")
+                time.sleep(wait)
+                continue
+            break
         return res
