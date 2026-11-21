@@ -12,3 +12,7 @@ out/
 
 # Misc
 nul
+
+# scraper local run log (dry runs / no scrape_runs table)
+scraper/.runs/
+__pycache__/
