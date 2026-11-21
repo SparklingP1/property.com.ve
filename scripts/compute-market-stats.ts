@@ -26,6 +26,23 @@ if (!serviceRoleKey) {
   process.exit(1);
 }
 
+// price_history has RLS with no policies: only the service role can read it.
+// With an anon key compute_market_stats() sees zero rows and "succeeds"
+// while writing nothing — how the index silently stopped after April 2026.
+function keyRole(key: string): string {
+  if (key.startsWith('sb_secret_')) return 'service_role';
+  if (key.startsWith('sb_publishable_')) return 'anon';
+  try {
+    return JSON.parse(Buffer.from(key.split('.')[1], 'base64url').toString()).role ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+if (keyRole(serviceRoleKey) !== 'service_role') {
+  console.error(`❌ The Supabase key has role '${keyRole(serviceRoleKey)}', not 'service_role'`);
+  process.exit(1);
+}
+
 const supabase = createClient(SUPABASE_URL, serviceRoleKey);
 
 function padMonth(month: number) {
@@ -136,7 +153,11 @@ async function computeStats(
     return true; // Stats were computed, just couldn't verify
   }
 
-  console.log(`   ✅ Generated ${stats?.length || 0} stat rows (top 10 shown):`);
+  if (!stats || stats.length === 0) {
+    console.error('   ❌ No stat rows for this period (no run_type=full price_history snapshots?)');
+    return false;
+  }
+  console.log(`   ✅ Generated ${stats.length} stat rows (top 10 shown):`);
   stats?.forEach((s) => {
     const location =
       s.city && s.state
