@@ -43,7 +43,7 @@ GRANT SELECT (
   location, region, state, city, neighborhood,
   bedrooms, bathrooms, parking_spaces,
   area_sqm, total_area_sqm, land_area_sqm,
-  property_type, transaction_type, condition, furnished, construction_years,
+  property_type, property_style, transaction_type, condition, furnished, construction_years,
   amenities, features, reference_code, agent_office,
   thumbnail_url, image_urls, photo_count, has_360_tour, has_video,
   description_short, description_short_es, description_short_en,

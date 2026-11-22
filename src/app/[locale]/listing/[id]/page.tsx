@@ -11,6 +11,11 @@ interface ListingPageProps {
 export default async function ListingPage({ params }: ListingPageProps) {
   const { locale, id } = await params;
 
+  // Ids are UUIDs; anything else (an old slug, junk) is simply not a listing.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    notFound();
+  }
+
   const { listing, error } = await getListingById(id);
 
   // A database error must not look like a missing page (no 404 on outages).
